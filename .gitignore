@@ -141,3 +141,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Desktop packaging output
+apps/desktop/release/
+apps/desktop/release-build/

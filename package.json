@@ -1,0 +1,25 @@
+{
+  "name": "droidview",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DroidView remote support and Android device administration MVP.",
+  "workspaces": [
+    "apps/backend",
+    "apps/web-panel",
+    "apps/desktop",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:backend dev:web",
+    "dev:backend": "npm --workspace @droidview/backend run dev",
+    "dev:web": "npm --workspace @droidview/web-panel run dev",
+    "build": "npm --workspace @droidview/shared run build && npm --workspace @droidview/backend run build && npm --workspace @droidview/web-panel run build",
+    "test": "npm --workspace @droidview/shared run test && npm --workspace @droidview/backend run test && npm --workspace @droidview/web-panel run test",
+    "exe": "npm --workspace @droidview/desktop run dist",
+    "setup": "npm install"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.5.4"
+  }
+}

@@ -63,10 +63,16 @@ apps/android-agent/
 ## Build
 
 ```bash
-./gradlew assembleRelease
+gradle assembleDebug
 ```
 
-APK gerado em: `app/build/outputs/apk/release/app-release.apk`
+Se voce abrir o projeto no Android Studio, ele pode gerar o Gradle Wrapper. Depois disso tambem funciona:
+
+```bash
+./gradlew assembleDebug
+```
+
+APK gerado em: `app/build/outputs/apk/debug/app-debug.apk`
 
 ## Instalação como Device Owner
 

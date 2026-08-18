@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">DroidView Agent</string>
+    <string name="device_admin_description">Permite administracao corporativa consentida do dispositivo.</string>
+</resources>

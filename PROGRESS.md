@@ -2,32 +2,31 @@
 
 ## Status Atual
 
-✅ **Fase 1 - Contratos e Schema**
-- [x] OpenAPI/Swagger definido
-- [x] Eventos Socket definidos
-- [x] Schema do banco de dados
-- [x] Tipos compartilhados (packages/shared)
+✅ **Fase 1 - MVP executavel**
+- [x] Monorepo com workspaces npm
+- [x] Tipos compartilhados em `packages/shared`
+- [x] Backend Fastify + Socket.IO com JWT e dados em memoria
+- [x] Painel React + Vite com login, dashboard, devices, sessoes, logs e gerador APK
+- [x] Desktop Electron com script para gerar `.exe`
+- [x] Agente Android Kotlin skeleton com foreground service, deeplink e estrutura MDM/MediaProjection
+- [x] Docker Compose base
 
-✅ **Fase 2 - Core**
-- [x] Backend: auth, devices, tokens, auditoria, logs
-- [x] Painel: shell + mocks
-- [x] Agente: skeleton (service/socket/QR/Home/Transparência)
-- [x] DevOps base (docker-compose)
+🟡 **Fase 2 - Validacao local**
+- [ ] Instalar dependencias
+- [ ] Rodar builds web/backend/shared
+- [ ] Gerar instalador `.exe`
+- [ ] Gerar APK Android com Gradle local
 
-✅ **Fase 3 - Funcionalidades Completas**
-- [x] Builder de APK (config embutida + assinatura + hash)
-- [x] Agente: sessão remota com overlay visível, relatório de uso
-- [x] Painel: player remoto, builder, Apps Manager, localização, Dashboard
-- [x] Gerador de APK encriptado com URL configurável
-
-✅ **Fase 4 - QA e Docs**
-- [x] E2E fluxos críticos
-- [x] Revisão compliance
-- [x] Documentação completa
+🔜 **Fase 3 - Producao**
+- [ ] Persistencia PostgreSQL real
+- [ ] Pareamento real agente/backend
+- [ ] Streaming MediaProjection consentido
+- [ ] Assinatura Android de release
+- [ ] Deploy em servidor com dominio/HTTPS
 
 ## Próximos Passos
 
-- [ ] Sincronização com GitHub (github.com/Biel0071/dview)
+- [ ] Sincronizacao com GitHub (github.com/Biel0071/dview)
 - [ ] Deploy em produção
 - [ ] Testes com dispositivos reais
 
@@ -35,4 +34,4 @@
 
 - Branch principal: main
 - Remote origin: https://github.com/Biel0071/dview.git
-- Última atualização: $(date)
+- Ultima atualizacao: 2026-08-17

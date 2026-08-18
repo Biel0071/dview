@@ -1,24 +1,25 @@
-# DroidView - Sistema de Suporte Remoto e Gestão de Dispositivos
+# DroidView - Sistema de Suporte Remoto e Gestao de Dispositivos
 
-Sistema completo de suporte remoto e gestão de dispositivos móveis corporativos (MDM).
+Sistema MVP de suporte remoto consentido e gestao administrativa de dispositivos Android corporativos.
 
 ## Arquitetura
 
-- **Backend**: Node.js + TypeScript, Socket.IO, Fastify, PostgreSQL, JWT + 2FA
-- **Agente Android**: Kotlin, serviço foreground, MediaProjection, políticas MDM
-- **Painel Web**: React + TypeScript, tema escuro com acento verde
+- **Backend**: Node.js + TypeScript, Fastify, Socket.IO, JWT e dados em memoria no MVP
+- **Painel Web**: React + TypeScript + Vite, tema escuro com acento verde
+- **Desktop Admin**: Electron + electron-builder para gerar instalador `.exe`
+- **Agente Android**: Kotlin, foreground service, deeplink de pareamento e estrutura MediaProjection/MDM
+- **Shared**: contratos TypeScript compartilhados
 
 ## Funcionalidades
 
-- Autenticação com login e 2FA
+- Autenticacao com login e codigo 2FA simples
 - Dashboard com KPIs em tempo real
-- Gerenciamento de dispositivos com consentimento por sessão
-- Visualização remota via MediaProjection
-- Chat e transferência de arquivos
-- Instalação/remoção de apps corporativos
-- Bloqueio e wipe de dispositivos
-- Builder de APK com URL configurável
-- Logs de conexão e auditoria
+- Gerenciamento de dispositivos com consentimento por sessao
+- Sessao remota simulada pronta para integrar MediaProjection real
+- Apps Manager
+- Gerador de pacote de pareamento Android com QR Code
+- Logs de conexao e auditoria
+- Build web, backend, desktop `.exe` e Android skeleton
 
 ## Estrutura
 
@@ -27,28 +28,50 @@ Sistema completo de suporte remoto e gestão de dispositivos móveis corporativo
 │   ├── backend/          # Node.js + TypeScript
 │   ├── android-agent/    # Kotlin (agente Android)
 │   └── web-panel/        # React + TypeScript
-├── packages/
-│   └── shared/           # Tipos compartilhados
-├── docker/               # Docker Compose e configs
+├── apps/desktop/         # Electron installer
+├── packages/shared/      # Tipos compartilhados
+├── docker/               # Configs Docker
 ├── docs/                 # Documentação
 └── scripts/              # Scripts de build e deploy
 ```
 
 ## Quick Start
 
+## Credenciais locais
+
+```text
+E-mail: admin@droidview.local
+Senha: admin123
+2FA: 123456
+```
+
+Altere esses valores em `.env` antes de qualquer ambiente real.
+
+## Quick Start
+
+### Instalar dependencias
+
+```bash
+npm install
+```
+
 ### Backend
 
 ```bash
-cd apps/backend
-npm install
-npm run dev
+npm run dev:backend
 ```
 
 ### Painel Web
 
 ```bash
-cd apps/web-panel
-npm install
+npm run dev:web
+```
+
+Abra: http://localhost:5173
+
+### Backend e painel juntos
+
+```bash
 npm run dev
 ```
 
@@ -65,11 +88,32 @@ cd apps/android-agent
 docker-compose up -d
 ```
 
-Acesse: https://localhost:8443
+Acesse: http://localhost:8080
 
-## Gerar APK
+## Gerar instalador Windows
 
-No painel web: Menu → Gerador APK → Configurar URL → Gerar APK
+```bash
+npm run exe
+```
+
+Saida esperada: `apps/desktop/release-build/DroidView-Admin-Setup-0.1.0.exe`
+
+## Gerar APK do agente
+
+No painel web: `Gerador APK` -> configurar URL -> gerar QR/pacote MVP.
+
+Para gerar APK Android real do skeleton:
+
+```bash
+cd apps/android-agent
+./gradlew assembleDebug
+```
+
+Se o wrapper Gradle ainda nao existir, abra `apps/android-agent` no Android Studio ou instale Gradle localmente e rode `gradle assembleDebug`.
+
+## Nota de seguranca
+
+O MVP foi criado para aparelhos corporativos autorizados e exige consentimento visivel por sessao. Funcionalidades destrutivas ou ocultas nao estao implementadas.
 
 ## License
 
