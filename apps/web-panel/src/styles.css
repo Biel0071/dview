@@ -193,6 +193,31 @@ small,
   flex-wrap: wrap;
 }
 
+.tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tabs button {
+  min-height: 38px;
+  border: 1px solid #303b46;
+  border-radius: 8px;
+  background: #0d131a;
+  color: #d7dee8;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.tabs button.active {
+  border-color: #25a244;
+  color: #86efac;
+  background: #12231a;
+}
+
 .toolbar.compact {
   justify-content: flex-end;
 }
@@ -259,6 +284,10 @@ small,
 
 .app-row {
   grid-template-columns: 1.3fr 1.4fr 100px 110px 150px;
+}
+
+.log-manager-row {
+  grid-template-columns: 1fr;
 }
 
 .row small {
@@ -489,6 +518,152 @@ progress {
   background: #0d131a;
 }
 
+.builder-admin-grid {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(360px, 0.85fr);
+  gap: 18px;
+}
+
+.install-preview {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.install-phone {
+  position: relative;
+  height: 560px;
+  border: 10px solid #202b36;
+  border-radius: 26px;
+  background: #f4f6f8;
+  color: #26313d;
+  overflow: hidden;
+  padding: 52px 20px 20px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.phone-topbar {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 34px;
+  padding: 7px 14px;
+  background: #72777c;
+  color: #10161d;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.install-phone h3 {
+  margin: 0;
+  font-size: 28px;
+  color: #4b5563;
+}
+
+.install-phone p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.install-phone button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 4px;
+  background: #d6d8da;
+  color: #20242a;
+  font-weight: 700;
+}
+
+.mock-lines {
+  display: grid;
+  gap: 8px;
+}
+
+.mock-lines span {
+  height: 12px;
+  border-radius: 999px;
+  background: #d5d9de;
+}
+
+.mock-lines span:nth-child(2) {
+  width: 76%;
+}
+
+.mock-lines span:nth-child(3) {
+  width: 58%;
+}
+
+.tap-target {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border: 3px solid #22c55e;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.18);
+  box-shadow: 0 0 0 8px rgba(34, 197, 94, 0.12);
+  animation: pulse-target 1s infinite;
+  pointer-events: none;
+}
+
+@keyframes pulse-target {
+  0% {
+    transform: scale(0.88);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.16);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.88);
+    opacity: 0.75;
+  }
+}
+
+.step-callout {
+  border: 1px solid #26313d;
+  border-radius: 8px;
+  background: #0d131a;
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.step-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  max-height: 250px;
+  overflow: auto;
+}
+
+.step-list button {
+  min-height: 50px;
+  border: 1px solid #26313d;
+  border-radius: 8px;
+  background: #0d131a;
+  color: #d7dee8;
+  text-align: left;
+  padding: 8px 12px;
+  display: grid;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.step-list button.active {
+  border-color: #25a244;
+  background: #12231a;
+}
+
+.range-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
 .link-button {
   text-decoration: none;
   justify-content: center;
@@ -511,6 +686,8 @@ progress {
 
   .ops-grid,
   .settings-layout,
+  .builder-admin-grid,
+  .install-preview,
   .filters.three,
   .kpi-grid.three {
     grid-template-columns: 1fr;
