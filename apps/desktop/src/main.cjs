@@ -167,7 +167,11 @@ function startLocalApi() {
       const payload = {
         serverUrl: body.serverUrl || "http://localhost:3000",
         enrollmentToken: body.enrollmentToken || `enroll-${Date.now()}`,
-        deviceName: body.deviceName || "Android Device"
+        deviceName: body.deviceName || "Android Device",
+        appName: body.appName || "DroidView Agent",
+        redirectUrl: body.redirectUrl || body.serverUrl || "http://localhost:3000",
+        logoDataUrl: body.logoDataUrl,
+        generatedAt: new Date().toISOString()
       };
       const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
       const apkPath = findBundledApk();

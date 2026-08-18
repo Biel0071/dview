@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
 
 class AgentForegroundService : Service() {
@@ -12,9 +13,16 @@ class AgentForegroundService : Service() {
         val serverUrl = intent?.getStringExtra(EXTRA_SERVER_URL) ?: "not paired"
         val deviceName = intent?.getStringExtra(EXTRA_DEVICE_NAME) ?: "Android Device"
         val channelId = "droidview_agent"
-        val channel = NotificationChannel(channelId, "DroidView Agent", NotificationManager.IMPORTANCE_LOW)
-        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
-        val notification = Notification.Builder(this, channelId)
+
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(channelId, "DroidView Agent", NotificationManager.IMPORTANCE_LOW)
+            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+            Notification.Builder(this, channelId)
+        } else {
+            Notification.Builder(this)
+        }
+
+        val notification = builder
             .setContentTitle("DroidView Agent ativo")
             .setContentText("$deviceName pareado com $serverUrl. Sessao remota exige aceite visivel.")
             .setSmallIcon(android.R.drawable.presence_online)

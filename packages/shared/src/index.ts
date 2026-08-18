@@ -72,6 +72,9 @@ export interface ApkBuildRequest {
   serverUrl: string;
   enrollmentToken: string;
   deviceName?: string;
+  appName?: string;
+  redirectUrl?: string;
+  logoDataUrl?: string;
 }
 
 export interface ApkBuildResponse {
@@ -79,6 +82,8 @@ export interface ApkBuildResponse {
   downloadUrl: string;
   qrPayload: string;
   sha256: string;
+  artifactType?: "apk" | "enrollment-package";
+  note?: string;
 }
 
 export interface ServerToClientEvents {

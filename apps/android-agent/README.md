@@ -6,11 +6,13 @@ Agente Android Kotlin para pareamento consentido com o DroidView Admin.
 
 Este app e um agente seguro de MVP:
 
+- Instala em Android 7.0+ (`minSdk 24`)
 - Abre por launcher ou deeplink `droidview://enroll?config=...`
 - Decodifica configuracao de pareamento gerada pelo backend
 - Mostra servidor, dispositivo e status do pareamento
 - Exige aceite visivel antes de ativar o foreground service
 - Permite alternar idioma basico entre Portugues e Ingles
+- Abre URL de site/PWA configurada dentro do proprio APK via WebView
 - Solicita compartilhamento de tela pelo dialogo nativo do Android
 - Abre a tela nativa de Device Admin para aceite manual
 

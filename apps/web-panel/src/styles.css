@@ -480,6 +480,15 @@ progress {
   gap: 14px;
 }
 
+.logo-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #303b46;
+  background: #0d131a;
+}
+
 .link-button {
   text-decoration: none;
   justify-content: center;

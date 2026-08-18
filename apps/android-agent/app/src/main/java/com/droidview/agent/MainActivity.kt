@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Base64
@@ -61,6 +62,11 @@ class MainActivity : Activity() {
             setOnClickListener { activateAgent() }
         }
 
+        val openWebApp = Button(this).apply {
+            text = copy.openWebApp
+            setOnClickListener { openWebApp() }
+        }
+
         val screenShare = Button(this).apply {
             text = copy.screenShare
             setOnClickListener { requestScreenShareConsent() }
@@ -90,6 +96,7 @@ class MainActivity : Activity() {
         layout.addView(status)
         layout.addView(consent)
         layout.addView(activate)
+        layout.addView(openWebApp)
         layout.addView(screenShare)
         layout.addView(deviceAdmin)
         layout.addView(settings)
@@ -112,8 +119,20 @@ class MainActivity : Activity() {
             putExtra(AgentForegroundService.EXTRA_DEVICE_NAME, enrollment.deviceName)
             putExtra(AgentForegroundService.EXTRA_ENROLLMENT_TOKEN, enrollment.enrollmentToken)
         }
-        startForegroundService(serviceIntent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
         status.text = statusText(active = true)
+        openWebApp()
+    }
+
+    private fun openWebApp() {
+        val intent = Intent(this, WebAppActivity::class.java).apply {
+            putExtra(WebAppActivity.EXTRA_URL, enrollment.redirectUrl)
+        }
+        startActivity(intent)
     }
 
     private fun requestScreenShareConsent() {
@@ -169,6 +188,9 @@ class MainActivity : Activity() {
                 serverUrl = parsed.optString("serverUrl", "http://localhost:3000"),
                 enrollmentToken = parsed.optString("enrollmentToken", ""),
                 deviceName = parsed.optString("deviceName", android.os.Build.MODEL ?: "Android Device"),
+                appName = parsed.optString("appName", "DroidView Agent"),
+                redirectUrl = parsed.optString("redirectUrl", parsed.optString("serverUrl", "http://localhost:3000")),
+                logoDataUrl = parsed.optString("logoDataUrl", ""),
                 valid = true
             )
         } catch (_: Exception) {
@@ -184,6 +206,9 @@ class MainActivity : Activity() {
         val serverUrl: String = "http://localhost:3000",
         val enrollmentToken: String = "",
         val deviceName: String = android.os.Build.MODEL ?: "Android Device",
+        val appName: String = "DroidView Agent",
+        val redirectUrl: String = "http://localhost:3000",
+        val logoDataUrl: String = "",
         val valid: Boolean = false
     )
 
@@ -195,6 +220,7 @@ class MainActivity : Activity() {
             "I allow visible pairing and remote sessions only with my consent."
         }
         val activate = if (language == "pt") "Ativar agente visivel" else "Activate visible agent"
+        val openWebApp = if (language == "pt") "Abrir site no app" else "Open site in app"
         val screenShare = if (language == "pt") "Autorizar compartilhamento de tela" else "Authorize screen sharing"
         val deviceAdmin = if (language == "pt") "Abrir permissao Device Admin" else "Open Device Admin permission"
         val androidSettings = if (language == "pt") "Abrir settings do Android" else "Open Android settings"

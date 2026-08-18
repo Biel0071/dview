@@ -98,6 +98,9 @@ export function buildApp() {
       serverUrl: request.body.serverUrl,
       enrollmentToken: request.body.enrollmentToken,
       deviceName: request.body.deviceName ?? "Android Device",
+      appName: request.body.appName ?? "DroidView Agent",
+      redirectUrl: request.body.redirectUrl ?? request.body.serverUrl,
+      logoDataUrl: request.body.logoDataUrl,
       generatedAt: new Date().toISOString()
     };
     const encoded = encodeEnrollment(payload);

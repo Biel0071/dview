@@ -8,6 +8,9 @@ export interface EnrollmentPayload {
   enrollmentToken: string;
   deviceName: string;
   generatedAt: string;
+  appName?: string;
+  redirectUrl?: string;
+  logoDataUrl?: string;
 }
 
 export interface AgentArtifact {
@@ -42,7 +45,10 @@ export function decodeEnrollment(config: string): EnrollmentPayload {
     serverUrl: parsed.serverUrl,
     enrollmentToken: parsed.enrollmentToken,
     deviceName: parsed.deviceName ?? "Android Device",
-    generatedAt: parsed.generatedAt ?? new Date().toISOString()
+    generatedAt: parsed.generatedAt ?? new Date().toISOString(),
+    appName: parsed.appName ?? "DroidView Agent",
+    redirectUrl: parsed.redirectUrl ?? parsed.serverUrl,
+    logoDataUrl: parsed.logoDataUrl
   };
 }
 
@@ -101,6 +107,9 @@ function createEnrollmentZip(enrollment: EnrollmentPayload) {
     "",
     "After installing the APK, open this pairing link on the device:",
     `droidview://enroll?config=${encodeEnrollment(enrollment)}`,
+    "",
+    "Configured web/PWA URL:",
+    enrollment.redirectUrl ?? enrollment.serverUrl,
     "",
     "Remote sessions require visible user consent on the Android device."
   ].join("\n");

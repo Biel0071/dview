@@ -63,3 +63,26 @@ GET /apk/status/:config
 - Compartilhamento de tela usa o dialogo nativo MediaProjection.
 - Device Admin abre a tela oficial do Android para consentimento manual.
 - O projeto nao implementa instalacao silenciosa, bypass, modo oculto, wipe automatico ou controle remoto sem consentimento.
+
+## Compatibilidade
+
+- `minSdk 24`: Android 7.0+.
+- `targetSdk 35`: preparado para regras atuais de Android moderno.
+- Em Android 8+ usa canal de notificacao.
+- Em Android 7 usa notificacao foreground compatível sem canal.
+
+O erro "mudar para uma versão de instancia do Android mais recente" acontecia porque o MVP anterior exigia Android 10+ (`minSdk 29`). Isso foi reduzido para Android 7+.
+
+## WebApp/PWA
+
+O payload de geracao aceita:
+
+```json
+{
+  "appName": "Minha Marca",
+  "redirectUrl": "https://meusite.com",
+  "logoDataUrl": "data:image/png;base64,..."
+}
+```
+
+Apos o usuario marcar aceite e ativar o agente, o app abre `redirectUrl` em uma WebView interna. Nome/logo sao carregados como configuracao do fluxo; mudar nome e icone nativos instalados exige build Android personalizada e assinatura.

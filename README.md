@@ -112,6 +112,8 @@ O APK debug real fica versionado em:
 artifacts/android/DroidView-Agent-debug.apk
 ```
 
+Compatibilidade atual do APK: Android 7.0+ (`minSdk 24`) até Android moderno com `targetSdk 35`.
+
 Para gerar APK Android real do skeleton:
 
 ```bash
@@ -120,6 +122,8 @@ cd apps/android-agent
 ```
 
 Depois da build, copie o APK novo para `artifacts/android/DroidView-Agent-debug.apk` antes de gerar o instalador desktop.
+
+O Gerador APK aceita URL do site/PWA, nome exibido no fluxo e logo em payload. O app abre a URL dentro de uma WebView depois do aceite.
 
 ## Nota de seguranca
 
