@@ -2,9 +2,16 @@ import type { AppPackage, AuditLog, Device, RemoteSession, User } from "@droidvi
 
 export const adminUser: User = {
   id: "usr_admin",
-  email: process.env.ADMIN_EMAIL ?? "admin@droidview.local",
-  name: "DroidView Admin",
+  email: process.env.ADMIN_EMAIL ?? "admin@dview.local",
+  name: "DVIEW Admin",
   role: "admin"
+};
+
+export const operatorUser: User = {
+  id: "usr_operator",
+  email: process.env.OPERATOR_EMAIL ?? "user@dview.local",
+  name: "DVIEW Operador",
+  role: "operator"
 };
 
 export const devices: Device[] = [
@@ -42,14 +49,14 @@ export const logs: AuditLog[] = [
     action: "system.boot",
     target: "backend",
     severity: "info",
-    message: "DroidView backend initialized"
+    message: "DVIEW backend initialized"
   }
 ];
 
 export const apps: AppPackage[] = [
   {
     id: "app_agent",
-    name: "DroidView Agent",
+    name: "DVIEW Agent",
     version: "0.1.0",
     packageName: "com.droidview.agent",
     uploadedAt: new Date().toISOString(),

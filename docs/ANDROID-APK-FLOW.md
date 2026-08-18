@@ -1,13 +1,13 @@
 # Android APK Flow
 
-O fluxo Android do DroidView agora separa dois casos de forma honesta.
+O fluxo Android do DVIEW agora separa dois casos de forma honesta.
 
 ## Caso 1: APK Real Disponivel
 
 Se existir:
 
 ```text
-artifacts/android/DroidView-Agent-debug.apk
+artifacts/android/DVIEW-Agent-debug.apk
 ```
 
 ou o output local de build:
@@ -35,7 +35,7 @@ x-droidview-sha256: <hash>
 Se o APK nao existir, o backend entrega:
 
 ```text
-DroidView-Agent-enrollment-package.zip
+DVIEW-Agent-enrollment-package.zip
 ```
 
 com:

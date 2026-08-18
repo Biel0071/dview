@@ -1,4 +1,4 @@
-# DroidView - Sistema de Suporte Remoto e Gestao de Dispositivos
+# DVIEW - Sistema de Suporte Remoto e Gestao de Dispositivos
 
 Sistema MVP de suporte remoto consentido e gestao administrativa de dispositivos Android corporativos.
 
@@ -40,8 +40,12 @@ Sistema MVP de suporte remoto consentido e gestao administrativa de dispositivos
 ## Credenciais locais
 
 ```text
-E-mail: admin@droidview.local
+Admin: admin@dview.local
 Senha: admin123
+2FA: 123456
+
+Operador: user@dview.local
+Senha: user123
 2FA: 123456
 ```
 
@@ -100,16 +104,16 @@ Acesse: http://localhost:8080
 npm run exe
 ```
 
-Saida esperada: `apps/desktop/release-mvp/DroidView-Admin-Setup-0.1.0.exe`
+Saida esperada: `apps/desktop/release-mvp/DVIEW-Admin-Setup-0.1.0.exe`
 
 ## Gerar APK do agente
 
-No painel web: `Gerador APK` -> configurar URL -> gerar QR -> baixar `DroidView-Agent-debug.apk`.
+No painel web: `Gerador APK` -> configurar URL -> gerar QR -> baixar `DVIEW-Agent-debug.apk`.
 
 O APK debug real fica versionado em:
 
 ```text
-artifacts/android/DroidView-Agent-debug.apk
+artifacts/android/DVIEW-Agent-debug.apk
 ```
 
 Compatibilidade atual do APK: Android 7.0+ (`minSdk 24`) até Android moderno com `targetSdk 35`.
@@ -121,7 +125,7 @@ cd apps/android-agent
 ./gradlew assembleDebug
 ```
 
-Depois da build, copie o APK novo para `artifacts/android/DroidView-Agent-debug.apk` antes de gerar o instalador desktop.
+Depois da build, copie o APK novo para `artifacts/android/DVIEW-Agent-debug.apk` antes de gerar o instalador desktop.
 
 O Gerador APK aceita URL do site/PWA, nome exibido no fluxo e logo em payload. O app abre a URL dentro de uma WebView depois do aceite.
 

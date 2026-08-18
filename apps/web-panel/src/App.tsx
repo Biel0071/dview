@@ -15,18 +15,18 @@ import { createSocket } from "./socket/client";
 import { translate } from "./i18n";
 
 const nav = [
-  { name: "Dashboard", icon: LayoutDashboard },
-  { name: "Clients", icon: Smartphone },
-  { name: "Remote Session", icon: MonitorSmartphone },
-  { name: "Apps Manager", icon: Boxes },
-  { name: "Connection Logs", icon: ListChecks },
-  { name: "Gerador APK", icon: Download },
-  { name: "Settings", icon: Settings },
-  { name: "About", icon: Shield }
+  { name: "Dashboard", icon: LayoutDashboard, adminOnly: false },
+  { name: "Clients", icon: Smartphone, adminOnly: false },
+  { name: "Remote Session", icon: MonitorSmartphone, adminOnly: false },
+  { name: "Apps Manager", icon: Boxes, adminOnly: true },
+  { name: "Connection Logs", icon: ListChecks, adminOnly: true },
+  { name: "Gerador APK", icon: Download, adminOnly: true },
+  { name: "Settings", icon: Settings, adminOnly: true },
+  { name: "About", icon: Shield, adminOnly: false }
 ];
 
 export function App() {
-  const { token, view, setView, logout, setDevices, setSessions, setStats, preferences } = useAppStore();
+  const { token, user, view, setView, logout, setDevices, setSessions, setStats, preferences } = useAppStore();
   const [error, setError] = useState("");
   const t = (key: string) => translate(preferences.language, key);
 
@@ -58,6 +58,10 @@ export function App() {
   }, [token]);
 
   const page = useMemo(() => {
+    const adminViews = ["Apps Manager", "Connection Logs", "Gerador APK", "Settings"];
+    if (user?.role !== "admin" && adminViews.includes(view)) {
+      return <Dashboard />;
+    }
     switch (view) {
       case "Clients":
         return <Devices />;
@@ -76,7 +80,7 @@ export function App() {
       default:
         return <Dashboard />;
     }
-  }, [view]);
+  }, [view, user?.role]);
 
   if (!token) return <Login />;
 
@@ -86,12 +90,12 @@ export function App() {
         <div className="brand">
           <Activity size={26} />
           <div>
-            <strong>DroidView</strong>
-            <span>Admin Console</span>
+            <strong>DVIEW</strong>
+            <span>{user?.role === "admin" ? "Admin Console" : "Operador"}</span>
           </div>
         </div>
         <nav>
-          {nav.map((item) => {
+          {nav.filter((item) => user?.role === "admin" || !item.adminOnly).map((item) => {
             const Icon = item.icon;
             return (
               <button key={item.name} className={view === item.name ? "active" : ""} onClick={() => setView(item.name)}>
@@ -110,9 +114,12 @@ export function App() {
         <header className="topbar">
           <div>
             <span className="eyebrow">{t("localOperation")}</span>
-            <h1>{t(view)}</h1>
+            <h1>{t(user?.role !== "admin" && ["Apps Manager", "Connection Logs", "Gerador APK", "Settings"].includes(view) ? "Dashboard" : view)}</h1>
           </div>
-          <button className="secondary" onClick={() => void refresh()}>{t("refresh")}</button>
+          <div className="toolbar">
+            <span className={`badge ${user?.role === "admin" ? "active" : ""}`}>{t(user?.role === "admin" ? "adminArea" : "operatorArea")}</span>
+            <button className="secondary" onClick={() => void refresh()}>{t("refresh")}</button>
+          </div>
         </header>
         {error ? <div className="alert">{error}</div> : null}
         {page}

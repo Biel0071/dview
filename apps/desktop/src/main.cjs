@@ -9,9 +9,16 @@ let apiServer;
 
 const adminUser = {
   id: "usr_admin",
-  email: "admin@droidview.local",
-  name: "DroidView Admin",
+  email: "admin@dview.local",
+  name: "DVIEW Admin",
   role: "admin"
+};
+
+const operatorUser = {
+  id: "usr_operator",
+  email: "user@dview.local",
+  name: "DVIEW Operador",
+  role: "operator"
 };
 
 const devices = [
@@ -37,14 +44,14 @@ const logs = [
     action: "desktop.boot",
     target: "local-api",
     severity: "info",
-    message: "DroidView desktop local API initialized"
+    message: "DVIEW desktop local API initialized"
   }
 ];
 
 const apps = [
   {
     id: "app_agent",
-    name: "DroidView Agent",
+    name: "DVIEW Agent",
     version: "0.1.0",
     packageName: "com.droidview.agent",
     uploadedAt: new Date().toISOString(),
@@ -54,9 +61,9 @@ const apps = [
 
 function findBundledApk() {
   const candidates = [
-    path.join(process.resourcesPath || "", "artifacts", "android", "DroidView-Agent-debug.apk"),
-    path.join(__dirname, "../../../artifacts/android/DroidView-Agent-debug.apk"),
-    path.join(process.cwd(), "artifacts/android/DroidView-Agent-debug.apk")
+    path.join(process.resourcesPath || "", "artifacts", "android", "DVIEW-Agent-debug.apk"),
+    path.join(__dirname, "../../../artifacts/android/DVIEW-Agent-debug.apk"),
+    path.join(process.cwd(), "artifacts/android/DVIEW-Agent-debug.apk")
   ];
   return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || null;
 }
@@ -121,14 +128,16 @@ function startLocalApi() {
 
     if (request.method === "POST" && url.pathname === "/auth/login") {
       const body = await readBody(request);
-      if (body.email !== adminUser.email || body.password !== "admin123" || body.totp !== "123456") {
+      const user = body.email === adminUser.email ? adminUser : body.email === operatorUser.email ? operatorUser : null;
+      const passwordOk = (user?.role === "admin" && body.password === "admin123") || (user?.role === "operator" && body.password === "user123");
+      if (!user || !passwordOk || body.totp !== "123456") {
         addLog("auth.failed", "admin", "Invalid desktop login", "warning");
         return sendJson(response, 401, { error: "Invalid credentials or 2FA code" });
       }
       addLog("auth.login", "admin", "Admin logged in from desktop");
       return sendJson(response, 200, {
-        token: Buffer.from(JSON.stringify({ sub: adminUser.id, desktop: true })).toString("base64url"),
-        user: adminUser
+        token: Buffer.from(JSON.stringify({ sub: user.id, role: user.role, desktop: true })).toString("base64url"),
+        user
       });
     }
 
@@ -168,7 +177,7 @@ function startLocalApi() {
         serverUrl: body.serverUrl || "http://localhost:3000",
         enrollmentToken: body.enrollmentToken || `enroll-${Date.now()}`,
         deviceName: body.deviceName || "Android Device",
-        appName: body.appName || "DroidView Agent",
+        appName: body.appName || "DVIEW Agent",
         redirectUrl: body.redirectUrl || body.serverUrl || "http://localhost:3000",
         logoDataUrl: body.logoDataUrl,
         generatedAt: new Date().toISOString()
@@ -180,7 +189,7 @@ function startLocalApi() {
         : crypto.createHash("sha256").update(encoded).digest("hex");
       addLog("apk.build", "agent", "Agent enrollment package generated");
       return sendJson(response, 200, {
-        apkName: apkPath ? "DroidView-Agent-debug.apk" : "DroidView-Agent-enrollment-package.zip",
+        apkName: apkPath ? "DVIEW-Agent-debug.apk" : "DVIEW-Agent-enrollment-package.zip",
         downloadUrl: `/apk/download/${encoded}`,
         qrPayload: `droidview://enroll?config=${encoded}`,
         sha256,
@@ -196,7 +205,7 @@ function startLocalApi() {
         const apk = fs.readFileSync(apkPath);
         response.writeHead(200, {
           "content-type": "application/vnd.android.package-archive",
-          "content-disposition": "attachment; filename=DroidView-Agent-debug.apk",
+          "content-disposition": "attachment; filename=DVIEW-Agent-debug.apk",
           "x-droidview-artifact-kind": "apk",
           "x-droidview-sha256": crypto.createHash("sha256").update(apk).digest("hex"),
           "access-control-allow-origin": "*"
@@ -205,13 +214,13 @@ function startLocalApi() {
       }
 
       const text = [
-        "DroidView Agent enrollment package",
+        "DVIEW Agent enrollment package",
         "Build apps/android-agent with Android Studio/Gradle to generate a real APK if the bundled APK is absent.",
         `Enrollment config: ${apkMatch[1]}`
       ].join("\n");
       response.writeHead(200, {
         "content-type": "application/zip",
-        "content-disposition": "attachment; filename=DroidView-Agent-enrollment-package.zip",
+        "content-disposition": "attachment; filename=DVIEW-Agent-enrollment-package.zip",
         "x-droidview-artifact-kind": "enrollment-package",
         "access-control-allow-origin": "*"
       });
@@ -233,7 +242,7 @@ function createWindow() {
     height: 860,
     minWidth: 1100,
     minHeight: 720,
-    title: "DroidView Admin",
+    title: "DVIEW Admin",
     backgroundColor: "#0b0f14",
     webPreferences: {
       contextIsolation: true,

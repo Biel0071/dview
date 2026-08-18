@@ -5,7 +5,7 @@ import { useAppStore } from "../store";
 
 export function Login() {
   const setAuth = useAppStore((state) => state.setAuth);
-  const [email, setEmail] = useState("admin@droidview.local");
+  const [email, setEmail] = useState("admin@dview.local");
   const [password, setPassword] = useState("admin123");
   const [totp, setTotp] = useState("123456");
   const [error, setError] = useState("");
@@ -26,7 +26,7 @@ export function Login() {
         <div className="brand big">
           <ShieldCheck size={32} />
           <div>
-            <strong>DroidView</strong>
+            <strong>DVIEW</strong>
             <span>Admin Console</span>
           </div>
         </div>

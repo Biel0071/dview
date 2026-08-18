@@ -18,7 +18,9 @@ const dictionary: Record<Language, Record<string, string>> = {
     About: "Sobre",
     refresh: "Atualizar",
     localOperation: "Operacao local",
-    logout: "Sair"
+    logout: "Sair",
+    adminArea: "Area admin",
+    operatorArea: "Area operador"
   },
   en: {
     Dashboard: "Dashboard",
@@ -31,7 +33,9 @@ const dictionary: Record<Language, Record<string, string>> = {
     About: "About",
     refresh: "Refresh",
     localOperation: "Local operation",
-    logout: "Sign out"
+    logout: "Sign out",
+    adminArea: "Admin area",
+    operatorArea: "Operator area"
   },
   es: {
     Dashboard: "Panel",
@@ -44,7 +48,9 @@ const dictionary: Record<Language, Record<string, string>> = {
     About: "Acerca de",
     refresh: "Actualizar",
     localOperation: "Operacion local",
-    logout: "Salir"
+    logout: "Salir",
+    adminArea: "Area admin",
+    operatorArea: "Area operador"
   }
 };
 

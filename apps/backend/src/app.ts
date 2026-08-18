@@ -3,7 +3,7 @@ import jwt from "@fastify/jwt";
 import Fastify from "fastify";
 import type { ApkBuildRequest, LoginRequest } from "@droidview/shared";
 import { decodeEnrollment, encodeEnrollment, findBuiltApk, resolveAgentArtifact } from "./apkArtifacts.js";
-import { addLog, adminUser, apps, devices, logs, sessions } from "./data.js";
+import { addLog, adminUser, apps, devices, logs, operatorUser, sessions } from "./data.js";
 
 export function buildApp() {
   const app = Fastify({ logger: true, maxParamLength: 4096 });
@@ -29,10 +29,15 @@ export function buildApp() {
 
   app.post<{ Body: LoginRequest }>("/auth/login", async (request, reply) => {
     const { email, password, totp } = request.body;
-    const expectedPassword = process.env.ADMIN_PASSWORD ?? "admin123";
+    const expectedAdminPassword = process.env.ADMIN_PASSWORD ?? "admin123";
+    const expectedOperatorPassword = process.env.OPERATOR_PASSWORD ?? "user123";
     const expectedTotp = process.env.ADMIN_TOTP ?? "123456";
+    const user = email === adminUser.email ? adminUser : email === operatorUser.email ? operatorUser : null;
+    const passwordOk =
+      (user?.role === "admin" && password === expectedAdminPassword) ||
+      (user?.role === "operator" && password === expectedOperatorPassword);
 
-    if (email !== adminUser.email || password !== expectedPassword || totp !== expectedTotp) {
+    if (!user || !passwordOk || totp !== expectedTotp) {
       addLog({
         actor: email,
         action: "auth.failed",
@@ -43,15 +48,15 @@ export function buildApp() {
       return reply.code(401).send({ error: "Invalid credentials or 2FA code" });
     }
 
-    const token = app.jwt.sign({ sub: adminUser.id, email: adminUser.email, role: adminUser.role });
+    const token = app.jwt.sign({ sub: user.id, email: user.email, role: user.role });
     addLog({
-      actor: adminUser.email,
+      actor: user.email,
       action: "auth.login",
       target: "admin",
       severity: "info",
       message: "Admin logged in"
     });
-    return { token, user: adminUser };
+    return { token, user };
   });
 
   app.get("/dashboard", { preHandler: (app as any).authenticate }, async () => ({
@@ -98,7 +103,7 @@ export function buildApp() {
       serverUrl: request.body.serverUrl,
       enrollmentToken: request.body.enrollmentToken,
       deviceName: request.body.deviceName ?? "Android Device",
-      appName: request.body.appName ?? "DroidView Agent",
+      appName: request.body.appName ?? "DVIEW Agent",
       redirectUrl: request.body.redirectUrl ?? request.body.serverUrl,
       logoDataUrl: request.body.logoDataUrl,
       generatedAt: new Date().toISOString()
@@ -115,7 +120,7 @@ export function buildApp() {
     });
 
     return {
-      apkName: hasBuiltApk ? "DroidView-Agent-debug.apk" : "DroidView-Agent-enrollment-package.zip",
+      apkName: hasBuiltApk ? "DVIEW-Agent-debug.apk" : "DVIEW-Agent-enrollment-package.zip",
       downloadUrl: `/apk/download/${encoded}`,
       qrPayload: `droidview://enroll?config=${encoded}`,
       sha256: "calculated-on-download",
@@ -143,7 +148,7 @@ export function buildApp() {
       return {
         ready: true,
         artifactType: hasBuiltApk ? "apk" : "enrollment-package",
-        fileName: hasBuiltApk ? "DroidView-Agent-debug.apk" : "DroidView-Agent-enrollment-package.zip",
+        fileName: hasBuiltApk ? "DVIEW-Agent-debug.apk" : "DVIEW-Agent-enrollment-package.zip",
         enrollment,
         message: hasBuiltApk
           ? "APK real disponivel para download."

@@ -1,4 +1,4 @@
-# DroidView - Progresso do Projeto
+# DVIEW - Progresso do Projeto
 
 ## Status Atual
 

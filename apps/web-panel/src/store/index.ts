@@ -32,6 +32,16 @@ function loadPreferences(): WebPreferences {
   }
 }
 
+function loadUser(): User | null {
+  const raw = localStorage.getItem("dview.user");
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+}
+
 interface AppState {
   token: string | null;
   user: User | null;
@@ -51,7 +61,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   token: localStorage.getItem("droidview.token"),
-  user: null,
+  user: loadUser(),
   view: "Dashboard",
   devices: [],
   sessions: [],
@@ -59,10 +69,12 @@ export const useAppStore = create<AppState>((set) => ({
   preferences: loadPreferences(),
   setAuth: (token, user) => {
     localStorage.setItem("droidview.token", token);
+    localStorage.setItem("dview.user", JSON.stringify(user));
     set({ token, user });
   },
   logout: () => {
     localStorage.removeItem("droidview.token");
+    localStorage.removeItem("dview.user");
     set({ token: null, user: null });
   },
   setView: (view) => set({ view }),

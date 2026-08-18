@@ -2,7 +2,7 @@
   "name": "@droidview/desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "DroidView Admin desktop installer.",
+  "description": "DVIEW Admin desktop installer.",
   "main": "src/main.cjs",
   "scripts": {
     "build": "npm --workspace @droidview/web-panel run build",
@@ -18,7 +18,7 @@
   },
   "build": {
     "appId": "com.droidview.admin",
-    "productName": "DroidView Admin",
+    "productName": "DVIEW Admin",
     "directories": {
       "output": "release-mvp"
     },
@@ -37,7 +37,7 @@
     ],
     "win": {
       "target": "nsis",
-      "artifactName": "DroidView-Admin-Setup-${version}.exe",
+      "artifactName": "DVIEW-Admin-Setup-${version}.exe",
       "signAndEditExecutable": false
     },
     "nsis": {

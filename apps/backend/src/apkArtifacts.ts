@@ -23,7 +23,7 @@ export interface AgentArtifact {
 }
 
 const APK_CANDIDATES = [
-  ["artifacts", "android", "DroidView-Agent-debug.apk"],
+  ["artifacts", "android", "DVIEW-Agent-debug.apk"],
   ["apps", "android-agent", "app", "build", "outputs", "apk", "debug", "app-debug.apk"],
   ["..", "android-agent", "app", "build", "outputs", "apk", "debug", "app-debug.apk"],
   ["..", "..", "apps", "android-agent", "app", "build", "outputs", "apk", "debug", "app-debug.apk"]
@@ -59,7 +59,7 @@ export async function resolveAgentArtifact(config: string): Promise<AgentArtifac
   if (apkPath) {
     const apk = await readFile(apkPath);
     return {
-      fileName: "DroidView-Agent-debug.apk",
+      fileName: "DVIEW-Agent-debug.apk",
       contentType: "application/vnd.android.package-archive",
       buffer: apk,
       sha256: sha256(apk),
@@ -70,7 +70,7 @@ export async function resolveAgentArtifact(config: string): Promise<AgentArtifac
 
   const buffer = createEnrollmentZip(enrollment);
   return {
-    fileName: "DroidView-Agent-enrollment-package.zip",
+    fileName: "DVIEW-Agent-enrollment-package.zip",
     contentType: "application/zip",
     buffer,
     sha256: sha256(buffer),
@@ -91,12 +91,12 @@ export function findBuiltApk(): string | null {
 function createEnrollmentZip(enrollment: EnrollmentPayload) {
   const configJson = JSON.stringify(enrollment, null, 2);
   const readme = [
-    "# DroidView Agent enrollment package",
+    "# DVIEW Agent enrollment package",
     "",
     "This ZIP is a fallback package, not an APK.",
     "",
     "A real APK is served automatically when this file exists:",
-    "artifacts/android/DroidView-Agent-debug.apk",
+    "artifacts/android/DVIEW-Agent-debug.apk",
     "",
     "Development build output is also detected at:",
     "apps/android-agent/app/build/outputs/apk/debug/app-debug.apk",

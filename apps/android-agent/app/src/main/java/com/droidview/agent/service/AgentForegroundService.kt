@@ -12,10 +12,10 @@ class AgentForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val serverUrl = intent?.getStringExtra(EXTRA_SERVER_URL) ?: "not paired"
         val deviceName = intent?.getStringExtra(EXTRA_DEVICE_NAME) ?: "Android Device"
-        val channelId = "droidview_agent"
+        val channelId = "dview_agent"
 
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "DroidView Agent", NotificationManager.IMPORTANCE_LOW)
+            val channel = NotificationChannel(channelId, "DVIEW Agent", NotificationManager.IMPORTANCE_LOW)
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
             Notification.Builder(this, channelId)
         } else {
@@ -23,7 +23,7 @@ class AgentForegroundService : Service() {
         }
 
         val notification = builder
-            .setContentTitle("DroidView Agent ativo")
+            .setContentTitle("DVIEW Agent ativo")
             .setContentText("$deviceName pareado com $serverUrl. Sessao remota exige aceite visivel.")
             .setSmallIcon(android.R.drawable.presence_online)
             .setOngoing(true)

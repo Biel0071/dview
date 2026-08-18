@@ -6,7 +6,7 @@ import { api } from "../api";
 export function ApkBuilder() {
   const [serverUrl, setServerUrl] = useState(api.baseUrl);
   const [redirectUrl, setRedirectUrl] = useState("https://example.com");
-  const [appName, setAppName] = useState("DroidView WebApp");
+  const [appName, setAppName] = useState("DVIEW WebApp");
   const [enrollmentToken, setEnrollmentToken] = useState(`enroll-${Date.now()}`);
   const [deviceName, setDeviceName] = useState("Novo aparelho");
   const [logoDataUrl, setLogoDataUrl] = useState("");

@@ -188,7 +188,7 @@ class MainActivity : Activity() {
                 serverUrl = parsed.optString("serverUrl", "http://localhost:3000"),
                 enrollmentToken = parsed.optString("enrollmentToken", ""),
                 deviceName = parsed.optString("deviceName", android.os.Build.MODEL ?: "Android Device"),
-                appName = parsed.optString("appName", "DroidView Agent"),
+                appName = parsed.optString("appName", "DVIEW Agent"),
                 redirectUrl = parsed.optString("redirectUrl", parsed.optString("serverUrl", "http://localhost:3000")),
                 logoDataUrl = parsed.optString("logoDataUrl", ""),
                 valid = true
@@ -206,14 +206,14 @@ class MainActivity : Activity() {
         val serverUrl: String = "http://localhost:3000",
         val enrollmentToken: String = "",
         val deviceName: String = android.os.Build.MODEL ?: "Android Device",
-        val appName: String = "DroidView Agent",
+        val appName: String = "DVIEW Agent",
         val redirectUrl: String = "http://localhost:3000",
         val logoDataUrl: String = "",
         val valid: Boolean = false
     )
 
     data class Copy(val language: String) {
-        val title = if (language == "pt") "DroidView Agent" else "DroidView Agent"
+        val title = if (language == "pt") "DVIEW Agent" else "DVIEW Agent"
         val consent = if (language == "pt") {
             "Eu autorizo pareamento visivel e sessoes remotas somente com meu aceite."
         } else {
@@ -237,9 +237,9 @@ class MainActivity : Activity() {
             "Screen sharing always opens the native Android consent dialog."
         }
         val deviceAdminExplanation = if (language == "pt") {
-            "DroidView usa Device Admin apenas para administracao corporativa consentida."
+            "DVIEW usa Device Admin apenas para administracao corporativa consentida."
         } else {
-            "DroidView uses Device Admin only for consented corporate administration."
+            "DVIEW uses Device Admin only for consented corporate administration."
         }
         val device = if (language == "pt") "Dispositivo" else "Device"
         val server = if (language == "pt") "Servidor" else "Server"

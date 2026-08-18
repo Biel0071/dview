@@ -52,8 +52,8 @@ const defaultSteps: InstallStep[] = [
   },
   {
     id: "open-agent",
-    title: "Abrir DroidView Agent",
-    screen: "DroidView Agent",
+    title: "Abrir DVIEW Agent",
+    screen: "DVIEW Agent",
     instruction: "Abra o app instalado e confira servidor, aparelho e pareamento.",
     target: "Tela inicial",
     delayMs: 500,
@@ -64,7 +64,7 @@ const defaultSteps: InstallStep[] = [
   {
     id: "accept-consent",
     title: "Marcar aceite",
-    screen: "DroidView Agent",
+    screen: "DVIEW Agent",
     instruction: "Marque a caixa de aceite para permitir apenas sessoes visiveis e consentidas.",
     target: "Checkbox de aceite",
     delayMs: 400,
@@ -75,7 +75,7 @@ const defaultSteps: InstallStep[] = [
   {
     id: "activate-agent",
     title: "Ativar agente visivel",
-    screen: "DroidView Agent",
+    screen: "DVIEW Agent",
     instruction: "Toque em Ativar agente visivel para iniciar a notificacao persistente.",
     target: "Botao ativar",
     delayMs: 700,
@@ -108,7 +108,7 @@ const defaultSteps: InstallStep[] = [
 ];
 
 const defaultManagedConfig: ManagedAppConfig = {
-  displayName: "DroidView WebApp",
+  displayName: "DVIEW WebApp",
   packageName: "com.droidview.agent",
   webUrl: "https://example.com",
   channel: "stable",
