@@ -2,10 +2,11 @@ import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
 import Fastify from "fastify";
 import type { ApkBuildRequest, LoginRequest } from "@droidview/shared";
+import { decodeEnrollment, encodeEnrollment, findBuiltApk, resolveAgentArtifact } from "./apkArtifacts.js";
 import { addLog, adminUser, apps, devices, logs, sessions } from "./data.js";
 
 export function buildApp() {
-  const app = Fastify({ logger: true });
+  const app = Fastify({ logger: true, maxParamLength: 4096 });
 
   app.register(cors, { origin: true });
   app.register(jwt, {
@@ -96,38 +97,58 @@ export function buildApp() {
     const payload = {
       serverUrl: request.body.serverUrl,
       enrollmentToken: request.body.enrollmentToken,
-      deviceName: request.body.deviceName ?? "Android Device"
+      deviceName: request.body.deviceName ?? "Android Device",
+      generatedAt: new Date().toISOString()
     };
-    const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
-    const sha256 = Buffer.from(encoded).toString("hex").slice(0, 64).padEnd(64, "0");
+    const encoded = encodeEnrollment(payload);
+    const hasBuiltApk = Boolean(findBuiltApk());
 
     addLog({
       actor: adminUser.email,
       action: "apk.build",
       target: "agent",
       severity: "info",
-      message: "Agent enrollment package generated"
+      message: hasBuiltApk ? "Real Android agent APK prepared" : "Fallback enrollment package prepared"
     });
 
     return {
-      apkName: "DroidView-Agent-MVP.apk",
+      apkName: hasBuiltApk ? "DroidView-Agent-debug.apk" : "DroidView-Agent-enrollment-package.zip",
       downloadUrl: `/apk/download/${encoded}`,
       qrPayload: `droidview://enroll?config=${encoded}`,
-      sha256
+      sha256: "calculated-on-download",
+      artifactType: hasBuiltApk ? "apk" : "enrollment-package",
+      note: hasBuiltApk
+        ? "APK real encontrado no build Android local."
+        : "SDK/build Android nao encontrado; download sera um ZIP honesto com config e instrucoes."
     };
   });
 
   app.get<{ Params: { config: string } }>("/apk/download/:config", async (request, reply) => {
-    const text = [
-      "DroidView Agent MVP placeholder",
-      "This is not a production APK.",
-      `Enrollment config: ${request.params.config}`,
-      "Build the Android project in apps/android-agent to generate a real APK."
-    ].join("\n");
+    const artifact = await resolveAgentArtifact(request.params.config);
     return reply
-      .header("content-type", "application/vnd.android.package-archive")
-      .header("content-disposition", "attachment; filename=DroidView-Agent-MVP.apk")
-      .send(Buffer.from(text));
+      .header("content-type", artifact.contentType)
+      .header("content-disposition", `attachment; filename=${artifact.fileName}`)
+      .header("x-droidview-artifact-kind", artifact.kind)
+      .header("x-droidview-sha256", artifact.sha256)
+      .send(artifact.buffer);
+  });
+
+  app.get<{ Params: { config: string } }>("/apk/status/:config", async (request, reply) => {
+    try {
+      const enrollment = decodeEnrollment(request.params.config);
+      const hasBuiltApk = Boolean(findBuiltApk());
+      return {
+        ready: true,
+        artifactType: hasBuiltApk ? "apk" : "enrollment-package",
+        fileName: hasBuiltApk ? "DroidView-Agent-debug.apk" : "DroidView-Agent-enrollment-package.zip",
+        enrollment,
+        message: hasBuiltApk
+          ? "APK real disponivel para download."
+          : "APK ainda nao compilado nesta maquina; pacote ZIP de pareamento disponivel."
+      };
+    } catch {
+      return reply.code(400).send({ ready: false, error: "Invalid enrollment config" });
+    }
   });
 
   return app;
