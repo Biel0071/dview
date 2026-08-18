@@ -12,6 +12,7 @@ import { About } from "./pages/About";
 import { ApkBuilder } from "./pages/ApkBuilder";
 import { useAppStore } from "./store";
 import { createSocket } from "./socket/client";
+import { translate } from "./i18n";
 
 const nav = [
   { name: "Dashboard", icon: LayoutDashboard },
@@ -25,8 +26,9 @@ const nav = [
 ];
 
 export function App() {
-  const { token, view, setView, logout, setDevices, setSessions, setStats } = useAppStore();
+  const { token, view, setView, logout, setDevices, setSessions, setStats, preferences } = useAppStore();
   const [error, setError] = useState("");
+  const t = (key: string) => translate(preferences.language, key);
 
   const refresh = async () => {
     if (!token) return;
@@ -94,23 +96,23 @@ export function App() {
             return (
               <button key={item.name} className={view === item.name ? "active" : ""} onClick={() => setView(item.name)}>
                 <Icon size={18} />
-                <span>{item.name}</span>
+                <span>{t(item.name)}</span>
               </button>
             );
           })}
         </nav>
         <button className="logout" onClick={logout}>
           <LogOut size={18} />
-          <span>Sair</span>
+          <span>{t("logout")}</span>
         </button>
       </aside>
       <main className="content">
         <header className="topbar">
           <div>
-            <span className="eyebrow">Operacao local</span>
-            <h1>{view}</h1>
+            <span className="eyebrow">{t("localOperation")}</span>
+            <h1>{t(view)}</h1>
           </div>
-          <button className="secondary" onClick={() => void refresh()}>Atualizar</button>
+          <button className="secondary" onClick={() => void refresh()}>{t("refresh")}</button>
         </header>
         {error ? <div className="alert">{error}</div> : null}
         {page}

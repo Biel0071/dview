@@ -1,8 +1,8 @@
-import { MessageSquare, MousePointer2, Square, Video } from "lucide-react";
+import { Gauge, MessageSquare, MousePointer2, ShieldCheck, Square, Video } from "lucide-react";
 import { useAppStore } from "../store";
 
 export function RemoteSession() {
-  const { sessions, devices } = useAppStore();
+  const { sessions, devices, preferences } = useAppStore();
   const session = sessions[0];
   const device = devices.find((item) => item.id === session?.deviceId);
 
@@ -23,6 +23,11 @@ export function RemoteSession() {
       <aside className="panel tools">
         <h2>Controle remoto</h2>
         <p>Status: <span className={`badge ${session.status}`}>{session.status}</span></p>
+        <div className="session-summary">
+          <span><ShieldCheck size={16} /> Consentimento {preferences.requireConsent ? "obrigatorio" : "manual"}</span>
+          <span><Gauge size={16} /> Qualidade {preferences.sessionQuality}</span>
+          <span>Indicador no aparelho: {preferences.showDeviceIndicator ? "ativo" : "desativado"}</span>
+        </div>
         <button className="secondary"><MousePointer2 size={18} /> Toque remoto</button>
         <button className="secondary"><MessageSquare size={18} /> Chat</button>
         <button className="danger"><Square size={18} /> Encerrar</button>
