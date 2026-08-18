@@ -26,6 +26,15 @@
       "src/**/*",
       "../web-panel/dist/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "../../artifacts/android",
+        "to": "artifacts/android",
+        "filter": [
+          "*.apk"
+        ]
+      }
+    ],
     "win": {
       "target": "nsis",
       "artifactName": "DroidView-Admin-Setup-${version}.exe",

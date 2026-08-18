@@ -1,6 +1,7 @@
 const { app, BrowserWindow, shell } = require("electron");
 const crypto = require("node:crypto");
 const http = require("node:http");
+const fs = require("node:fs");
 const path = require("node:path");
 const isDev = require("electron-is-dev");
 
@@ -50,6 +51,15 @@ const apps = [
     status: "available"
   }
 ];
+
+function findBundledApk() {
+  const candidates = [
+    path.join(process.resourcesPath || "", "artifacts", "android", "DroidView-Agent-debug.apk"),
+    path.join(__dirname, "../../../artifacts/android/DroidView-Agent-debug.apk"),
+    path.join(process.cwd(), "artifacts/android/DroidView-Agent-debug.apk")
+  ];
+  return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || null;
+}
 
 function sendJson(response, statusCode, body) {
   response.writeHead(statusCode, {
@@ -160,26 +170,45 @@ function startLocalApi() {
         deviceName: body.deviceName || "Android Device"
       };
       const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
-      const sha256 = crypto.createHash("sha256").update(encoded).digest("hex");
+      const apkPath = findBundledApk();
+      const sha256 = apkPath
+        ? crypto.createHash("sha256").update(fs.readFileSync(apkPath)).digest("hex")
+        : crypto.createHash("sha256").update(encoded).digest("hex");
       addLog("apk.build", "agent", "Agent enrollment package generated");
       return sendJson(response, 200, {
-        apkName: "DroidView-Agent-MVP.apk",
+        apkName: apkPath ? "DroidView-Agent-debug.apk" : "DroidView-Agent-enrollment-package.zip",
         downloadUrl: `/apk/download/${encoded}`,
         qrPayload: `droidview://enroll?config=${encoded}`,
-        sha256
+        sha256,
+        artifactType: apkPath ? "apk" : "enrollment-package",
+        note: apkPath ? "APK real incluido no instalador." : "APK nao encontrado; pacote de pareamento disponivel."
       });
     }
 
     const apkMatch = url.pathname.match(/^\/apk\/download\/(.+)$/);
     if (request.method === "GET" && apkMatch) {
+      const apkPath = findBundledApk();
+      if (apkPath) {
+        const apk = fs.readFileSync(apkPath);
+        response.writeHead(200, {
+          "content-type": "application/vnd.android.package-archive",
+          "content-disposition": "attachment; filename=DroidView-Agent-debug.apk",
+          "x-droidview-artifact-kind": "apk",
+          "x-droidview-sha256": crypto.createHash("sha256").update(apk).digest("hex"),
+          "access-control-allow-origin": "*"
+        });
+        return response.end(apk);
+      }
+
       const text = [
-        "DroidView Agent MVP placeholder",
-        "Build apps/android-agent with Android Studio/Gradle to generate a real APK.",
+        "DroidView Agent enrollment package",
+        "Build apps/android-agent with Android Studio/Gradle to generate a real APK if the bundled APK is absent.",
         `Enrollment config: ${apkMatch[1]}`
       ].join("\n");
       response.writeHead(200, {
-        "content-type": "application/vnd.android.package-archive",
-        "content-disposition": "attachment; filename=DroidView-Agent-MVP.apk",
+        "content-type": "application/zip",
+        "content-disposition": "attachment; filename=DroidView-Agent-enrollment-package.zip",
+        "x-droidview-artifact-kind": "enrollment-package",
         "access-control-allow-origin": "*"
       });
       return response.end(Buffer.from(text));

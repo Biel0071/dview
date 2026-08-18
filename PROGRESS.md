@@ -10,6 +10,7 @@
 - [x] Desktop Electron com script para gerar `.exe`
 - [x] API local embutida no desktop para uso do MVP instalado
 - [x] Agente Android Kotlin skeleton com foreground service, deeplink e estrutura MDM/MediaProjection
+- [x] APK debug real gerado e exposto para download pelo admin
 - [x] Docker Compose base
 
 🟡 **Fase 2 - Validacao local**

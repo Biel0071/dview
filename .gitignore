@@ -146,3 +146,10 @@ vite.config.ts.timestamp-*
 apps/desktop/release/
 apps/desktop/release-build/
 apps/desktop/release-mvp/
+
+# Android local build output
+apps/android-agent/.gradle/
+apps/android-agent/app/build/
+
+# Local code graph output
+graphify-out/

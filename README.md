@@ -104,7 +104,13 @@ Saida esperada: `apps/desktop/release-mvp/DroidView-Admin-Setup-0.1.0.exe`
 
 ## Gerar APK do agente
 
-No painel web: `Gerador APK` -> configurar URL -> gerar QR/pacote MVP.
+No painel web: `Gerador APK` -> configurar URL -> gerar QR -> baixar `DroidView-Agent-debug.apk`.
+
+O APK debug real fica versionado em:
+
+```text
+artifacts/android/DroidView-Agent-debug.apk
+```
 
 Para gerar APK Android real do skeleton:
 
@@ -113,7 +119,7 @@ cd apps/android-agent
 ./gradlew assembleDebug
 ```
 
-Se o wrapper Gradle ainda nao existir, abra `apps/android-agent` no Android Studio ou instale Gradle localmente e rode `gradle assembleDebug`.
+Depois da build, copie o APK novo para `artifacts/android/DroidView-Agent-debug.apk` antes de gerar o instalador desktop.
 
 ## Nota de seguranca
 
