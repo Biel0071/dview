@@ -1,6 +1,198 @@
 const { app, BrowserWindow, shell } = require("electron");
+const crypto = require("node:crypto");
+const http = require("node:http");
 const path = require("node:path");
 const isDev = require("electron-is-dev");
+
+let apiServer;
+
+const adminUser = {
+  id: "usr_admin",
+  email: "admin@droidview.local",
+  name: "DroidView Admin",
+  role: "admin"
+};
+
+const devices = [
+  {
+    id: "dev_desktop_01",
+    name: "Demo Android 14",
+    model: "Pixel 8",
+    androidVersion: "14",
+    status: "online",
+    battery: 87,
+    lastSeen: new Date().toISOString(),
+    enrolledAt: new Date(Date.now() - 86400000).toISOString(),
+    consentRequired: true
+  }
+];
+
+const sessions = [];
+const logs = [
+  {
+    id: "log_desktop_boot",
+    timestamp: new Date().toISOString(),
+    actor: "desktop",
+    action: "desktop.boot",
+    target: "local-api",
+    severity: "info",
+    message: "DroidView desktop local API initialized"
+  }
+];
+
+const apps = [
+  {
+    id: "app_agent",
+    name: "DroidView Agent",
+    version: "0.1.0",
+    packageName: "com.droidview.agent",
+    uploadedAt: new Date().toISOString(),
+    status: "available"
+  }
+];
+
+function sendJson(response, statusCode, body) {
+  response.writeHead(statusCode, {
+    "content-type": "application/json",
+    "access-control-allow-origin": "*",
+    "access-control-allow-headers": "content-type, authorization",
+    "access-control-allow-methods": "GET, POST, OPTIONS"
+  });
+  response.end(JSON.stringify(body));
+}
+
+function readBody(request) {
+  return new Promise((resolve) => {
+    const chunks = [];
+    request.on("data", (chunk) => chunks.push(chunk));
+    request.on("end", () => {
+      const raw = Buffer.concat(chunks).toString("utf8");
+      if (!raw) return resolve({});
+      try {
+        resolve(JSON.parse(raw));
+      } catch {
+        resolve({});
+      }
+    });
+  });
+}
+
+function addLog(action, target, message, severity = "info") {
+  const entry = {
+    id: `log_${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    actor: "desktop-admin",
+    action,
+    target,
+    severity,
+    message
+  };
+  logs.unshift(entry);
+  return entry;
+}
+
+function startLocalApi() {
+  if (apiServer) return;
+
+  apiServer = http.createServer(async (request, response) => {
+    const url = new URL(request.url || "/", "http://localhost:3000");
+
+    if (request.method === "OPTIONS") {
+      return sendJson(response, 200, {});
+    }
+
+    if (request.method === "GET" && url.pathname === "/health") {
+      return sendJson(response, 200, {
+        ok: true,
+        service: "droidview-desktop-api",
+        time: new Date().toISOString()
+      });
+    }
+
+    if (request.method === "POST" && url.pathname === "/auth/login") {
+      const body = await readBody(request);
+      if (body.email !== adminUser.email || body.password !== "admin123" || body.totp !== "123456") {
+        addLog("auth.failed", "admin", "Invalid desktop login", "warning");
+        return sendJson(response, 401, { error: "Invalid credentials or 2FA code" });
+      }
+      addLog("auth.login", "admin", "Admin logged in from desktop");
+      return sendJson(response, 200, {
+        token: Buffer.from(JSON.stringify({ sub: adminUser.id, desktop: true })).toString("base64url"),
+        user: adminUser
+      });
+    }
+
+    if (request.method === "GET" && url.pathname === "/dashboard") {
+      return sendJson(response, 200, {
+        totalDevices: devices.length,
+        onlineDevices: devices.filter((device) => device.status === "online").length,
+        activeSessions: sessions.filter((session) => session.status === "active").length,
+        pendingAlerts: logs.filter((log) => log.severity !== "info").length
+      });
+    }
+
+    if (request.method === "GET" && url.pathname === "/devices") return sendJson(response, 200, devices);
+    if (request.method === "GET" && url.pathname === "/sessions") return sendJson(response, 200, sessions);
+    if (request.method === "GET" && url.pathname === "/logs") return sendJson(response, 200, logs);
+    if (request.method === "GET" && url.pathname === "/apps") return sendJson(response, 200, apps);
+
+    const sessionMatch = url.pathname.match(/^\/devices\/([^/]+)\/session$/);
+    if (request.method === "POST" && sessionMatch) {
+      const device = devices.find((item) => item.id === sessionMatch[1]);
+      if (!device) return sendJson(response, 404, { error: "Device not found" });
+      const session = {
+        id: `ses_${Date.now()}`,
+        deviceId: device.id,
+        operatorId: adminUser.id,
+        status: "requested",
+        consentCode: String(Math.floor(100000 + Math.random() * 900000))
+      };
+      sessions.unshift(session);
+      addLog("session.request", device.id, `Consent code ${session.consentCode} generated`);
+      return sendJson(response, 200, session);
+    }
+
+    if (request.method === "POST" && url.pathname === "/apk/build") {
+      const body = await readBody(request);
+      const payload = {
+        serverUrl: body.serverUrl || "http://localhost:3000",
+        enrollmentToken: body.enrollmentToken || `enroll-${Date.now()}`,
+        deviceName: body.deviceName || "Android Device"
+      };
+      const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
+      const sha256 = crypto.createHash("sha256").update(encoded).digest("hex");
+      addLog("apk.build", "agent", "Agent enrollment package generated");
+      return sendJson(response, 200, {
+        apkName: "DroidView-Agent-MVP.apk",
+        downloadUrl: `/apk/download/${encoded}`,
+        qrPayload: `droidview://enroll?config=${encoded}`,
+        sha256
+      });
+    }
+
+    const apkMatch = url.pathname.match(/^\/apk\/download\/(.+)$/);
+    if (request.method === "GET" && apkMatch) {
+      const text = [
+        "DroidView Agent MVP placeholder",
+        "Build apps/android-agent with Android Studio/Gradle to generate a real APK.",
+        `Enrollment config: ${apkMatch[1]}`
+      ].join("\n");
+      response.writeHead(200, {
+        "content-type": "application/vnd.android.package-archive",
+        "content-disposition": "attachment; filename=DroidView-Agent-MVP.apk",
+        "access-control-allow-origin": "*"
+      });
+      return response.end(Buffer.from(text));
+    }
+
+    return sendJson(response, 404, { error: "Not found" });
+  });
+
+  apiServer.on("error", (error) => {
+    if (error.code !== "EADDRINUSE") console.error(error);
+  });
+  apiServer.listen(3000, "127.0.0.1");
+}
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -28,9 +220,13 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  startLocalApi();
+  createWindow();
+});
 
 app.on("window-all-closed", () => {
+  if (apiServer) apiServer.close();
   if (process.platform !== "darwin") app.quit();
 });
 

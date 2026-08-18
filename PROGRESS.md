@@ -8,6 +8,7 @@
 - [x] Backend Fastify + Socket.IO com JWT e dados em memoria
 - [x] Painel React + Vite com login, dashboard, devices, sessoes, logs e gerador APK
 - [x] Desktop Electron com script para gerar `.exe`
+- [x] API local embutida no desktop para uso do MVP instalado
 - [x] Agente Android Kotlin skeleton com foreground service, deeplink e estrutura MDM/MediaProjection
 - [x] Docker Compose base
 

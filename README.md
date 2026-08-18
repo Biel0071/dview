@@ -75,6 +75,10 @@ Abra: http://localhost:5173
 npm run dev
 ```
 
+### Desktop Admin independente
+
+O instalador Windows abre o painel e inicia uma API local embutida em `http://localhost:3000`, suficiente para usar o MVP sem terminal.
+
 ### Agente Android
 
 ```bash
@@ -96,7 +100,7 @@ Acesse: http://localhost:8080
 npm run exe
 ```
 
-Saida esperada: `apps/desktop/release-build/DroidView-Admin-Setup-0.1.0.exe`
+Saida esperada: `apps/desktop/release-mvp/DroidView-Admin-Setup-0.1.0.exe`
 
 ## Gerar APK do agente
 

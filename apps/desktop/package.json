@@ -20,7 +20,7 @@
     "appId": "com.droidview.admin",
     "productName": "DroidView Admin",
     "directories": {
-      "output": "release-build"
+      "output": "release-mvp"
     },
     "files": [
       "src/**/*",

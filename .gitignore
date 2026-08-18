@@ -145,3 +145,4 @@ vite.config.ts.timestamp-*
 # Desktop packaging output
 apps/desktop/release/
 apps/desktop/release-build/
+apps/desktop/release-mvp/
