@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Boxes, Download, LayoutDashboard, ListChecks, LogOut, MonitorSmartphone, Settings, Shield, Smartphone } from "lucide-react";
+import { Activity, Boxes, Download, LayoutDashboard, ListChecks, LogOut, MonitorSmartphone, Settings, Smartphone } from "lucide-react";
 import { api } from "./api";
 import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
@@ -8,7 +8,6 @@ import { RemoteSession } from "./pages/RemoteSession";
 import { AppsManager } from "./pages/AppsManager";
 import { Logs } from "./pages/Logs";
 import { SettingsPage } from "./pages/SettingsPage";
-import { About } from "./pages/About";
 import { ApkBuilder } from "./pages/ApkBuilder";
 import { useAppStore } from "./store";
 import { createSocket } from "./socket/client";
@@ -21,8 +20,7 @@ const nav = [
   { name: "Apps Manager", icon: Boxes, adminOnly: true },
   { name: "Connection Logs", icon: ListChecks, adminOnly: true },
   { name: "Gerador APK", icon: Download, adminOnly: true },
-  { name: "Settings", icon: Settings, adminOnly: true },
-  { name: "About", icon: Shield, adminOnly: false }
+  { name: "Settings", icon: Settings, adminOnly: true }
 ];
 
 export function App() {
@@ -75,8 +73,6 @@ export function App() {
         return <ApkBuilder />;
       case "Settings":
         return <SettingsPage />;
-      case "About":
-        return <About />;
       default:
         return <Dashboard />;
     }
