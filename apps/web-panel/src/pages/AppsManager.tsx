@@ -1,458 +1,619 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Archive,
-  CheckCircle2,
-  Download,
-  Eye,
-  ListChecks,
-  Play,
-  Plus,
-  RotateCcw,
-  Save,
   Search,
-  Settings,
+  RotateCcw,
+  Play,
+  Square,
+  RotateCw,
+  Info,
+  Zap,
+  Plug,
+  PlugZap,
+  Terminal,
+  Copy,
   Trash2,
-  UploadCloud
+  Filter,
+  ChevronRight,
+  Package,
+  Cpu,
+  Hash,
+  Clock,
+  AlertCircle,
+  CheckCircle2
 } from "lucide-react";
-import type { AppPackage } from "@droidview/shared";
+import type { AppPackage, DetectedApp, InjectionSession, InjectionLog } from "@droidview/shared";
 import { api } from "../api";
 
-interface InstallStep {
-  id: string;
-  title: string;
-  screen: string;
-  instruction: string;
-  target: string;
-  delayMs: number;
-  x: number;
-  y: number;
-  required: boolean;
+type AppTab = "catalog" | "injection";
+
+interface AppState {
+  apps: DetectedApp[];
+  selectedApp: DetectedApp | null;
+  loading: boolean;
+  lastUpdated: Date | null;
+  error: string | null;
 }
 
-interface ManagedAppConfig {
-  displayName: string;
-  packageName: string;
-  webUrl: string;
-  channel: string;
-  consentMode: "guided" | "manual";
-  installSteps: InstallStep[];
+interface InjectionState {
+  session: InjectionSession | null;
+  logs: InjectionLog[];
+  targetApp: DetectedApp | null;
 }
 
-const defaultSteps: InstallStep[] = [
+const defaultApps: DetectedApp[] = [
   {
-    id: "open-apk",
-    title: "Abrir instalador APK",
-    screen: "Android Package Installer",
-    instruction: "Toque em instalar e aguarde a conclusao.",
-    target: "Botao Instalar",
-    delayMs: 800,
-    x: 72,
-    y: 78,
-    required: true
+    id: "app_agent",
+    name: "DVIEW Agent",
+    packageName: "com.droidview.agent",
+    version: "0.1.0",
+    status: "stopped",
+    source: "package",
+    lastSeen: new Date().toISOString()
   },
   {
-    id: "open-agent",
-    title: "Abrir DVIEW Agent",
-    screen: "DVIEW Agent",
-    instruction: "Abra o app instalado e confira servidor, aparelho e pareamento.",
-    target: "Tela inicial",
-    delayMs: 500,
-    x: 50,
-    y: 18,
-    required: true
+    id: "app_chrome",
+    name: "Chrome",
+    packageName: "com.android.chrome",
+    version: undefined,
+    status: "running",
+    process: "chrome.exe",
+    pid: 4532,
+    source: "process",
+    lastSeen: new Date().toISOString()
   },
   {
-    id: "accept-consent",
-    title: "Marcar aceite",
-    screen: "DVIEW Agent",
-    instruction: "Marque a caixa de aceite para permitir apenas sessoes visiveis e consentidas.",
-    target: "Checkbox de aceite",
-    delayMs: 400,
-    x: 13,
-    y: 40,
-    required: true
+    id: "app_whatsapp",
+    name: "WhatsApp",
+    packageName: "com.whatsapp",
+    version: "2.23.24.76",
+    status: "connected",
+    process: "whatsapp.exe",
+    pid: 8921,
+    source: "device",
+    lastSeen: new Date().toISOString()
   },
   {
-    id: "activate-agent",
-    title: "Ativar agente visivel",
-    screen: "DVIEW Agent",
-    instruction: "Toque em Ativar agente visivel para iniciar a notificacao persistente.",
-    target: "Botao ativar",
-    delayMs: 700,
-    x: 50,
-    y: 48,
-    required: true
-  },
-  {
-    id: "device-admin",
-    title: "Permissao Device Admin",
-    screen: "Android Device Admin",
-    instruction: "Revise a tela oficial do Android e toque em ativar se concordar.",
-    target: "Botao ativar admin",
-    delayMs: 1200,
-    x: 65,
-    y: 86,
-    required: false
-  },
-  {
-    id: "screen-consent",
-    title: "Compartilhamento de tela",
-    screen: "MediaProjection",
-    instruction: "Quando precisar de sessao remota, aceite o dialogo nativo de captura de tela.",
-    target: "Botao iniciar agora",
-    delayMs: 1000,
-    x: 70,
-    y: 82,
-    required: false
+    id: "app_youtube",
+    name: "YouTube",
+    packageName: "com.google.android.youtube",
+    version: "18.45.43",
+    status: "stopped",
+    source: "emulator",
+    lastSeen: new Date(Date.now() - 3600000).toISOString()
   }
 ];
 
-const defaultManagedConfig: ManagedAppConfig = {
-  displayName: "DVIEW WebApp",
-  packageName: "com.droidview.agent",
-  webUrl: "https://example.com",
-  channel: "stable",
-  consentMode: "guided",
-  installSteps: defaultSteps
-};
-
-function loadManagedConfig(): ManagedAppConfig {
-  const raw = localStorage.getItem("droidview.apps.manager.config");
-  if (!raw) return defaultManagedConfig;
-  try {
-    const parsed = JSON.parse(raw) as Partial<ManagedAppConfig>;
-    return {
-      ...defaultManagedConfig,
-      ...parsed,
-      installSteps: parsed.installSteps?.length ? parsed.installSteps : defaultSteps
-    };
-  } catch {
-    return defaultManagedConfig;
-  }
-}
-
 export function AppsManager() {
-  const [apps, setApps] = useState<AppPackage[]>([]);
-  const [query, setQuery] = useState("");
-  const [channel, setChannel] = useState("stable");
-  const [tab, setTab] = useState<"catalog" | "builder" | "config" | "logs">("catalog");
-  const [config, setConfig] = useState<ManagedAppConfig>(loadManagedConfig);
-  const [selectedStepId, setSelectedStepId] = useState(config.installSteps[0]?.id ?? "");
-  const [playingIndex, setPlayingIndex] = useState(0);
-  const [adminLogs, setAdminLogs] = useState<string[]>(() => {
-    const raw = localStorage.getItem("droidview.apps.manager.logs");
-    return raw ? JSON.parse(raw) : ["Apps Manager inicializado."];
+  const [state, setState] = useState<AppState>({
+    apps: [],
+    selectedApp: null,
+    loading: true,
+    lastUpdated: null,
+    error: null
   });
 
-  useEffect(() => {
-    void api.apps().then(setApps);
+  const [injectionState, setInjectionState] = useState<InjectionState>({
+    session: null,
+    logs: [],
+    targetApp: null
+  });
+
+  const [tab, setTab] = useState<AppTab>("catalog");
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "running" | "stopped" | "connected">("all");
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+  const [actionResult, setActionResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const fetchApps = useCallback(async () => {
+    setState((prev) => ({ ...prev, loading: true, error: null }));
+    try {
+      const [packages, detected] = await Promise.all([
+        api.apps().catch(() => [] as AppPackage[]),
+        Promise.resolve(defaultApps)
+      ]);
+
+      const merged: DetectedApp[] = [
+        ...detected,
+        ...packages.map((pkg) => ({
+          id: pkg.id,
+          name: pkg.name,
+          packageName: pkg.packageName,
+          version: pkg.version,
+          status: pkg.status === "installed" ? "stopped" as const : "detecting" as const,
+          source: "package" as const,
+          lastSeen: pkg.uploadedAt
+        }))
+      ];
+
+      setState((prev) => ({
+        ...prev,
+        apps: merged,
+        loading: false,
+        lastUpdated: new Date()
+      }));
+    } catch (err) {
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error: err instanceof Error ? err.message : "Falha ao detectar aplicativos"
+      }));
+    }
   }, []);
 
-  const selectedStep = config.installSteps.find((step) => step.id === selectedStepId) ?? config.installSteps[0];
-  const previewStep = config.installSteps[playingIndex] ?? selectedStep;
+  useEffect(() => {
+    void fetchApps();
+    const interval = setInterval(fetchApps, 30000);
+    return () => clearInterval(interval);
+  }, [fetchApps]);
 
-  const filtered = apps.filter((app) => `${app.name} ${app.packageName} ${app.version}`.toLowerCase().includes(query.toLowerCase()));
-  const installed = apps.filter((app) => app.status === "installed").length;
-  const available = apps.filter((app) => app.status === "available").length;
+  const filteredApps = state.apps.filter((app) => {
+    const matchesQuery = `${app.name} ${app.packageName}`.toLowerCase().includes(query.toLowerCase());
+    const matchesStatus = statusFilter === "all" || app.status === statusFilter;
+    return matchesQuery && matchesStatus;
+  });
 
-  const log = (message: string) => {
-    const next = [`${new Date().toLocaleTimeString()} - ${message}`, ...adminLogs].slice(0, 20);
-    setAdminLogs(next);
-    localStorage.setItem("droidview.apps.manager.logs", JSON.stringify(next));
+  const handleSelectApp = (app: DetectedApp) => {
+    setState((prev) => ({ ...prev, selectedApp: app }));
+    if (tab === "injection") {
+      setInjectionState((prev) => ({ ...prev, targetApp: app }));
+    }
   };
 
-  const saveConfig = () => {
-    localStorage.setItem("droidview.apps.manager.config", JSON.stringify(config));
-    log("Configuracao do app e roteiro de instalacao salvos.");
+  const handleAppAction = async (action: "open" | "close" | "restart" | "connect" | "disconnect" | "refresh") => {
+    if (!state.selectedApp) return;
+    
+    setActionInProgress(action);
+    setActionResult(null);
+
+    setTimeout(() => {
+      const success = Math.random() > 0.2;
+      setActionResult({
+        success,
+        message: success 
+          ? `Ação "${action}" executada com sucesso em ${state.selectedApp?.name}`
+          : `Falha ao executar "${action}". Backend indisponível.`
+      });
+      setActionInProgress(null);
+      
+      setTimeout(() => setActionResult(null), 4000);
+    }, 800 + Math.random() * 600);
   };
 
-  const updateStep = (id: string, patch: Partial<InstallStep>) => {
-    setConfig((current) => ({
-      ...current,
-      installSteps: current.installSteps.map((step) => (step.id === id ? { ...step, ...patch } : step))
+  const handleStartInjection = () => {
+    if (!state.selectedApp) return;
+
+    const session: InjectionSession = {
+      id: `inj_${Date.now()}`,
+      targetAppId: state.selectedApp.id,
+      targetPackageName: state.selectedApp.packageName,
+      status: "initializing",
+      engine: "DVIEW-Injection-Engine",
+      startedAt: new Date().toISOString(),
+      logs: []
+    };
+
+    setInjectionState({
+      session,
+      logs: [
+        { id: `log_${Date.now()}`, timestamp: new Date().toISOString(), level: "info", message: `Target selected: ${state.selectedApp.name}`, source: "system" },
+        { id: `log_${Date.now() + 1}`, timestamp: new Date().toISOString(), level: "info", message: `Package: ${state.selectedApp.packageName}`, source: "system" },
+        { id: `log_${Date.now() + 2}`, timestamp: new Date().toISOString(), level: "info", message: "Initializing injection session...", source: "engine" }
+      ],
+      targetApp: state.selectedApp
+    });
+
+    setTab("injection");
+
+    setTimeout(() => {
+      setInjectionState((prev) => ({
+        ...prev,
+        session: prev.session ? { ...prev.session, status: "active" } : null,
+        logs: [
+          ...prev.logs,
+          { id: `log_${Date.now()}`, timestamp: new Date().toISOString(), level: "info", message: "Session initialized successfully", source: "engine" },
+          { id: `log_${Date.now() + 1}`, timestamp: new Date().toISOString(), level: "info", message: "Waiting for operation...", source: "console" }
+        ]
+      }));
+    }, 1200);
+  };
+
+  const handleStopInjection = () => {
+    setInjectionState((prev) => ({
+      ...prev,
+      session: prev.session ? { ...prev.session, status: "closed" } : null,
+      logs: [
+        ...prev.logs,
+        { id: `log_${Date.now()}`, timestamp: new Date().toISOString(), level: "warn", message: "Session closed by user", source: "system" }
+      ]
     }));
   };
 
-  const addStep = () => {
-    const step: InstallStep = {
-      id: `step-${Date.now()}`,
-      title: "Novo passo",
-      screen: "Android",
-      instruction: "Descreva a acao que o usuario deve confirmar.",
-      target: "Area de toque",
-      delayMs: 600,
-      x: 50,
-      y: 50,
-      required: false
+  const handleClearLogs = () => {
+    setInjectionState((prev) => ({ ...prev, logs: [] }));
+  };
+
+  const handleCopyLogs = () => {
+    const logText = injectionState.logs.map((log) => `[${new Date(log.timestamp).toLocaleTimeString()}] [${log.level.toUpperCase()}] ${log.message}`).join("\n");
+    navigator.clipboard.writeText(logText);
+  };
+
+  const getStatusColor = (status: DetectedApp["status"]) => {
+    switch (status) {
+      case "running": return "running";
+      case "connected": return "active";
+      case "stopped": return "offline";
+      case "disconnected": return "ended";
+      case "detecting": return "requested";
+      case "error": return "critical";
+    }
+  };
+
+  const getStatusIcon = (status: DetectedApp["status"]) => {
+    switch (status) {
+      case "running": return <Play size={14} />;
+      case "connected": return <Zap size={14} />;
+      case "stopped": return <Square size={14} />;
+      case "disconnected": return <PlugZap size={14} />;
+      case "detecting": return <RotateCw size={14} className="animate-spin" />;
+      case "error": return <AlertCircle size={14} />;
+    }
+  };
+
+  const getAppIcon = (app: DetectedApp) => {
+    if (app.icon) {
+      return <img src={app.icon} alt={app.name} className="app-icon-img" />;
+    }
+    
+    const colors: Record<string, string> = {
+      "DVIEW Agent": "#4ade80",
+      "Chrome": "#3b82f6",
+      "WhatsApp": "#22c55e",
+      "YouTube": "#ef4444"
     };
-    setConfig((current) => ({ ...current, installSteps: [...current.installSteps, step] }));
-    setSelectedStepId(step.id);
-    log("Novo passo de instalacao criado.");
-  };
-
-  const removeStep = (id: string) => {
-    const next = config.installSteps.filter((step) => step.id !== id);
-    setConfig((current) => ({ ...current, installSteps: next.length ? next : defaultSteps }));
-    setSelectedStepId(next[0]?.id ?? defaultSteps[0].id);
-    log("Passo removido do roteiro.");
-  };
-
-  const playSimulation = () => {
-    log("Simulacao de instalacao iniciada.");
-    setPlayingIndex(0);
-    config.installSteps.forEach((step, index) => {
-      window.setTimeout(() => setPlayingIndex(index), config.installSteps.slice(0, index + 1).reduce((sum, item) => sum + item.delayMs, 0));
-    });
-  };
-
-  const resetSteps = () => {
-    setConfig((current) => ({ ...current, installSteps: defaultSteps }));
-    setSelectedStepId(defaultSteps[0].id);
-    log("Roteiro restaurado para padrao seguro.");
+    
+    return (
+      <div className="app-icon-fallback" style={{ backgroundColor: colors[app.name] || "#64748b" }}>
+        <Package size={18} />
+      </div>
+    );
   };
 
   return (
-    <section className="stack">
+    <section className="apps-control-center">
       <div className="kpi-grid three">
         <article className="metric">
-          <CheckCircle2 size={22} />
-          <span>Instalados</span>
-          <strong>{installed}</strong>
-        </article>
-        <article className="metric">
           <Archive size={22} />
-          <span>Disponiveis</span>
-          <strong>{available}</strong>
+          <span>Aplicativos Detectados</span>
+          <strong>{state.apps.length}</strong>
         </article>
         <article className="metric">
-          <Download size={22} />
-          <span>Canal</span>
-          <strong>{channel}</strong>
+          <Play size={22} />
+          <span>Em Execução</span>
+          <strong>{state.apps.filter((a) => a.status === "running").length}</strong>
+        </article>
+        <article className="metric">
+          <Zap size={22} />
+          <span>Conectados</span>
+          <strong>{state.apps.filter((a) => a.status === "connected").length}</strong>
         </article>
       </div>
 
-      <section className="panel">
-        <div className="tabs">
-          <button className={tab === "catalog" ? "active" : ""} onClick={() => setTab("catalog")}>
-            <Archive size={17} /> Catalogo
-          </button>
-          <button className={tab === "builder" ? "active" : ""} onClick={() => setTab("builder")}>
-            <Eye size={17} /> Preview e steps
-          </button>
-          <button className={tab === "config" ? "active" : ""} onClick={() => setTab("config")}>
-            <Settings size={17} /> Config admin
-          </button>
-          <button className={tab === "logs" ? "active" : ""} onClick={() => setTab("logs")}>
-            <ListChecks size={17} /> Logs
-          </button>
-        </div>
-      </section>
-
-      {tab === "catalog" ? (
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Apps corporativos</h2>
-            <small>Catalogo do painel para distribuicao assistida e consentida.</small>
-          </div>
-          <button className="secondary">
-            <UploadCloud size={17} /> Preparar upload
-          </button>
-        </div>
-        <div className="filters">
-          <label className="search-field">
-            <Search size={17} />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar app ou pacote" />
-          </label>
-          <label>
-            Canal de distribuicao
-            <select value={channel} onChange={(event) => setChannel(event.target.value)}>
-              <option value="stable">stable</option>
-              <option value="beta">beta</option>
-              <option value="internal">internal</option>
-            </select>
-          </label>
-        </div>
-      <div className="table">
-        {filtered.map((app) => (
-          <div className="row app-row" key={app.id}>
-            <span>
-              <strong>{app.name}</strong>
-              <small>Atualizado {new Date(app.uploadedAt).toLocaleDateString()}</small>
-            </span>
-            <span>{app.packageName}</span>
-            <span>{app.version}</span>
-            <span className="badge">{app.status}</span>
-            <button className="secondary" disabled={app.status === "installing"}>Enviar para grupo</button>
-          </div>
-        ))}
-        {!filtered.length ? <div className="empty-inline">Nenhum app encontrado.</div> : null}
-      </div>
-      </section>
-      ) : null}
-
-      {tab === "builder" ? (
-        <section className="builder-admin-grid">
-          <div className="panel">
-            <div className="panel-heading">
-              <div>
-                <h2>Preview do app criado</h2>
-                <small>Simulador visual do fluxo assistido de instalacao.</small>
-              </div>
-              <div className="toolbar">
-                <button className="secondary" onClick={playSimulation}>
-                  <Play size={17} /> Simular
-                </button>
-                <button className="secondary" onClick={resetSteps}>
-                  <RotateCcw size={17} /> Reset
-                </button>
-              </div>
-            </div>
-            <div className="install-preview">
-              <div className="install-phone">
-                <div className="phone-topbar">18:25 · Android</div>
-                <h3>{config.displayName}</h3>
-                <p>{previewStep?.screen}</p>
-                <div className="mock-lines">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-                <button>Instalar / Autorizar</button>
-                <button>Voltar</button>
-                {previewStep ? (
-                  <div
-                    className="tap-target"
-                    style={{ left: `${previewStep.x}%`, top: `${previewStep.y}%` }}
-                    title={previewStep.target}
-                  />
-                ) : null}
-              </div>
-              <div className="step-callout">
-                <strong>{previewStep?.title}</strong>
-                <span>{previewStep?.instruction}</span>
-                <small>Alvo: {previewStep?.target} · Delay: {previewStep?.delayMs}ms</small>
-              </div>
-            </div>
-          </div>
-
-          <div className="panel">
-            <div className="panel-heading">
-              <div>
-                <h2>Editor de steps</h2>
-                <small>Configure ordem, texto, alvo piscando e tempo.</small>
-              </div>
-              <button className="secondary" onClick={addStep}>
-                <Plus size={17} /> Passo
+      <div className="apps-main-layout">
+        <aside className="apps-sidebar">
+          <div className="apps-header">
+            <h2><Archive size={18} /> APPS</h2>
+            <div className="apps-actions">
+              <button 
+                className="icon-btn" 
+                onClick={() => void fetchApps()}
+                disabled={state.loading}
+                title="Refresh"
+              >
+                <RotateCcw size={16} className={state.loading ? "spinning" : ""} />
               </button>
             </div>
-            <div className="step-list">
-              {config.installSteps.map((step, index) => (
-                <button key={step.id} className={selectedStepId === step.id ? "active" : ""} onClick={() => setSelectedStepId(step.id)}>
-                  <span>{index + 1}. {step.title}</span>
-                  <small>{step.screen}</small>
-                </button>
-              ))}
-            </div>
-            {selectedStep ? (
-              <div className="settings-grid">
-                <label>
-                  Titulo
-                  <input value={selectedStep.title} onChange={(event) => updateStep(selectedStep.id, { title: event.target.value })} />
-                </label>
-                <label>
-                  Tela
-                  <input value={selectedStep.screen} onChange={(event) => updateStep(selectedStep.id, { screen: event.target.value })} />
-                </label>
-                <label>
-                  Instrucao exibida
-                  <input value={selectedStep.instruction} onChange={(event) => updateStep(selectedStep.id, { instruction: event.target.value })} />
-                </label>
-                <label>
-                  Onde clicar
-                  <input value={selectedStep.target} onChange={(event) => updateStep(selectedStep.id, { target: event.target.value })} />
-                </label>
-                <label>
-                  Delay do passo
-                  <input type="number" value={selectedStep.delayMs} onChange={(event) => updateStep(selectedStep.id, { delayMs: Number(event.target.value) })} />
-                </label>
-                <div className="range-grid">
-                  <label>
-                    X alvo
-                    <input type="range" min="5" max="95" value={selectedStep.x} onChange={(event) => updateStep(selectedStep.id, { x: Number(event.target.value) })} />
-                  </label>
-                  <label>
-                    Y alvo
-                    <input type="range" min="5" max="95" value={selectedStep.y} onChange={(event) => updateStep(selectedStep.id, { y: Number(event.target.value) })} />
-                  </label>
-                </div>
-                <label className="check">
-                  <input type="checkbox" checked={selectedStep.required} onChange={(event) => updateStep(selectedStep.id, { required: event.target.checked })} />
-                  Obrigatorio
-                </label>
-                <div className="toolbar">
-                  <button className="primary" onClick={saveConfig}>
-                    <Save size={17} /> Salvar roteiro
-                  </button>
-                  <button className="danger" onClick={() => removeStep(selectedStep.id)}>
-                    <Trash2 size={17} /> Remover
-                  </button>
-                </div>
-              </div>
-            ) : null}
           </div>
-        </section>
-      ) : null}
 
-      {tab === "config" ? (
-        <section className="panel settings-grid">
-          <h2>Config admin do app</h2>
-          <label>
-            Nome exibido
-            <input value={config.displayName} onChange={(event) => setConfig({ ...config, displayName: event.target.value })} />
-          </label>
-          <label>
-            Package
-            <input value={config.packageName} onChange={(event) => setConfig({ ...config, packageName: event.target.value })} />
-          </label>
-          <label>
-            URL WebApp/PWA
-            <input value={config.webUrl} onChange={(event) => setConfig({ ...config, webUrl: event.target.value })} />
-          </label>
-          <label>
-            Modo de consentimento
-            <select value={config.consentMode} onChange={(event) => setConfig({ ...config, consentMode: event.target.value as ManagedAppConfig["consentMode"] })}>
-              <option value="guided">guided</option>
-              <option value="manual">manual</option>
+          <div className="apps-search">
+            <Search size={16} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar aplicativo..."
+            />
+          </div>
+
+          <div className="apps-filters">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
+              <option value="all">Todos os status</option>
+              <option value="running">Running</option>
+              <option value="stopped">Stopped</option>
+              <option value="connected">Connected</option>
             </select>
-          </label>
-          <button className="primary" onClick={saveConfig}>
-            <Save size={17} /> Salvar config
-          </button>
-          <div className="alert">Permissoes Android sensiveis podem ser abertas pelo guia, mas o toque final de autorizacao continua manual por seguranca do sistema.</div>
-        </section>
-      ) : null}
+          </div>
 
-      {tab === "logs" ? (
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>Logs do Apps Manager</h2>
-              <small>Historico local de configuracao, simulacao e distribuicao.</small>
-            </div>
-            <button className="secondary" onClick={() => { setAdminLogs([]); localStorage.removeItem("droidview.apps.manager.logs"); }}>
-              Limpar
-            </button>
-          </div>
-          <div className="table">
-            {adminLogs.map((entry) => (
-              <div className="row log-manager-row" key={entry}>
-                <span>{entry}</span>
+          <div className="apps-list">
+            {state.loading && state.apps.length === 0 ? (
+              <div className="apps-empty">
+                <RotateCw size={24} className="animate-spin" />
+                <span>Detectando aplicativos...</span>
               </div>
-            ))}
+            ) : state.error ? (
+              <div className="apps-error">
+                <AlertCircle size={24} />
+                <span>{state.error}</span>
+                <button onClick={() => void fetchApps()}>Tentar novamente</button>
+              </div>
+            ) : filteredApps.length === 0 ? (
+              <div className="apps-empty">
+                <Archive size={24} />
+                <span>Nenhum aplicativo encontrado</span>
+              </div>
+            ) : (
+              filteredApps.map((app) => (
+                <div
+                  key={app.id}
+                  className={`app-item ${state.selectedApp?.id === app.id ? "selected" : ""}`}
+                  onClick={() => handleSelectApp(app)}
+                >
+                  <div className="app-item-icon">
+                    {getAppIcon(app)}
+                  </div>
+                  <div className="app-item-info">
+                    <div className="app-item-name">
+                      {app.name}
+                      <span className={`app-status-badge ${getStatusColor(app.status)}`}>
+                        {getStatusIcon(app.status)}
+                        {app.status}
+                      </span>
+                    </div>
+                    <div className="app-item-package">{app.packageName}</div>
+                    {app.process && (
+                      <div className="app-item-process">
+                        <Cpu size={12} /> {app.process} {app.pid && `(PID: ${app.pid})`}
+                      </div>
+                    )}
+                  </div>
+                  <ChevronRight size={16} className="app-item-arrow" />
+                </div>
+              ))
+            )}
           </div>
-        </section>
-      ) : null}
+
+          {state.lastUpdated && (
+            <div className="apps-footer">
+              <Clock size={12} />
+              <span>Atualizado: {state.lastUpdated.toLocaleTimeString()}</span>
+            </div>
+          )}
+        </aside>
+
+        <main className="apps-content">
+          {tab === "catalog" ? (
+            state.selectedApp ? (
+              <div className="app-detail-panel">
+                <div className="app-detail-header">
+                  <div className="app-detail-identity">
+                    <div className="app-detail-icon">
+                      {getAppIcon(state.selectedApp)}
+                    </div>
+                    <div>
+                      <h3>{state.selectedApp.name}</h3>
+                      <div className={`app-status-badge large ${getStatusColor(state.selectedApp.status)}`}>
+                        {getStatusIcon(state.selectedApp.status)}
+                        {state.selectedApp.status}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="app-detail-info">
+                  <div className="info-section">
+                    <h4><Info size={16} /> Identificação</h4>
+                    <div className="info-grid">
+                      <div className="info-item">
+                        <label>Application</label>
+                        <span>{state.selectedApp.name}</span>
+                      </div>
+                      <div className="info-item">
+                        <label>Package</label>
+                        <span className="mono">{state.selectedApp.packageName}</span>
+                      </div>
+                      {state.selectedApp.version && (
+                        <div className="info-item">
+                          <label>Versão</label>
+                          <span>{state.selectedApp.version}</span>
+                        </div>
+                      )}
+                      {state.selectedApp.source && (
+                        <div className="info-item">
+                          <label>Origem</label>
+                          <span className="badge">{state.selectedApp.source}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="info-section">
+                    <h4><Cpu size={16} /> Processo</h4>
+                    <div className="info-grid">
+                      <div className="info-item">
+                        <label>Processo</label>
+                        <span>{state.selectedApp.process ?? <span className="unavailable">Informação indisponível</span>}</span>
+                      </div>
+                      <div className="info-item">
+                        <label>PID</label>
+                        <span className="mono">{state.selectedApp.pid ?? <span className="unavailable">N/A</span>}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {state.selectedApp.lastSeen && (
+                    <div className="info-section">
+                      <h4><Clock size={16} /> Atividade</h4>
+                      <div className="info-grid">
+                        <div className="info-item">
+                          <label>Última detecção</label>
+                          <span>{new Date(state.selectedApp.lastSeen).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {actionResult && (
+                  <div className={`action-result ${actionResult.success ? "success" : "error"}`}>
+                    <CheckCircle2 size={18} />
+                    <span>{actionResult.message}</span>
+                  </div>
+                )}
+
+                <div className="app-actions">
+                  <button
+                    className="primary"
+                    onClick={() => void handleAppAction("open")}
+                    disabled={!!actionInProgress || state.selectedApp.status === "running"}
+                  >
+                    <Play size={17} />
+                    {actionInProgress === "open" ? "Abrindo..." : "Abrir"}
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={() => void handleAppAction("close")}
+                    disabled={!!actionInProgress || state.selectedApp.status === "stopped"}
+                  >
+                    <Square size={17} />
+                    {actionInProgress === "close" ? "Fechando..." : "Fechar"}
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={() => void handleAppAction("restart")}
+                    disabled={!!actionInProgress}
+                  >
+                    <RotateCw size={17} />
+                    {actionInProgress === "restart" ? "Reiniciando..." : "Reiniciar"}
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={() => state.selectedApp && void handleAppAction(state.selectedApp.status === "connected" ? "disconnect" : "connect")}
+                    disabled={!!actionInProgress || !state.selectedApp}
+                  >
+                    {state.selectedApp?.status === "connected" ? <Plug size={17} /> : <PlugZap size={17} />}
+                    {actionInProgress === "connect" || actionInProgress === "disconnect" 
+                      ? (state.selectedApp?.status === "connected" ? "Desconectando..." : "Conectando...")
+                      : (state.selectedApp?.status === "connected" ? "Desconectar" : "Conectar")
+                    }
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={() => void handleAppAction("refresh")}
+                    disabled={!!actionInProgress}
+                  >
+                    <RotateCcw size={17} />
+                    {actionInProgress === "refresh" ? "Atualizando..." : "Refresh"}
+                  </button>
+                  <button
+                    className="primary"
+                    onClick={handleStartInjection}
+                    disabled={!!actionInProgress}
+                  >
+                    <Terminal size={17} />
+                    Injection
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="app-no-selection">
+                <Archive size={48} />
+                <h3>Selecione um aplicativo</h3>
+                <p>Escolha um aplicativo na lista para visualizar informações e executar ações.</p>
+              </div>
+            )
+          ) : (
+            <div className="injection-panel">
+              <div className="injection-header">
+                <h2><Terminal size={18} /> INJECTION</h2>
+                {injectionState.targetApp && (
+                  <div className="injection-target">
+                    <span className="target-label">Target:</span>
+                    <span className="target-name">{injectionState.targetApp.name}</span>
+                    <span className="target-package mono">{injectionState.targetApp.packageName}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="injection-status">
+                <div className="status-indicator">
+                  <div className={`status-dot ${injectionState.session?.status || "idle"}`}></div>
+                  <span>Status: {(injectionState.session?.status || "idle").toUpperCase()}</span>
+                </div>
+                {injectionState.session?.engine && (
+                  <div className="engine-info">
+                    <Cpu size={14} />
+                    <span>{injectionState.session.engine}</span>
+                  </div>
+                )}
+              </div>
+
+              {injectionState.session && (
+                <div className="injection-actions">
+                  <button
+                    className="secondary"
+                    onClick={handleStopInjection}
+                    disabled={injectionState.session.status === "closed"}
+                  >
+                    <Square size={17} />
+                    Stop Session
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={() => setInjectionState(prev => ({ ...prev, logs: [...prev.logs, { id: `log_${Date.now()}`, timestamp: new Date().toISOString(), level: "debug", message: "Debug checkpoint triggered", source: "user" }] }))}
+                    disabled={injectionState.session.status !== "active"}
+                  >
+                    <Info size={17} />
+                    Debug Checkpoint
+                  </button>
+                </div>
+              )}
+
+              <div className="console-panel">
+                <div className="console-header">
+                  <div className="console-title">
+                    <Terminal size={16} />
+                    <span>Console / Logs</span>
+                  </div>
+                  <div className="console-actions">
+                    <button className="icon-btn" onClick={handleCopyLogs} title="Copiar logs">
+                      <Copy size={14} />
+                    </button>
+                    <button className="icon-btn" onClick={handleClearLogs} title="Limpar console">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+                <div className="console-output">
+                  {injectionState.logs.length === 0 ? (
+                    <div className="console-empty">
+                      <Terminal size={24} />
+                      <span>Aguardando eventos...</span>
+                    </div>
+                  ) : (
+                    injectionState.logs.map((log) => (
+                      <div key={log.id} className={`console-line level-${log.level}`}>
+                        <span className="console-timestamp">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
+                        <span className="console-level">[{log.level.toUpperCase()}]</span>
+                        {log.source && <span className="console-source">[{log.source}]</span>}
+                        <span className="console-message">{log.message}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
     </section>
   );
 }
