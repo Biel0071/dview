@@ -50,10 +50,15 @@ interface AppState {
   sessions: RemoteSession[];
   stats: DashboardStats | null;
   preferences: WebPreferences;
+  selectedDeviceId: string | null;
+  setSelectedDeviceId: (id: string | null) => void;
   setAuth: (token: string, user: User) => void;
   logout: () => void;
   setView: (view: string) => void;
   setDevices: (devices: Device[]) => void;
+  upsertDevice: (device: Device) => void;
+  markDeviceOffline: (deviceId: string) => void;
+  removeDevice: (deviceId: string) => void;
   setSessions: (sessions: RemoteSession[]) => void;
   setStats: (stats: DashboardStats) => void;
   updatePreferences: (preferences: Partial<WebPreferences>) => void;
@@ -67,6 +72,8 @@ export const useAppStore = create<AppState>((set) => ({
   sessions: [],
   stats: null,
   preferences: loadPreferences(),
+  selectedDeviceId: null,
+  setSelectedDeviceId: (id) => set({ selectedDeviceId: id }),
   setAuth: (token, user) => {
     localStorage.setItem("droidview.token", token);
     localStorage.setItem("dview.user", JSON.stringify(user));
@@ -79,6 +86,26 @@ export const useAppStore = create<AppState>((set) => ({
   },
   setView: (view) => set({ view }),
   setDevices: (devices) => set({ devices }),
+  upsertDevice: (device) =>
+    set((state) => {
+      const idx = state.devices.findIndex((d) => d.id === device.id);
+      if (idx >= 0) {
+        const next = [...state.devices];
+        next[idx] = { ...next[idx], ...device };
+        return { devices: next };
+      }
+      return { devices: [device, ...state.devices] };
+    }),
+  markDeviceOffline: (deviceId) =>
+    set((state) => ({
+      devices: state.devices.map((d) =>
+        d.id === deviceId ? { ...d, status: "offline", lastSeen: new Date().toISOString() } : d
+      )
+    })),
+  removeDevice: (deviceId) =>
+    set((state) => ({
+      devices: state.devices.filter((d) => d.id !== deviceId)
+    })),
   setSessions: (sessions) => set({ sessions }),
   setStats: (stats) => set({ stats }),
   updatePreferences: (next) =>
@@ -88,3 +115,7 @@ export const useAppStore = create<AppState>((set) => ({
       return { preferences };
     })
 }));
+
+if (typeof window !== "undefined") {
+  (window as any).useAppStore = useAppStore;
+}

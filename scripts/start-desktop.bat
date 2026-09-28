@@ -1,0 +1,3 @@
+@echo off
+echo Iniciando DVIEW Desktop Electron...
+npm run start:desktop

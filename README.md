@@ -73,38 +73,49 @@ npm run dev:web
 
 Abra: http://localhost:5173
 
-### Backend e painel juntos
+### Backend e painel juntos (Modo Localhost / Navegador Web)
+
+Você pode subir o sistema completo via terminal para acesso local no navegador:
 
 ```bash
+npm start
+# ou
+npm run start:localhost
+# ou
 npm run dev
 ```
 
-### Desktop Admin independente
+- Backend Fastify + Socket.IO: `http://localhost:3000`
+- Painel Web React: `http://localhost:5000`
 
-O instalador Windows abre o painel e inicia uma API local embutida em `http://localhost:3000`, suficiente para usar o MVP sem terminal.
+### Opção Desktop Completo (.exe para Windows)
 
-### Agente Android
+O DVIEW inclui um aplicativo desktop nativo para Windows (Electron) que empacota o sistema completo de controle:
+- Inicia automaticamente o backend Fastify + Socket.IO embutido na porta 3000 (ou conecta ao backend existente se já estiver rodando).
+- Renderiza o painel de controle nativamente em janela desktop de alta resolução.
+- Não depende de terminal aberto ou comandos manuais após instalado.
+- Permite que dispositivos físicos Android ou emuladores se conectem normalmente via rede local (`http://<IP>:3000`).
 
+#### Gerar o executável instalador de produção (.exe)
 ```bash
-cd apps/android-agent
-./gradlew assembleRelease
-```
-
-## Deploy com Docker
-
-```bash
-docker-compose up -d
-```
-
-Acesse: http://localhost:8080
-
-## Gerar instalador Windows
-
-```bash
+npm run build:exe
+# ou
 npm run exe
 ```
+Saída gerada: `apps/desktop/release-mvp/DVIEW-Admin-Setup-0.1.0.exe` (Instalador NSIS com atalhos na Área de Trabalho e Menu Iniciar).
 
-Saida esperada: `apps/desktop/release-mvp/DVIEW-Admin-Setup-0.1.0.exe`
+#### Gerar versão portátil / descompactada (.exe direto)
+```bash
+npm run electron:pack
+```
+Saída gerada: `apps/desktop/release-mvp/win-unpacked/DVIEW Admin.exe`
+
+#### Executar o aplicativo desktop diretamente (Modo Dev/Preview)
+```bash
+npm run start:desktop
+# ou
+npm run electron:dev
+```
 
 ## Gerar APK do agente
 

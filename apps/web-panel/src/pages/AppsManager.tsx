@@ -161,6 +161,31 @@ export function AppsManager() {
     localStorage.setItem("droidview.apps.manager.logs", JSON.stringify(next));
   };
 
+  const handleUploadApk = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const newPkg: AppPackage = {
+      id: `app-${Date.now()}`,
+      name: file.name.replace(/\.apk$/i, ""),
+      packageName: `com.corp.${file.name.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
+      version: "1.0.0",
+      status: "available",
+      uploadedAt: new Date().toISOString()
+    };
+    setApps((prev) => [newPkg, ...prev]);
+    log(`Pacote APK "${file.name}" importado para o catálogo no canal ${channel}.`);
+    e.target.value = "";
+  };
+
+  const handleDeployToGroup = (app: AppPackage) => {
+    setApps((prev) => prev.map((a) => (a.id === app.id ? { ...a, status: "installing" } : a)));
+    log(`Iniciando distribuição remota de "${app.name}" (${app.packageName}) para os dispositivos pareados.`);
+    setTimeout(() => {
+      setApps((prev) => prev.map((a) => (a.id === app.id ? { ...a, status: "installed" } : a)));
+      log(`Instalação de "${app.name}" concluída no grupo corporativo.`);
+    }, 1800);
+  };
+
   const saveConfig = () => {
     localStorage.setItem("droidview.apps.manager.config", JSON.stringify(config));
     log("Configuracao do app e roteiro de instalacao salvos.");
@@ -255,9 +280,10 @@ export function AppsManager() {
             <h2>Apps corporativos</h2>
             <small>Catalogo do painel para distribuicao assistida e consentida.</small>
           </div>
-          <button className="secondary">
+          <label className="secondary link-button" style={{ display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer", margin: 0 }}>
             <UploadCloud size={17} /> Preparar upload
-          </button>
+            <input type="file" accept=".apk" onChange={handleUploadApk} style={{ display: "none" }} />
+          </label>
         </div>
         <div className="filters">
           <label className="search-field">
@@ -282,8 +308,14 @@ export function AppsManager() {
             </span>
             <span>{app.packageName}</span>
             <span>{app.version}</span>
-            <span className="badge">{app.status}</span>
-            <button className="secondary" disabled={app.status === "installing"}>Enviar para grupo</button>
+            <span className={`badge ${app.status === "installed" ? "online" : app.status === "installing" ? "warning" : "info"}`}>{app.status}</span>
+            <button
+              className="secondary"
+              disabled={app.status === "installing"}
+              onClick={() => handleDeployToGroup(app)}
+            >
+              {app.status === "installing" ? "Instalando..." : app.status === "installed" ? "Reenviar p/ grupo" : "Enviar para grupo"}
+            </button>
           </div>
         ))}
         {!filtered.length ? <div className="empty-inline">Nenhum app encontrado.</div> : null}

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="eyeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff1a2a" />
+      <stop offset="40%" stop-color="#cc0015" />
+      <stop offset="75%" stop-color="#66000a" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
+    <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100" height="100" rx="20" fill="#07080b" />
+
+  <!-- Outer Horns Silhouette (Left & Right) -->
+  <path d="M 22 45 C 15 35 12 18 20 8 C 22 18 28 28 36 38 Z" fill="#991b1b" opacity="0.9" />
+  <path d="M 78 45 C 85 35 88 18 80 8 C 78 18 72 28 64 38 Z" fill="#991b1b" opacity="0.9" />
+  <path d="M 22 45 C 16 35 14 20 20 8 C 21 16 26 26 34 36 Z" stroke="#ff3344" stroke-width="1" fill="none" />
+  <path d="M 78 45 C 84 35 86 20 80 8 C 79 16 74 26 66 36 Z" stroke="#ff3344" stroke-width="1" fill="none" />
+
+  <!-- Targeting Reticle Outer Ring -->
+  <circle cx="50" cy="52" r="38" fill="none" stroke="#25151c" stroke-width="2" />
+  <circle cx="50" cy="52" r="34" fill="none" stroke="#7f1d1d" stroke-width="1.5" stroke-dasharray="8 4" />
+  <circle cx="50" cy="52" r="28" fill="none" stroke="#ff1a2a" stroke-width="2" filter="url(#neonGlow)" />
+
+  <!-- Crosshairs -->
+  <line x1="50" y1="12" x2="50" y2="22" stroke="#ff1a2a" stroke-width="2" />
+  <line x1="50" y1="82" x2="50" y2="92" stroke="#ff1a2a" stroke-width="2" />
+  <line x1="10" y1="52" x2="20" y2="52" stroke="#ff1a2a" stroke-width="2" />
+  <line x1="80" y1="52" x2="90" y2="52" stroke="#ff1a2a" stroke-width="2" />
+
+  <!-- Center Eye Iris & Pupil -->
+  <circle cx="50" cy="52" r="18" fill="url(#eyeGlow)" />
+  <circle cx="50" cy="52" r="7" fill="#000000" />
+  <circle cx="52" cy="50" r="2.5" fill="#ffffff" opacity="0.8" />
+  <circle cx="50" cy="52" r="1.5" fill="#ff4d5a" />
+</svg>

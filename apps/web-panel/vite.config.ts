@@ -3,8 +3,10 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react()],
+  base: "./",
   server: {
-    port: 5173
+    port: Number(process.env.WEB_PORT || 5000),
+    host: "0.0.0.0"
   },
   build: {
     outDir: "dist",

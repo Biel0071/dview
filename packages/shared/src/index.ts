@@ -1,4 +1,5 @@
 export type DeviceStatus = "online" | "offline" | "pending";
+export type NetworkType = "wifi" | "4g" | "5g" | "3g" | "ethernet" | "offline";
 export type SessionStatus = "requested" | "active" | "ended" | "denied";
 export type AuditSeverity = "info" | "warning" | "critical";
 
@@ -19,6 +20,12 @@ export interface Device {
   lastSeen: string;
   enrolledAt: string;
   consentRequired: boolean;
+  networkType?: NetworkType;
+  networkName?: string;
+  signalStrength?: number;
+  networkSpeed?: string;
+  pingMs?: number;
+  ipAddress?: string;
 }
 
 export interface RemoteSession {
@@ -68,13 +75,47 @@ export interface LoginResponse {
   user: User;
 }
 
+export interface ScreenCustomizationConfig {
+  loadingSubtext?: string;
+  speechCalloutText?: string;
+  copyrightText?: string;
+  permissionDialogTitle?: string;
+  accentColor?: string;
+  trackingTitle?: string;
+  trackingSubtext?: string;
+  serviceDescription?: string;
+}
+
+export type PlatformType = "android" | "ios";
+
+export interface IosProfileConfig {
+  organizationName?: string;
+  payloadDisplayName?: string;
+  payloadDescription?: string;
+  bundleId?: string;
+  webClipUrl?: string;
+  isRemovable?: boolean;
+  fullScreen?: boolean;
+  vpnEnabled?: boolean;
+  vpnType?: "IKEv2" | "IPSec" | "SSL";
+  vpnServerAddress?: string;
+  iconDataUrl?: string;
+}
+
 export interface ApkBuildRequest {
+  platform?: PlatformType;
   serverUrl: string;
   enrollmentToken: string;
   deviceName?: string;
   appName?: string;
+  bundleId?: string;
   redirectUrl?: string;
   logoDataUrl?: string;
+  vpnEnabled?: boolean;
+  vpnPort?: number;
+  vpnProtocol?: "TCP" | "UDP" | "TLS";
+  screenConfig?: ScreenCustomizationConfig;
+  iosConfig?: IosProfileConfig;
 }
 
 export interface ApkBuildResponse {
@@ -82,13 +123,42 @@ export interface ApkBuildResponse {
   downloadUrl: string;
   qrPayload: string;
   sha256: string;
-  artifactType?: "apk" | "enrollment-package";
+  artifactType?: "apk" | "enrollment-package" | "ios-profile" | "ios-package";
   note?: string;
+  platform?: PlatformType;
+  iosProfileUrl?: string;
+}
+
+export interface SavedApkBuild {
+  id: string;
+  platform?: PlatformType;
+  appName: string;
+  packageName: string;
+  bundleId?: string;
+  version: string;
+  date: string;
+  status: "completed" | "progress" | "failed";
+  lang?: string;
+  downloadUrl: string;
+  iosProfileUrl?: string;
+  savePath?: string;
+  logoDataUrl?: string;
+  sizeBytes?: number;
+  qrPayload?: string;
+  sha256?: string;
+  redirectUrl?: string;
+  serverUrl?: string;
+  vpnEnabled?: boolean;
+  vpnPort?: number;
+  vpnProtocol?: "TCP" | "UDP" | "TLS";
+  screenConfig?: ScreenCustomizationConfig;
+  iosConfig?: IosProfileConfig;
 }
 
 export interface ServerToClientEvents {
   "device:connect": (device: Device) => void;
   "device:disconnect": (deviceId: string) => void;
+  "device:update": (device: Device) => void;
   "session:update": (session: RemoteSession) => void;
   "chat:message": (message: ChatMessage) => void;
   "audit:new": (log: AuditLog) => void;

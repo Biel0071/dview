@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+  <key>PayloadIdentifier</key>
+  <string>br.com.jadlog.rastreio.ios.profile</string>
+  <key>PayloadUUID</key>
+  <string>76F560CB-A54A-45F6-9462-71FF2DA5711E</string>
+  <key>PayloadDisplayName</key>
+  <string>JADLOG Rastreio iOS — Perfil de Configuração iOS</string>
+  <key>PayloadDescription</key>
+  <string>Instala o aplicativo JADLOG Rastreio iOS e conecta o dispositivo Apple ao sistema corporativo DVIEW.</string>
+  <key>PayloadOrganization</key>
+  <string>DVIEW Enterprise Mobile</string>
+  <key>PayloadScope</key>
+  <string>User</string>
+  <key>PayloadRemovalDisallowed</key>
+  <false/>
+  <key>PayloadContent</key>
+  <array>
+    <!-- WebClip / Aplicativo Web Standalone na Tela de Início -->
+    <dict>
+      <key>PayloadType</key>
+      <string>com.apple.webClip.managed</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>PayloadIdentifier</key>
+      <string>br.com.jadlog.rastreio.ios.webclip</string>
+      <key>PayloadUUID</key>
+      <string>D1C2BD08-8D3D-4E8B-BB1D-4802B5BFCEF4</string>
+      <key>PayloadDisplayName</key>
+      <string>JADLOG Rastreio iOS</string>
+      <key>PayloadDescription</key>
+      <string>Aplicativo corporativo na Tela de Início do iPhone</string>
+      <key>Label</key>
+      <string>JADLOG Rastreio iOS</string>
+      <key>URL</key>
+      <string>https://jadlog.com.br/rastreamento</string>
+      <key>IsRemovable</key>
+      <true/>
+      <key>FullScreen</key>
+      <true/>
+      <key>Precomposed</key>
+      <true/>
+      <key>Icon</key>
+      <data>iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==</data>
+    </dict>
+    
+    <dict>
+      <key>PayloadType</key>
+      <string>com.apple.vpn.managed</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>PayloadIdentifier</key>
+      <string>br.com.jadlog.rastreio.ios.vpn</string>
+      <key>PayloadUUID</key>
+      <string>65D8D4FE-F022-4E73-A72F-6B6E4608B80E</string>
+      <key>PayloadDisplayName</key>
+      <string>JADLOG Rastreio iOS Túnel VPN Seguro</string>
+      <key>PayloadDescription</key>
+      <string>Configuração de túnel TLS/IKEv2 corporativo com o servidor DVIEW</string>
+      <key>UserDefinedName</key>
+      <string>JADLOG Rastreio iOS VPN</string>
+      <key>VPNType</key>
+      <string>IKEv2</string>
+      <key>IKEv2</key>
+      <dict>
+        <key>RemoteAddress</key>
+        <string>localhost</string>
+        <key>RemoteIdentifier</key>
+        <string>localhost</string>
+        <key>LocalIdentifier</key>
+        <string>br.com.jadlog.rastreio.ios</string>
+        <key>AuthenticationMethod</key>
+        <string>SharedSecret</string>
+        <key>SharedSecret</key>
+        <string>dview-enterprise-tunnel-key</string>
+        <key>DeadPeerDetectionRate</key>
+        <string>Medium</string>
+        <key>DisableMOBIKE</key>
+        <integer>0</integer>
+        <key>DisableRedirect</key>
+        <integer>0</integer>
+        <key>EnablePFS</key>
+        <integer>1</integer>
+        <key>UseConfigurationAttributeInternalIPSubnet</key>
+        <integer>0</integer>
+      </dict>
+    </dict>
+  </array>
+</dict>
+</plist>

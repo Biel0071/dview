@@ -1,0 +1,3 @@
+@echo off
+echo Iniciando DVIEW no modo Localhost (Backend Fastify na porta 3000 + Web-Panel na porta 5000)...
+npm run start:localhost

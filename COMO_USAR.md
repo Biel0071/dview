@@ -1,107 +1,110 @@
-# DVIEW Admin - Executáveis Instaláveis
+# DVIEW - Guia de Uso: Aplicativo Desktop (.exe) e Modo Localhost
 
-## 📦 Artefatos Gerados
-
-Os seguintes executáveis instaláveis foram gerados com sucesso na pasta `apps/desktop/release-mvp/`:
-
-### Para Windows
-- **`DVIEW-Admin-Setup-0.1.0.exe`** (185 KB)
-  - Instalador NSIS para Windows
-  - Cria atalhos na área de trabalho e menu Iniciar
-  - Permite escolher diretório de instalação
-
-### Para Linux
-- **`DVIEW-Admin-0.1.0.AppImage`** (103 MB)
-  - Aplicação portátil para Linux
-  - Não requer instalação
-  - Execute diretamente: `chmod +x DVIEW-Admin-0.1.0.AppImage && ./DVIEW-Admin-0.1.0.AppImage`
-
-- **`DVIEW-Admin-0.1.0.deb`** (72 MB)
-  - Pacote Debian para Ubuntu/Debian
-  - Instale com: `sudo dpkg -i DVIEW-Admin-0.1.0.deb`
-
-### Versão Portátil (Linux)
-- **`release-mvp/linux-unpacked/`**
-  - Diretório com aplicação descompactada
-  - Execute: `./@droidviewdesktop`
-
-## 🚀 Como Usar
-
-### No Windows
-1. Baixe o arquivo `DVIEW-Admin-Setup-0.1.0.exe`
-2. Execute o instalador
-3. Siga as instruções do assistente de instalação
-4. O aplicativo será iniciado automaticamente após a instalação
-
-### No Linux (AppImage)
-```bash
-# Tornar executável
-chmod +x DVIEW-Admin-0.1.0.AppImage
-
-# Executar
-./DVIEW-Admin-0.1.0.AppImage
-```
-
-### No Linux (pacote .deb)
-```bash
-# Instalar
-sudo dpkg -i DVIEW-Admin-0.1.0.deb
-
-# Executar (atalho criado no menu de aplicações)
-DVIEW-Admin
-```
-
-## 🔐 Credenciais de Acesso
-
-Ao iniciar o aplicativo, use as seguintes credenciais:
-
-### Admin
-- **Email:** admin@dview.local
-- **Senha:** admin123
-- **Código 2FA:** 123456
-
-### Operador
-- **Email:** user@dview.local
-- **Senha:** user123
-- **Código 2FA:** 123456
-
-## 📱 Funcionalidades
-
-- **Dashboard:** Visão geral de dispositivos, sessões e alertas
-- **Gerenciamento de Dispositivos:** Visualize dispositivos Android conectados
-- **Sessões Remotas:** Solicite acesso remoto a dispositivos
-- **Geração de APK:** Crie pacotes de enrollment para agentes Android
-- **Logs:** Acompanhe todas as ações do sistema
-
-## 🛠️ Comandos de Build
-
-### Gerar todos os formatos
-```bash
-cd apps/desktop
-npm run dist:linux   # AppImage + deb
-npm run dist:win     # EXE (requer Wine no Linux)
-```
-
-### Apenas para teste
-```bash
-npm start            # Executa em modo desenvolvimento
-```
-
-## 📋 Recursos Incluídos
-
-- ✅ Interface web moderna (React + TypeScript)
-- ✅ API local integrada (porta 3000)
-- ✅ APK do agente Android embutido
-- ✅ Suporte multiplataforma (Windows/Linux)
-- ✅ Atalhos automáticos
-- ✅ Instalação personalizada
-
-## ⚠️ Notas Importantes
-
-1. **Windows:** O build para Windows (.exe) requer Wine instalado no Linux
-2. **Linux:** O AppImage funciona na maioria das distribuições modernas
-3. **APK:** O pacote inclui `DVIEW-Agent-debug.apk` para enrollment de dispositivos
-4. **Rede:** A API local roda em `http://127.0.0.1:3000`
+O **DVIEW** oferece duas formas flexíveis de operação:
+1. **Aplicativo Desktop Executável (`.exe`)**: Sistema completo em janela nativa para Windows (com backend Fastify + Socket.IO embutido e painel de controle React), pronto para uso imediato sem necessidade de abrir terminais.
+2. **Modo Web Localhost**: Execução tradicional para desenvolvimento ou operação via navegador web padrão (Chrome, Edge, Firefox).
 
 ---
-**DVIEW Admin v0.1.0** - Sistema de gerenciamento de dispositivos Android
+
+## 📦 1. Artefatos Executáveis Windows (.exe)
+
+Os executáveis de produção são gerados na pasta `apps/desktop/release-mvp/`:
+
+### A. Instalador Oficial para Windows
+- **Arquivo:** `DVIEW-Admin-Setup-0.1.0.exe` (~79.5 MB)
+- **Tipo:** Instalador NSIS completo
+- **Recursos:**
+  - Cria atalho na Área de Trabalho e no Menu Iniciar
+  - Permite escolher diretório personalizado de instalação
+  - Desinstalador limpo no Painel de Controle do Windows
+  - Inicia o sistema automaticamente com duplo clique
+
+### B. Versão Portátil / Direta
+- **Diretório:** `apps/desktop/release-mvp/win-unpacked/`
+- **Executável:** `DVIEW Admin.exe`
+- **Uso:** Não requer instalação. Basta copiar a pasta e executar `DVIEW Admin.exe`.
+
+---
+
+## 🚀 2. Como Usar
+
+### Opção A: Executar pelo Aplicativo Desktop (.exe)
+1. Dê um duplo clique em `DVIEW-Admin-Setup-0.1.0.exe` para instalar, ou execute diretamente `win-unpacked/DVIEW Admin.exe`.
+2. A aplicação desktop inicializa automaticamente o backend embutido na porta `3000` (se ainda não estiver ativo) e carrega a interface de controle.
+3. Se o operador já tiver um backend rodando no terminal, o app detecta a porta ativa e se conecta a ele sem conflitos.
+4. O operador também pode conectar aparelhos Android físicos ou emuladores através de `http://<IP_DA_MAQUINA>:3000`.
+
+### Opção B: Subir via Localhost (Navegador Web)
+Para rodar o sistema localmente pelo navegador:
+```bash
+# Iniciar backend (porta 3000) e painel web (porta 5000) juntos
+npm start
+# ou
+npm run start:localhost
+# ou
+npm run dev
+```
+- **Painel de Controle:** Acesse no navegador: `http://localhost:5000`
+- **API & WebSocket:** Ativos em `http://localhost:3000`
+
+---
+
+## 🔐 3. Credenciais de Acesso
+
+Ao abrir a interface (seja pelo `.exe` ou pelo navegador), utilize as credenciais:
+
+### Administrador
+- **Email:** `admin@dview.local`
+- **Senha:** `admin123`
+- **Código 2FA:** `123456`
+
+### Operador
+- **Email:** `user@dview.local`
+- **Senha:** `user123`
+- **Código 2FA:** `123456`
+
+---
+
+## 🛠️ 4. Scripts e Comandos de Build
+
+### Gerar os Executáveis Windows (.exe)
+```bash
+# Gerar instalador de produção (.exe NSIS)
+npm run build:exe
+# ou
+.\scripts\build-exe.ps1
+
+# Gerar versão portátil descompactada (win-unpacked)
+npm run electron:pack
+```
+
+### Inicialização Rápida
+```bash
+# Modo Localhost (Backend + Web)
+npm run start:localhost
+# ou: .\scripts\start-localhost.ps1
+
+# Modo Desktop (Electron)
+npm run start:desktop
+# ou: .\scripts\start-desktop.ps1
+```
+
+### Testes e Verificação
+```bash
+# Rodar todos os testes automatizados
+npm test
+
+# Build de produção de todos os módulos
+npm run build
+```
+
+---
+
+## 📱 5. Funcionalidades do Sistema Completo
+
+- **Dashboard:** KPIs em tempo real (dispositivos online, sessões ativas, alertas de segurança).
+- **Gerenciador de Dispositivos:** Registro automático de dispositivos físicos (`/devices/register`) e criação rápida de múltiplos emuladores (`/devices/emulator/add`).
+- **Sessões Remotas:** Solicitação de conexão com código de consentimento seguro gerado por sessão.
+- **Gerador de APK / Pacote de Pareamento:** Emissão de APK assinado com criptografia AES-256 e QR code de pareamento.
+- **WebSocket em Tempo Real:** Socket.IO para conexão simultânea entre agentes, emuladores e painel de controle.
+- **Logs de Auditoria:** Rastreabilidade completa de autenticação, comandos e acessos.

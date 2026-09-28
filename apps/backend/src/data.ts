@@ -1,4 +1,4 @@
-import type { AppPackage, AuditLog, Device, RemoteSession, User } from "@droidview/shared";
+import type { AppPackage, AuditLog, Device, RemoteSession, SavedApkBuild, User } from "@droidview/shared";
 
 export const adminUser: User = {
   id: "usr_admin",
@@ -14,30 +14,7 @@ export const operatorUser: User = {
   role: "operator"
 };
 
-export const devices: Device[] = [
-  {
-    id: "dev_demo_01",
-    name: "Demo Android 14",
-    model: "Pixel 8",
-    androidVersion: "14",
-    status: "online",
-    battery: 87,
-    lastSeen: new Date().toISOString(),
-    enrolledAt: new Date(Date.now() - 86400000).toISOString(),
-    consentRequired: true
-  },
-  {
-    id: "dev_demo_02",
-    name: "Equipe Campo",
-    model: "Samsung A54",
-    androidVersion: "13",
-    status: "offline",
-    battery: 41,
-    lastSeen: new Date(Date.now() - 3600000).toISOString(),
-    enrolledAt: new Date(Date.now() - 604800000).toISOString(),
-    consentRequired: true
-  }
-];
+export const devices: Device[] = [];
 
 export const sessions: RemoteSession[] = [];
 
@@ -61,6 +38,69 @@ export const apps: AppPackage[] = [
     packageName: "com.droidview.agent",
     uploadedAt: new Date().toISOString(),
     status: "available"
+  }
+];
+
+export const savedApkBuilds: SavedApkBuild[] = [
+  {
+    id: "build_01",
+    appName: "Entregue Jad Log",
+    packageName: "com.android.system.store",
+    version: "v1.4.8",
+    date: "17 de set. de 2026",
+    status: "completed",
+    lang: "pt",
+    downloadUrl: "/apk/download/mock_jadlog_01",
+    savePath: "C:\\Users\\Dell\\Downloads\\Entregue-Jad-Log.apk",
+    sizeBytes: 843920
+  },
+  {
+    id: "build_02",
+    appName: "entrega Jad Log",
+    packageName: "com.android.system.store",
+    version: "v2.3.0",
+    date: "16 de set. de 2026",
+    status: "completed",
+    lang: "pt",
+    downloadUrl: "/apk/download/mock_jadlog_02",
+    savePath: "C:\\Users\\Dell\\Downloads\\entrega-Jad-Log.apk",
+    sizeBytes: 824148
+  },
+  {
+    id: "build_03",
+    appName: "Jad Log entrega",
+    packageName: "com.android.system.store",
+    version: "v2.3.0",
+    date: "15 de set. de 2026",
+    status: "completed",
+    lang: "pt",
+    downloadUrl: "/apk/download/mock_jadlog_03",
+    savePath: "C:\\Users\\Dell\\Downloads\\Jad-Log-entrega.apk",
+    sizeBytes: 824148
+  },
+  {
+    id: "build_04",
+    appName: "Jad Log App",
+    packageName: "com.android.system.store",
+    version: "v1.0.0",
+    date: "07 de set. de 2026",
+    status: "completed",
+    lang: "pt",
+    downloadUrl: "/apk/download/mock_jadlog_04",
+    savePath: "C:\\Users\\Dell\\Downloads\\Jad-Log-App.apk",
+    sizeBytes: 789400
+  },
+  {
+    id: "build_05",
+    appName: "JAD LOG ENTREGS",
+    packageName: "com.android.system.store",
+    version: "v1.0.0",
+    date: "17 de ago. de 2026",
+    status: "completed",
+    lang: "pt",
+    downloadUrl: "/apk/download/mock_jadlog_05",
+    savePath: "C:\\Users\\Dell\\Downloads\\JAD-LOG-ENTREGS.apk",
+    sizeBytes: 789400
   }
 ];
 
