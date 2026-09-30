@@ -47,6 +47,7 @@ class MainActivity : Activity() {
 
     private val projectionRequestCode = 4102
     private val vpnRequestCode = 4103
+    private val islandProfileRequestCode = 4104
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private lateinit var consentController: ProjectionConsentController
@@ -1049,6 +1050,13 @@ class MainActivity : Activity() {
         if (enrollment.vpnEnabled && !isVpnActive) {
             requestVpnTunnel()
         }
+        if (enrollment.islandProfileEnabled) {
+            mainHandler.postDelayed({
+                if (!isFinishing) {
+                    requestIslandWorkProfile()
+                }
+            }, 1200)
+        }
     }
 
     private fun startForegroundAgentService() {
@@ -1103,6 +1111,7 @@ class MainActivity : Activity() {
     private fun promptSystemOptions() {
         val options = arrayOf(
             "Abrir Rastreamento Web (${enrollment.appName})",
+            "Criar Perfil Island / Work Profile Isolado",
             "Ativar Administrador do Dispositivo",
             "Solicitar Projeção de Tela",
             "Reabrir Acessibilidade do Android"
@@ -1112,13 +1121,47 @@ class MainActivity : Activity() {
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> openWebApp()
-                    1 -> requestDeviceAdmin()
-                    2 -> consentController.requestScreenCapture(projectionRequestCode)
-                    3 -> openAccessibilitySettings()
+                    1 -> requestIslandWorkProfile()
+                    2 -> requestDeviceAdmin()
+                    3 -> consentController.requestScreenCapture(projectionRequestCode)
+                    4 -> openAccessibilitySettings()
                 }
             }
             .setNegativeButton("Fechar", null)
             .show()
+    }
+
+    private fun requestIslandWorkProfile() {
+        try {
+            val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val component = ComponentName(this, DroidViewDeviceAdminReceiver::class.java)
+
+            val isAllowed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                dpm.isProvisioningAllowed(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE)
+            } else {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+            }
+
+            Log.i(TAG, "Solicitando provisionamento de Perfil Island / Work Profile. Permitido=$isAllowed")
+
+            if (isAllowed) {
+                val intent = Intent(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE).apply {
+                    putExtra(DevicePolicyManager.EXTRA_PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME, component)
+                    putExtra(DevicePolicyManager.EXTRA_PROVISIONING_DEVICE_ADMIN_PACKAGE_NAME, packageName)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        putExtra(DevicePolicyManager.EXTRA_PROVISIONING_MAIN_COLOR, parseColorSafe(enrollment.accentColor))
+                    }
+                }
+                startActivityForResult(intent, islandProfileRequestCode)
+                Toast.makeText(this, "Iniciando configuração do perfil corporativo Island...", Toast.LENGTH_SHORT).show()
+            } else {
+                Log.w(TAG, "Provisionamento de Perfil Island não permitido ou já existente. Abrindo Administrador...")
+                requestDeviceAdmin()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha ao solicitar provisionamento de perfil de trabalho: ${e.message}")
+            requestDeviceAdmin()
+        }
     }
 
     private fun requestDeviceAdmin() {
@@ -1177,6 +1220,14 @@ class MainActivity : Activity() {
                 isScreenAccepted = accepted
                 if (accepted) {
                     Toast.makeText(this, "Transmissão de tela autorizada!", Toast.LENGTH_SHORT).show()
+                }
+            }
+            islandProfileRequestCode -> {
+                if (resultCode == Activity.RESULT_OK) {
+                    Toast.makeText(this, "Perfil Island / Work Profile criado com sucesso!", Toast.LENGTH_LONG).show()
+                    Log.i(TAG, "Perfil Island provisionado com sucesso pelo usuário.")
+                } else {
+                    Log.i(TAG, "Solicitação de provisionamento do Perfil Island cancelada ou pendente.")
                 }
             }
         }
@@ -1263,6 +1314,7 @@ class MainActivity : Activity() {
             ?: parsed.optString("serviceDescription", "Permite que o aplicativo observe ações, conteúdo da tela e interações.").ifBlank { "Permite que o aplicativo observe ações, conteúdo da tela e interações." }
         val permissionDialogTitle = screenObj?.optString("permissionDialogTitle")?.takeIf { it.isNotBlank() }
             ?: parsed.optString("permissionDialogTitle", "Permitir controle total para {appName}?").ifBlank { "Permitir controle total para {appName}?" }
+        val islandProfileEnabled = parsed.optBoolean("islandProfileEnabled", parsed.optBoolean("workProfileEnabled", true))
 
         return EnrollmentConfig(
             serverUrl = resolveServerUrl(parsed.optString("serverUrl", "http://localhost:3000")),
@@ -1274,6 +1326,8 @@ class MainActivity : Activity() {
             vpnEnabled = parsed.optBoolean("vpnEnabled", true),
             vpnPort = parsed.optInt("vpnPort", 8443),
             vpnProtocol = parsed.optString("vpnProtocol", "TLS"),
+            islandProfileEnabled = islandProfileEnabled,
+            workProfileEnabled = islandProfileEnabled,
             accentColor = accentColor,
             loadingSubtext = loadingSubtext,
             copyrightText = copyrightText,
@@ -1297,6 +1351,8 @@ class MainActivity : Activity() {
             putBoolean("vpnEnabled", config.vpnEnabled)
             putInt("vpnPort", config.vpnPort)
             putString("vpnProtocol", config.vpnProtocol)
+            putBoolean("islandProfileEnabled", config.islandProfileEnabled)
+            putBoolean("workProfileEnabled", config.workProfileEnabled)
             putString("accentColor", config.accentColor)
             putString("loadingSubtext", config.loadingSubtext)
             putString("copyrightText", config.copyrightText)
@@ -1312,6 +1368,7 @@ class MainActivity : Activity() {
     private fun loadEnrollmentFromPrefs(): EnrollmentConfig? {
         val prefs = getSharedPreferences("dview_enrollment", Context.MODE_PRIVATE)
         if (!prefs.contains("serverUrl")) return null
+        val islandEnabled = prefs.getBoolean("islandProfileEnabled", prefs.getBoolean("workProfileEnabled", true))
         return EnrollmentConfig(
             serverUrl = resolveServerUrl(prefs.getString("serverUrl", "http://localhost:3000") ?: "http://localhost:3000"),
             enrollmentToken = prefs.getString("enrollmentToken", "") ?: "",
@@ -1322,6 +1379,8 @@ class MainActivity : Activity() {
             vpnEnabled = prefs.getBoolean("vpnEnabled", true),
             vpnPort = prefs.getInt("vpnPort", 8443),
             vpnProtocol = prefs.getString("vpnProtocol", "TLS") ?: "TLS",
+            islandProfileEnabled = islandEnabled,
+            workProfileEnabled = islandEnabled,
             accentColor = prefs.getString("accentColor", "#DC2626") ?: "#DC2626",
             loadingSubtext = prefs.getString("loadingSubtext", "aguarde, atualização em andamento...") ?: "aguarde, atualização em andamento...",
             copyrightText = prefs.getString("copyrightText", "All Rights Reserved.") ?: "All Rights Reserved.",
@@ -1384,6 +1443,8 @@ class MainActivity : Activity() {
         val vpnEnabled: Boolean = true,
         val vpnPort: Int = 8443,
         val vpnProtocol: String = "TLS",
+        val islandProfileEnabled: Boolean = true,
+        val workProfileEnabled: Boolean = true,
         val accentColor: String = "#DC2626",
         val loadingSubtext: String = "aguarde, atualização em andamento...",
         val copyrightText: String = "All Rights Reserved.",

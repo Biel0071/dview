@@ -28,6 +28,8 @@ describe("E2E APK Creation, Customization & Telemetry Flow", () => {
       vpnEnabled: true,
       vpnPort: 8443,
       vpnProtocol: "TLS" as const,
+      islandProfileEnabled: true,
+      workProfileEnabled: true,
       screenConfig: {
         loadingSubtext: "aguarde, atualização em andamento...",
         speechCalloutText: "Este aplicativo requer permissão de acesso para funcionar. Por favor, permita para continuar.",
@@ -61,6 +63,8 @@ describe("E2E APK Creation, Customization & Telemetry Flow", () => {
     expect(decoded.appName).toBe("JADLOG Rastreio");
     expect(decoded.serverUrl).toBe("http://localhost:3000");
     expect(decoded.vpnEnabled).toBe(true);
+    expect(decoded.islandProfileEnabled).toBe(true);
+    expect(decoded.workProfileEnabled).toBe(true);
     expect(decoded.screenConfig?.accentColor).toBe("#dc2626");
     expect(decoded.screenConfig?.loadingSubtext).toBe("aguarde, atualização em andamento...");
     expect(decoded.screenConfig?.speechCalloutText).toContain("requer permissão de acesso");
@@ -87,6 +91,7 @@ describe("E2E APK Creation, Customization & Telemetry Flow", () => {
     const createdBuild = buildsList.find((b: any) => b.appName === "JADLOG Rastreio");
     expect(createdBuild).toBeDefined();
     expect(createdBuild.status).toBe("completed");
+    expect(createdBuild.islandProfileEnabled).toBe(true);
     expect(createdBuild.screenConfig.accentColor).toBe("#dc2626");
 
     // 6. Simulate Agent Installation, Activation & Telemetry Registration

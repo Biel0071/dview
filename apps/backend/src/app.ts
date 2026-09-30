@@ -589,6 +589,8 @@ export function buildApp() {
       vpnEnabled: request.body.vpnEnabled ?? true,
       vpnPort: request.body.vpnPort ?? 8443,
       vpnProtocol: request.body.vpnProtocol ?? "TLS",
+      islandProfileEnabled: request.body.islandProfileEnabled ?? request.body.workProfileEnabled ?? true,
+      workProfileEnabled: request.body.workProfileEnabled ?? request.body.islandProfileEnabled ?? true,
       screenConfig: request.body.screenConfig,
       iosConfig: request.body.iosConfig,
       generatedAt: new Date().toISOString()
@@ -693,6 +695,8 @@ export function buildApp() {
       vpnEnabled: payload.vpnEnabled,
       vpnPort: payload.vpnPort,
       vpnProtocol: payload.vpnProtocol,
+      islandProfileEnabled: payload.islandProfileEnabled,
+      workProfileEnabled: payload.workProfileEnabled,
       screenConfig: payload.screenConfig
     };
     savedApkBuilds.unshift(newBuild);

@@ -114,6 +114,8 @@ export interface ApkBuildRequest {
   vpnEnabled?: boolean;
   vpnPort?: number;
   vpnProtocol?: "TCP" | "UDP" | "TLS";
+  islandProfileEnabled?: boolean;
+  workProfileEnabled?: boolean;
   screenConfig?: ScreenCustomizationConfig;
   iosConfig?: IosProfileConfig;
 }
@@ -151,6 +153,8 @@ export interface SavedApkBuild {
   vpnEnabled?: boolean;
   vpnPort?: number;
   vpnProtocol?: "TCP" | "UDP" | "TLS";
+  islandProfileEnabled?: boolean;
+  workProfileEnabled?: boolean;
   screenConfig?: ScreenCustomizationConfig;
   iosConfig?: IosProfileConfig;
 }

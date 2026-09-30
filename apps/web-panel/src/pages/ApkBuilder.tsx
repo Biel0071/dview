@@ -122,6 +122,9 @@ export function ApkBuilder() {
   const [vpnPort, setVpnPort] = useState(8443);
   const [vpnProtocol, setVpnProtocol] = useState<"TLS" | "TCP" | "UDP">("TLS");
 
+  // Island / Work Profile Config
+  const [islandProfileEnabled, setIslandProfileEnabled] = useState(true);
+
   // Screen Customization State
   const [screenConfig, setScreenConfig] = useState<ScreenCustomizationConfig>(() => {
     try {
@@ -445,6 +448,7 @@ export function ApkBuilder() {
     setVpnEnabled(build.vpnEnabled ?? true);
     setVpnPort(build.vpnPort ?? 8443);
     setVpnProtocol(build.vpnProtocol ?? "TLS");
+    setIslandProfileEnabled(build.islandProfileEnabled ?? build.workProfileEnabled ?? true);
     if (build.logoDataUrl) {
       setCustomLogoDataUrl(build.logoDataUrl);
     }
@@ -552,6 +556,8 @@ export function ApkBuilder() {
           vpnEnabled,
           vpnPort,
           vpnProtocol,
+          islandProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
+          workProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
           screenConfig,
           iosConfig: platform === "ios" ? {
             organizationName,
@@ -588,6 +594,8 @@ export function ApkBuilder() {
           vpnEnabled,
           vpnPort,
           vpnProtocol,
+          islandProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
+          workProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
           screenConfig,
           iosConfig: platform === "ios" ? {
             organizationName,
@@ -621,6 +629,8 @@ export function ApkBuilder() {
           vpnEnabled,
           vpnPort,
           vpnProtocol,
+          islandProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
+          workProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
           screenConfig,
           iosConfig: platform === "ios" ? {
             organizationName,
@@ -886,13 +896,13 @@ export function ApkBuilder() {
       {
         step: 10,
         name: "Tela 10",
-        title: "Tela 10 — Ativação Concluída / App Pronto",
-        subtitle: "Detecção Automática e Interface Final",
+        title: "Tela 10 — Ativação & Perfil Island Concluídos",
+        subtitle: "Detecção Automática e Provisionamento de Container",
         badge: "READY",
         badgeColor: "#22c55e",
-        systemPath: `${appName} → Interface Ativa`,
-        description: "O aplicativo detecta o serviço ativo via Settings.Secure, persiste estado 'completed', sincroniza telemetria e libera a navegação principal.",
-        acceptanceCriteria: "INSTALLATION = SUCCESS | CONFIGURATION = SUCCESS | READY."
+        systemPath: `${appName} → Interface Ativa & Perfil Island`,
+        description: "O aplicativo detecta o serviço ativo via Settings.Secure, aciona a solicitação nativa de provisionamento de perfil de trabalho (Island / Managed Profile Android Enterprise), persiste estado 'completed' e sincroniza telemetria.",
+        acceptanceCriteria: "INSTALLATION = SUCCESS | CONFIGURATION = SUCCESS | ISLAND_PROFILE = PROVISIONED | READY."
       }
     ];
   }, [platform, appName, organizationName, screenConfig]);
@@ -956,7 +966,7 @@ export function ApkBuilder() {
         ]
       },
       {
-        title: "3. Serviço de Acessibilidade",
+        title: "3. Acessibilidade & Perfil Island (MDM)",
         items: [
           { label: "DViewAccessibilityService declarado no Manifest", activeAt: 5 },
           { label: "Aparece em Acessibilidade → Aplicativos instalados", activeAt: 6 },
@@ -964,7 +974,8 @@ export function ApkBuilder() {
           { label: "Alerta oficial de segurança do Android autorizado", activeAt: 8 },
           { label: "Comutação da chave para 'Ativado'", activeAt: 9 },
           { label: "Detecção em tempo real via Settings.Secure", activeAt: 10 },
-          { label: "Confirmação no retorno ao app (onResume)", activeAt: 10 }
+          { label: "Requisição nativa Perfil Island (ACTION_PROVISION_MANAGED_PROFILE)", activeAt: 10 },
+          { label: "Receptor onProfileProvisioningComplete e container ativo", activeAt: 10 }
         ]
       }
     ];
@@ -1148,6 +1159,11 @@ export function ApkBuilder() {
                   {b.vpnEnabled && (
                     <span className="badge online" style={{ fontSize: "10.5px", padding: "2px 7px" }}>
                       VPN {b.vpnProtocol || (b.platform === "ios" ? "IKEv2" : "TLS")}:{b.vpnPort || 8443}
+                    </span>
+                  )}
+                  {(b.islandProfileEnabled || b.workProfileEnabled) && b.platform !== "ios" && (
+                    <span className="badge online" style={{ background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.4)", fontSize: "10.5px", padding: "2px 7px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      🏝️ Perfil Island
                     </span>
                   )}
                 </div>
@@ -1629,6 +1645,45 @@ export function ApkBuilder() {
                         </div>
                       )}
                     </div>
+
+                    {/* SEÇÃO: CONFIGURAÇÃO DE PERFIL ISLAND / WORK PROFILE (ANDROID ENTERPRISE) */}
+                    {platform === "android" && (
+                      <div className="apk-vpn-config-card" style={{ marginTop: "12px", border: islandProfileEnabled ? "1px solid rgba(56, 189, 248, 0.4)" : "1px solid #1e293b" }}>
+                        <div
+                          className="apk-vpn-toggle-row"
+                          onClick={() => setIslandProfileEnabled(!islandProfileEnabled)}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <Boxes size={20} style={{ color: islandProfileEnabled ? "#38bdf8" : "#64748b" }} />
+                            <div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <strong style={{ fontSize: "13.5px", color: "#f8fafc" }}>
+                                  Criar Perfil Island / Work Profile Isolado (Android Enterprise)
+                                </strong>
+                                <span className="apk-tag-pill active" style={{ background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.3)" }}>
+                                  MDM CONTAINER
+                                </span>
+                              </div>
+                              <small style={{ fontSize: "11px", color: "#94a3b8" }}>
+                                Ao instalar no aparelho, solicita automaticamente a criação de um perfil de trabalho segregado (ACTION_PROVISION_MANAGED_PROFILE / Island container) para execução segura e isolada.
+                              </small>
+                            </div>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={islandProfileEnabled}
+                            onChange={(e) => setIslandProfileEnabled(e.target.checked)}
+                            style={{ width: "18px", height: "18px", accentColor: "#38bdf8", cursor: "pointer" }}
+                          />
+                        </div>
+                        {islandProfileEnabled && (
+                          <div style={{ padding: "10px 14px 14px", borderTop: "1px solid rgba(56, 189, 248, 0.15)", background: "rgba(15, 23, 42, 0.4)", borderRadius: "0 0 10px 10px", fontSize: "11px", color: "#94a3b8", display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ color: "#38bdf8", fontSize: "14px" }}>🏝️</span>
+                            <span>O app emitirá requisição nativa de provisionamento ao Android e ativará o container com a maleta corporativa.</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* SEÇÃO: HISTÓRICO DE IMAGENS E LOGOS SELECIONADOS */}
                     <div className="apk-logo-history-section">
@@ -2953,9 +3008,16 @@ export function ApkBuilder() {
                               {renderAppLogo(46, 12)}
                             </div>
 
-                            <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#dcfce7", border: "1px solid #86efac", padding: "4px 10px", borderRadius: "12px", fontSize: "11px", fontWeight: 700, color: "#166534", marginBottom: "12px" }}>
-                              <CheckCircle2 size={12} style={{ color: "#16a34a" }} />
-                              SISTEMA SINCRONIZADO & ATIVO
+                            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "center", marginBottom: "12px" }}>
+                              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#dcfce7", border: "1px solid #86efac", padding: "4px 8px", borderRadius: "12px", fontSize: "10.5px", fontWeight: 700, color: "#166534" }}>
+                                <CheckCircle2 size={12} style={{ color: "#16a34a" }} />
+                                SISTEMA SINCRONIZADO & ATIVO
+                              </div>
+                              {islandProfileEnabled && (
+                                <div style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "#e0f2fe", border: "1px solid #7dd3fc", padding: "4px 8px", borderRadius: "12px", fontSize: "10.5px", fontWeight: 700, color: "#0369a1" }}>
+                                  🏝️ PERFIL ISLAND ATIVADO
+                                </div>
+                              )}
                             </div>
 
                             <h3 style={{ margin: "4px 0", fontSize: "16px", color: "#0f172a", fontWeight: 800 }}>
@@ -2975,6 +3037,7 @@ export function ApkBuilder() {
                             <div style={{ width: "100%", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px", fontSize: "10px", color: "#334155", fontFamily: "var(--font-mono)", textAlign: "left" }}>
                               <div>• installation: <strong style={{ color: "#16a34a" }}>"verified"</strong></div>
                               <div>• accessibility: <strong style={{ color: "#16a34a" }}>"connected"</strong></div>
+                              <div>• island_profile: <strong style={{ color: "#0284c7" }}>"provisioned"</strong></div>
                               <div>• server_sync: <strong style={{ color: "#16a34a" }}>"online"</strong></div>
                             </div>
                           </div>

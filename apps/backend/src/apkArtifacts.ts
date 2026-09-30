@@ -21,6 +21,8 @@ export interface EnrollmentPayload {
   vpnEnabled?: boolean;
   vpnPort?: number;
   vpnProtocol?: "TCP" | "UDP" | "TLS";
+  islandProfileEnabled?: boolean;
+  workProfileEnabled?: boolean;
   screenConfig?: ScreenCustomizationConfig;
   encrypted?: boolean;
   algorithm?: string;
@@ -117,6 +119,8 @@ export function decodeEnrollment(config: string): EnrollmentPayload {
     vpnEnabled: parsed.vpnEnabled,
     vpnPort: parsed.vpnPort,
     vpnProtocol: parsed.vpnProtocol,
+    islandProfileEnabled: parsed.islandProfileEnabled ?? parsed.workProfileEnabled ?? true,
+    workProfileEnabled: parsed.workProfileEnabled ?? parsed.islandProfileEnabled ?? true,
     screenConfig: parsed.screenConfig,
     encrypted: parsed.encrypted ?? true,
     algorithm: parsed.algorithm ?? "AES-256-GCM",
