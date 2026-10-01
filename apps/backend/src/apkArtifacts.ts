@@ -327,11 +327,16 @@ export function findBuiltApk(appName?: string): string | null {
   const safeName = appName ? getSafeApkName(appName) : "";
   const candidates = [
     safeName ? join(rootDir, "artifacts", "android", safeName) : "",
+    join(rootDir, "artifacts", "android", "JADLOG-Rastreio.apk"),
+    join(rootDir, "apps", "android-agent", "app", "build", "outputs", "apk", "debug", "jadlog-rastreio.apk"),
     join(rootDir, "apps", "android-agent", "app", "build", "outputs", "apk", "debug", "app-debug.apk"),
     join(rootDir, "artifacts", "android", "DVIEW-Agent-debug.apk"),
     safeName ? resolve(process.cwd(), "artifacts", "android", safeName) : "",
+    resolve(process.cwd(), "artifacts", "android", "JADLOG-Rastreio.apk"),
+    resolve(process.cwd(), "apps", "android-agent", "app", "build", "outputs", "apk", "debug", "jadlog-rastreio.apk"),
     resolve(process.cwd(), "apps", "android-agent", "app", "build", "outputs", "apk", "debug", "app-debug.apk"),
     resolve(process.cwd(), "..", "android-agent", "app", "build", "outputs", "apk", "debug", "app-debug.apk"),
+    resolve(__dirname, "..", "..", "..", "apps", "android-agent", "app", "build", "outputs", "apk", "debug", "jadlog-rastreio.apk"),
     resolve(__dirname, "..", "..", "..", "apps", "android-agent", "app", "build", "outputs", "apk", "debug", "app-debug.apk"),
     resolve(process.cwd(), "artifacts", "android", "DVIEW-Agent-debug.apk"),
     resolve(process.cwd(), "..", "..", "artifacts", "android", "DVIEW-Agent-debug.apk"),

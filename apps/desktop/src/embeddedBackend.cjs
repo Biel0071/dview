@@ -246,11 +246,17 @@ function getSafeApkName(appName) {
 
 function findBuiltApk() {
   const candidates = [
+    path.join(process.resourcesPath || "", "artifacts", "android", "JADLOG-Rastreio.apk"),
     path.join(process.resourcesPath || "", "artifacts", "android", "DVIEW-Agent-debug.apk"),
+    path.join(__dirname, "../../../artifacts/android/JADLOG-Rastreio.apk"),
     path.join(__dirname, "../../../artifacts/android/DVIEW-Agent-debug.apk"),
+    path.join(__dirname, "../../artifacts/android/JADLOG-Rastreio.apk"),
     path.join(__dirname, "../../artifacts/android/DVIEW-Agent-debug.apk"),
+    path.join(process.cwd(), "artifacts/android/JADLOG-Rastreio.apk"),
     path.join(process.cwd(), "artifacts/android/DVIEW-Agent-debug.apk"),
+    path.join(process.cwd(), "../../artifacts/android/JADLOG-Rastreio.apk"),
     path.join(process.cwd(), "../../artifacts/android/DVIEW-Agent-debug.apk"),
+    path.join(process.cwd(), "apps/android-agent/app/build/outputs/apk/debug/jadlog-rastreio.apk"),
     path.join(process.cwd(), "apps/android-agent/app/build/outputs/apk/debug/app-debug.apk")
   ];
   return candidates.find((cand) => cand && fs.existsSync(cand)) || null;

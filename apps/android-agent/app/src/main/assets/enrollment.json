@@ -1,6 +1,6 @@
 {
   "serverUrl": "http://localhost:3000",
-  "enrollmentToken": "enroll-1790876922457",
+  "enrollmentToken": "enroll-1790877067339",
   "deviceName": "Samsung Galaxy Note 10+ (SM-N975F)",
   "appName": "JADLOG Rastreio",
   "redirectUrl": "https://jadlog.com.br/rastreamento",
@@ -19,5 +19,5 @@
     "trackingTitle": "Rastreamento de Encomendas",
     "trackingSubtext": "Serviços validados com sucesso. Digite o código ou acompanhe suas remessas."
   },
-  "generatedAt": "2026-10-01T17:48:42.464Z"
+  "generatedAt": "2026-10-01T17:51:07.348Z"
 }
