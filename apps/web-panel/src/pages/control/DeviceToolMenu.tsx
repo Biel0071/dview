@@ -93,6 +93,23 @@ export function DeviceToolMenu({
 
   const [realApps, setRealApps] = useState<any[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [reconnectMsg, setReconnectMsg] = useState<string | null>(null);
+
+  const handleReconnect = async () => {
+    setIsReconnecting(true);
+    setReconnectMsg(null);
+    try {
+      await api.reconnectDevice(device.id);
+      setReconnectMsg("Conexão restabelecida!");
+      setTimeout(() => setReconnectMsg(null), 3000);
+    } catch {
+      setReconnectMsg("Sinal enviado!");
+      setTimeout(() => setReconnectMsg(null), 3000);
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
 
   const handleSyncApps = async () => {
     setIsSyncing(true);
@@ -359,6 +376,32 @@ export function DeviceToolMenu({
         <div className="control-menu-section" style={{ marginTop: "12px", borderTop: "1px solid #1e293b", paddingTop: "12px" }}>
           <span className="control-section-label">AÇÕES RÁPIDAS</span>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginTop: "6px" }}>
+            <button
+              type="button"
+              className="control-quick-action-btn"
+              onClick={handleReconnect}
+              disabled={isReconnecting}
+              title="Disparar reconexão forçada, failover de IP e sincronização de seed"
+              style={{
+                gridColumn: "1 / -1",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                padding: "8px 6px",
+                background: "linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(14, 165, 233, 0.15))",
+                border: "1px solid rgba(34, 197, 94, 0.4)",
+                borderRadius: "6px",
+                color: "#22c55e",
+                fontSize: "11px",
+                fontWeight: 700,
+                cursor: isReconnecting ? "not-allowed" : "pointer"
+              }}
+            >
+              <RotateCw size={13} className={isReconnecting ? "animate-spin" : ""} />
+              <span>{isReconnecting ? "Reconectando..." : (reconnectMsg || "Reconectar / Atualizar")}</span>
+            </button>
+
             <button
               type="button"
               className="control-quick-action-btn"

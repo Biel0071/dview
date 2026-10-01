@@ -173,5 +173,22 @@ export const api = {
     request<{ success: boolean; session: InstallTrackSession }>("/install/track", {
       method: "POST",
       body: JSON.stringify(payload)
-    })
+    }),
+  reconnectDevice: (deviceId: string) =>
+    request<{ success: boolean; deviceId: string; message: string; timestamp: number }>(
+      `/devices/${deviceId}/reconnect`,
+      { method: "POST" }
+    ),
+  getUpdateSeed: () =>
+    request<{
+      success: boolean;
+      version: string;
+      versionCode: number;
+      minSupportedVersion: string;
+      appName: string;
+      improvements: string[];
+      hasArtifact: boolean;
+      downloadUrl: string;
+      updatedAt: string;
+    }>("/apk/seed")
 };

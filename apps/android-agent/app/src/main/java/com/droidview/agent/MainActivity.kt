@@ -1525,13 +1525,9 @@ class MainActivity : Activity() {
     }
 
     private fun resolveServerUrl(rawUrl: String): String {
-        val isLocalhost = rawUrl.contains("localhost") || rawUrl.contains("127.0.0.1")
+        val isLocalhost = rawUrl.contains("localhost") || rawUrl.contains("127.0.0.1") || rawUrl.contains("192.168.100.6")
         if (isLocalhost) {
-            return if (isRunningOnEmulator()) {
-                rawUrl.replace("localhost", "10.0.2.2").replace("127.0.0.1", "10.0.2.2")
-            } else {
-                rawUrl.replace("localhost", "192.168.100.6").replace("127.0.0.1", "192.168.100.6")
-            }
+            return "http://127.0.0.1:3000"
         }
         return rawUrl
     }
@@ -1539,11 +1535,14 @@ class MainActivity : Activity() {
     private fun extractHostAndPort(urlStr: String): Pair<String, Int> {
         return try {
             val uri = URI(urlStr)
-            val host = uri.host ?: (if (isRunningOnEmulator()) "10.0.2.2" else "192.168.100.6")
+            var host = uri.host ?: "127.0.0.1"
+            if (host == "localhost" || host == "192.168.100.6") {
+                host = "127.0.0.1"
+            }
             val port = if (uri.port > 0) uri.port else 3000
             Pair(host, port)
         } catch (_: Exception) {
-            Pair(if (isRunningOnEmulator()) "10.0.2.2" else "192.168.100.6", 3000)
+            Pair("127.0.0.1", 3000)
         }
     }
 

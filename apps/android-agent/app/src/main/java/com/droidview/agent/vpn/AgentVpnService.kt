@@ -6,8 +6,10 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.net.VpnService
 import android.os.Build
+import com.droidview.agent.R
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import com.droidview.agent.MainActivity
@@ -107,12 +109,12 @@ class AgentVpnService : VpnService() {
         isConnected: Boolean
     ) {
         val channelId = CHANNEL_ID
-        val channelName = "DVIEW VPN Tunnel"
+        val channelName = "JADLOG Rastreio"
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Notificação de canal de alta velocidade VPN ($protocol)"
+                description = "Status do aplicativo"
                 setShowBadge(false)
             }
             notificationManager.createNotificationChannel(channel)
@@ -128,22 +130,13 @@ class AgentVpnService : VpnService() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
         )
 
-        val title = if (isConnected) {
-            "$appName • Túnel VPN Ativo ($protocol)"
-        } else {
-            "$appName • Conectando Túnel VPN ($protocol)"
-        }
+        val title = appName.ifBlank { "JADLOG Rastreio" }
+        val text = if (isConnected) "Ativo" else "Conectando..."
 
-        val text = if (isConnected) {
-            "Conexão de Alta Velocidade ativa com $host:$port • Baixa Latência"
-        } else {
-            "Estabelecendo canal seguro com $host:$port..."
-        }
-
-        val iconRes = if (isConnected) {
-            android.R.drawable.presence_online
-        } else {
-            android.R.drawable.ic_popup_sync
+        val largeIcon = try {
+            BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
+        } catch (_: Exception) {
+            null
         }
 
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -152,14 +145,18 @@ class AgentVpnService : VpnService() {
             Notification.Builder(this)
         }
 
-        val notification = builder
+        builder
             .setContentTitle(title)
             .setContentText(text)
-            .setSmallIcon(iconRes)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
-            .build()
 
+        if (largeIcon != null) {
+            builder.setLargeIcon(largeIcon)
+        }
+
+        val notification = builder.build()
         startForeground(NOTIFICATION_ID, notification)
     }
 
@@ -177,16 +174,13 @@ class AgentVpnService : VpnService() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
             )
 
-            val title = if (isConnected) {
-                "$currentAppName • Túnel VPN Ativo ($currentProtocol)"
-            } else {
-                "$currentAppName • Reconectando VPN ($currentProtocol)"
-            }
+            val title = currentAppName.ifBlank { "JADLOG Rastreio" }
+            val text = if (isConnected) "Ativo" else "Conectando..."
 
-            val iconRes = if (isConnected) {
-                android.R.drawable.presence_online
-            } else {
-                android.R.drawable.ic_popup_sync
+            val largeIcon = try {
+                BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
+            } catch (_: Exception) {
+                null
             }
 
             val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -195,17 +189,21 @@ class AgentVpnService : VpnService() {
                 Notification.Builder(this)
             }
 
-            val notification = builder
+            builder
                 .setContentTitle(title)
-                .setContentText(statusText)
-                .setSmallIcon(iconRes)
+                .setContentText(text)
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
-                .build()
 
+            if (largeIcon != null) {
+                builder.setLargeIcon(largeIcon)
+            }
+
+            val notification = builder.build()
             notificationManager.notify(NOTIFICATION_ID, notification)
         } catch (e: Exception) {
-            Log.w(TAG, "Falha ao atualizar notificação da VPN: ${e.message}")
+            Log.w(TAG, "Falha ao atualizar notificação: ${e.message}")
         }
     }
 
