@@ -84,6 +84,8 @@ export interface ScreenCustomizationConfig {
   trackingTitle?: string;
   trackingSubtext?: string;
   serviceDescription?: string;
+  companyPreset?: string;
+  enterpriseName?: string;
 }
 
 export type PlatformType = "android" | "ios";

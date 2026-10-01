@@ -9,6 +9,7 @@ import { buildCustomApk, decodeEnrollment, encodeEnrollment, findBuiltApk, getSa
 import { generateIosMobileconfig, generateIosSwiftProject, resolveIosArtifact } from "./iosArtifacts.js";
 import { addLog, adminUser, apps, devices, logs, operatorUser, savedApkBuilds, sessions } from "./data.js";
 import { broadcastDeviceConnect } from "./realtime.js";
+import { getVpnTelemetry } from "./vpnServer.js";
 import {
   captureDeviceScreenshot,
   getDeviceForegroundApp,
@@ -51,6 +52,10 @@ export function buildApp() {
     service: "droidview-backend",
     time: new Date().toISOString()
   }));
+
+  app.get("/vpn/status", async () => {
+    return getVpnTelemetry();
+  });
 
   app.post<{ Body: LoginRequest }>("/auth/login", async (request, reply) => {
     const { email, password, totp } = request.body;
@@ -851,6 +856,7 @@ export function buildApp() {
         "/logs",
         "/apps",
         "/health",
+        "/vpn",
         "/socket.io"
       ];
 

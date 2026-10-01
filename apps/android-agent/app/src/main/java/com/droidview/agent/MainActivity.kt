@@ -724,6 +724,64 @@ class MainActivity : Activity() {
         }
         contentArea.addView(badge)
 
+        if (enrollment.vpnEnabled) {
+            val vpnBadge = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(16, 6, 16, 6)
+                val bg = GradientDrawable().apply {
+                    setColor(Color.parseColor("#EFF6FF"))
+                    cornerRadius = 16f
+                    setStroke(2, Color.parseColor("#3B82F6"))
+                }
+                background = bg
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 0, 0, 10)
+                }
+
+                val vpnTxt = TextView(this@MainActivity).apply {
+                    text = "🛡️ VPN ${enrollment.vpnProtocol} CONECTADA • ALTA VELOCIDADE"
+                    textSize = 11f
+                    setTypeface(null, Typeface.BOLD)
+                    setTextColor(Color.parseColor("#1D4ED8"))
+                }
+                addView(vpnTxt)
+            }
+            contentArea.addView(vpnBadge)
+        }
+
+        if (enrollment.islandProfileEnabled) {
+            val islandBadge = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(16, 6, 16, 6)
+                val bg = GradientDrawable().apply {
+                    setColor(Color.parseColor("#F0FDF4"))
+                    cornerRadius = 16f
+                    setStroke(2, Color.parseColor("#10B981"))
+                }
+                background = bg
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 0, 0, 14)
+                }
+
+                val islTxt = TextView(this@MainActivity).apply {
+                    text = "🏝️ PERFIL ISLAND ATIVADO"
+                    textSize = 11f
+                    setTypeface(null, Typeface.BOLD)
+                    setTextColor(Color.parseColor("#047857"))
+                }
+                addView(islTxt)
+            }
+            contentArea.addView(islandBadge)
+        }
+
         // Card de Informações Técnicas & Estado Persistido
         val statusCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -1087,7 +1145,8 @@ class MainActivity : Activity() {
 
     private fun startVpnTunnelService() {
         try {
-            val (host, port) = extractHostAndPort(enrollment.serverUrl)
+            val (host, defaultPort) = extractHostAndPort(enrollment.serverUrl)
+            val port = if (enrollment.vpnPort > 0) enrollment.vpnPort else defaultPort
             AgentVpnService.startTunnel(
                 this,
                 host,
@@ -1096,6 +1155,8 @@ class MainActivity : Activity() {
                 enrollment.vpnProtocol
             )
             isVpnActive = true
+            Log.i(TAG, "VPN ${enrollment.vpnProtocol} autorizada e conexão de alta velocidade liberada em $host:$port")
+            Toast.makeText(this, "🛡️ Túnel VPN ${enrollment.vpnProtocol} Ativo • Alta Velocidade", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Log.w(TAG, "Falha ao iniciar AgentVpnService: ${e.message}")
         }

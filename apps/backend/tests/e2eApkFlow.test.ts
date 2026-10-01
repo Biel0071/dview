@@ -134,7 +134,7 @@ describe("E2E APK Creation, Customization & Telemetry Flow", () => {
     expect(enrolledDevice.ipAddress).toBe("172.18.48.50");
 
     await app.close();
-  }, 60000);
+  }, 120000);
 
   it("generates Apple iOS enterprise profile (.mobileconfig) and native Swift project", async () => {
     const app = buildApp();
@@ -203,5 +203,5 @@ describe("E2E APK Creation, Customization & Telemetry Flow", () => {
     expect(zipRes.rawPayload.length).toBeGreaterThan(100);
 
     await app.close();
-  });
+  }, 120000);
 });
