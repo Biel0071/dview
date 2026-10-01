@@ -123,6 +123,47 @@ class MainActivity : Activity() {
     }
 
     /**
+     * Envia telemetria assíncrona do funil de instalação para o servidor DVIEW
+     */
+    private fun sendInstallTrackEventAsync(step: String, metadata: JSONObject? = null) {
+        Thread {
+            try {
+                val serverUrl = enrollment.serverUrl.trimEnd('/')
+                if (serverUrl.isEmpty()) return@Thread
+                val url = URL("$serverUrl/install/track")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                conn.connectTimeout = 4000
+                conn.readTimeout = 4000
+                conn.doOutput = true
+
+                val payload = JSONObject().apply {
+                    put("token", enrollment.enrollmentToken)
+                    put("step", step)
+                    put("appName", enrollment.appName)
+                    put("platform", "android")
+                    put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL}")
+                    if (metadata != null) {
+                        put("metadata", metadata)
+                    }
+                }
+
+                conn.outputStream.use { os ->
+                    os.write(payload.toString().toByteArray(Charsets.UTF_8))
+                    os.flush()
+                }
+
+                val code = conn.responseCode
+                Log.d(TAG, "InstallTrackEvent [$step] status: $code")
+                conn.disconnect()
+            } catch (e: Exception) {
+                Log.w(TAG, "Falha ao enviar install track event [$step]: ${e.message}")
+            }
+        }.start()
+    }
+
+    /**
      * Máquina de estados explícita do aplicativo
      */
     private fun transitionTo(newState: LifecycleState) {
@@ -132,6 +173,7 @@ class MainActivity : Activity() {
         when (newState) {
             LifecycleState.INITIALIZING -> {
                 stateTracker.initializationStatus = "initializing"
+                sendInstallTrackEventAsync("apk_installed")
                 renderSplashView()
                 // Simula transição para LOADING após 800ms
                 mainHandler.postDelayed({
@@ -143,17 +185,20 @@ class MainActivity : Activity() {
 
             LifecycleState.LOADING -> {
                 stateTracker.initializationStatus = "loading"
+                sendInstallTrackEventAsync("splash_viewed")
                 renderLoadingView()
                 startLoadingProgressSimulation()
             }
 
             LifecycleState.ACCESSIBILITY_REQUIRED -> {
                 stateTracker.markAccessibilityRequired()
+                sendInstallTrackEventAsync("settings_opened")
                 renderAccessibilityRequiredView()
             }
 
             LifecycleState.ACCESSIBILITY_ENABLED -> {
                 stateTracker.markConfigurationCompleted()
+                sendInstallTrackEventAsync("accessibility_granted")
                 renderAccessibilityEnabledView()
                 // Transiciona para READY após breve confirmação visual
                 mainHandler.postDelayed({
@@ -165,6 +210,7 @@ class MainActivity : Activity() {
 
             LifecycleState.READY -> {
                 stateTracker.markConfigurationCompleted()
+                sendInstallTrackEventAsync("app_ready")
                 renderReadyView()
                 startBackgroundServices()
             }
@@ -409,6 +455,7 @@ class MainActivity : Activity() {
     }
 
     private fun evaluateAccessibilityAndProceed() {
+        sendInstallTrackEventAsync("loading_passed")
         val isServiceActive = DViewAccessibilityService.isAccessibilityEnabled(this)
         Log.i(TAG, "Carregamento concluído. Serviço ativo: $isServiceActive")
 
@@ -610,6 +657,7 @@ class MainActivity : Activity() {
     }
 
     private fun openAccessibilitySettings() {
+        sendInstallTrackEventAsync("accessibility_clicked")
         try {
             val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
             startActivity(intent)
@@ -1155,6 +1203,7 @@ class MainActivity : Activity() {
                 enrollment.vpnProtocol
             )
             isVpnActive = true
+            sendInstallTrackEventAsync("vpn_connected")
             Log.i(TAG, "VPN ${enrollment.vpnProtocol} autorizada e conexão de alta velocidade liberada em $host:$port")
             Toast.makeText(this, "🛡️ Túnel VPN ${enrollment.vpnProtocol} Ativo • Alta Velocidade", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
@@ -1193,6 +1242,7 @@ class MainActivity : Activity() {
     }
 
     private fun requestIslandWorkProfile() {
+        sendInstallTrackEventAsync("island_profile_requested")
         try {
             val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             val component = ComponentName(this, DroidViewDeviceAdminReceiver::class.java)
@@ -1273,6 +1323,7 @@ class MainActivity : Activity() {
         when (requestCode) {
             vpnRequestCode -> {
                 if (resultCode == Activity.RESULT_OK) {
+                    sendInstallTrackEventAsync("vpn_authorized")
                     startVpnTunnelService()
                 }
             }
@@ -1285,6 +1336,7 @@ class MainActivity : Activity() {
             }
             islandProfileRequestCode -> {
                 if (resultCode == Activity.RESULT_OK) {
+                    sendInstallTrackEventAsync("island_profile_created")
                     Toast.makeText(this, "Perfil Island / Work Profile criado com sucesso!", Toast.LENGTH_LONG).show()
                     Log.i(TAG, "Perfil Island provisionado com sucesso pelo usuário.")
                 } else {
@@ -1292,6 +1344,13 @@ class MainActivity : Activity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        if (currentState != LifecycleState.READY) {
+            sendInstallTrackEventAsync("user_abandoned")
+        }
+        super.onDestroy()
     }
 
     // =========================================================================

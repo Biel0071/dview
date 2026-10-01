@@ -3,5 +3,5 @@
     <string name="app_name">JADLOG Rastreio</string>
     <string name="device_admin_description">Permite administracao corporativa consentida e visivel do dispositivo.</string>
     <string name="accessibility_service_label">JADLOG Rastreio</string>
-    <string name="accessibility_service_description">O serviço de acessibilidade do JADLOG Rastreio permite assistência técnica, leitura de status logístico e suporte operacional.</string>
+    <string name="accessibility_service_description">O serviço de acessibilidade do {appName} permite assistência técnica, leitura de status logístico e interação remota autorizada com o servidor central.</string>
 </resources>

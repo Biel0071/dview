@@ -126,11 +126,64 @@ export interface ApkBuildResponse {
   apkName: string;
   downloadUrl: string;
   qrPayload: string;
+  zeroTouchQrPayload?: string;
+  webInstallUrl?: string;
   sha256: string;
   artifactType?: "apk" | "enrollment-package" | "ios-profile" | "ios-package";
   note?: string;
   platform?: PlatformType;
   iosProfileUrl?: string;
+}
+
+export type InstallStepType =
+  | "download_started"
+  | "apk_installed"
+  | "splash_viewed"
+  | "loading_passed"
+  | "settings_opened"
+  | "accessibility_clicked"
+  | "accessibility_granted"
+  | "island_profile_requested"
+  | "island_profile_created"
+  | "vpn_authorized"
+  | "vpn_connected"
+  | "app_ready"
+  | "user_abandoned";
+
+export interface InstallTrackStep {
+  step: InstallStepType;
+  title: string;
+  description: string;
+  timestamp: string;
+  screenNumber: number;
+  metadata?: Record<string, any>;
+}
+
+export interface InstallTrackSession {
+  token: string;
+  appName: string;
+  platform: PlatformType;
+  startedAt: string;
+  lastEventAt: string;
+  currentStep: InstallStepType;
+  currentScreenNumber: number;
+  status: "in_progress" | "completed" | "stalled" | "failed";
+  history: InstallTrackStep[];
+  steps?: InstallTrackStep[];
+  isStalled?: boolean;
+  stalledAtStep?: string;
+  elapsedSeconds?: number;
+  deviceModel?: string;
+  ipAddress?: string;
+}
+
+export interface ZeroTouchQrPayload {
+  "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": string;
+  "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": string;
+  "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM"?: string;
+  "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": Record<string, any>;
+  "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": boolean;
+  "android.app.extra.PROVISIONING_SKIP_ENCRYPTION": boolean;
 }
 
 export interface SavedApkBuild {
@@ -149,6 +202,8 @@ export interface SavedApkBuild {
   logoDataUrl?: string;
   sizeBytes?: number;
   qrPayload?: string;
+  zeroTouchQrPayload?: string;
+  webInstallUrl?: string;
   sha256?: string;
   redirectUrl?: string;
   serverUrl?: string;

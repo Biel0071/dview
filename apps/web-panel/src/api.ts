@@ -5,6 +5,7 @@ import type {
   AuditLog,
   DashboardStats,
   Device,
+  InstallTrackSession,
   LoginResponse,
   RemoteSession,
   SavedApkBuild
@@ -163,6 +164,13 @@ export const api = {
     >(`/devices/${deviceId}/keyboard-logs`),
   sendKeyboardLog: (deviceId: string, payload: any) =>
     request<any>(`/devices/${deviceId}/keyboard-logs`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  getInstallSessions: () => request<InstallTrackSession[]>("/install/sessions"),
+  getInstallTrack: (token: string) => request<InstallTrackSession>(`/install/track/${token}`),
+  sendInstallTrack: (payload: any) =>
+    request<{ success: boolean; session: InstallTrackSession }>("/install/track", {
       method: "POST",
       body: JSON.stringify(payload)
     })

