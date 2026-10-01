@@ -46,7 +46,7 @@ import {
   QrCode,
   Terminal
 } from "lucide-react";
-import type { ApkBuildResponse, InstallTrackSession, InstallTrackStep, PlatformType, SavedApkBuild, ScreenCustomizationConfig } from "@droidview/shared";
+import { JADLOG_LOGO_BASE64, type ApkBuildResponse, type InstallTrackSession, type InstallTrackStep, type PlatformType, type SavedApkBuild, type ScreenCustomizationConfig } from "@droidview/shared";
 import { api } from "../api";
 
 interface PresetLogo {
@@ -60,7 +60,7 @@ interface PresetLogo {
 }
 
 const defaultPresetLogos: PresetLogo[] = [
-  { id: "logo_jadlog", name: "JADLOG Rastreio", type: "jadlog", bg: "#dc2626", color: "#ffffff", label: "jadlog" },
+  { id: "logo_jadlog", name: "JADLOG Rastreio", type: "jadlog", bg: "#dc2626", color: "#ffffff", label: "jadlog", dataUrl: JADLOG_LOGO_BASE64 },
   { id: "logo_dview", name: "DVIEW Tático", type: "dview", bg: "#080a10", color: "#ff1a2a", label: "DVIEW" },
   { id: "logo_correios", name: "Sedex / Encomendas", type: "correios", bg: "#facc15", color: "#002d72", label: "SEDEX" },
   { id: "logo_security", name: "Segurança MDM", type: "security", bg: "#1e293b", color: "#38bdf8", label: "MDM" },
@@ -272,7 +272,7 @@ export function ApkBuilder() {
   const [enrollmentToken, setEnrollmentToken] = useState(`enroll-${Date.now()}`);
   const [deviceName, setDeviceName] = useState("Android Device");
   const [selectedLogoId, setSelectedLogoId] = useState<string>("logo_jadlog");
-  const [customLogoDataUrl, setCustomLogoDataUrl] = useState("");
+  const [customLogoDataUrl, setCustomLogoDataUrl] = useState<string>(JADLOG_LOGO_BASE64);
   const [recentLogos, setRecentLogos] = useState<PresetLogo[]>(() => {
     try {
       const stored = localStorage.getItem("dview.recent_logos");
@@ -300,7 +300,8 @@ export function ApkBuilder() {
     setRedirectUrl(profile.redirectUrl);
     setVpnProtocol(profile.vpnProtocol);
     setSelectedLogoId(profile.logoId);
-    setCustomLogoDataUrl("");
+    const logoPreset = defaultPresetLogos.find(l => l.id === profile.logoId);
+    setCustomLogoDataUrl(logoPreset?.dataUrl || (profile.logoId === "logo_jadlog" ? JADLOG_LOGO_BASE64 : ""));
     setScreenConfig({
       ...profile.screenConfig,
       accentColor: profile.accentColor

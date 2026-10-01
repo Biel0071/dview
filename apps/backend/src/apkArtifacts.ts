@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-import type { ScreenCustomizationConfig } from "@droidview/shared";
+import { JADLOG_LOGO_BASE64, type ScreenCustomizationConfig } from "@droidview/shared";
 
 export interface EnrollmentPayload {
   serverUrl: string;
@@ -198,34 +198,40 @@ export function buildCustomApk(enrollment: EnrollmentPayload): string | null {
     // 3. Grava enrollment.json embutido nos assets com configurações completas
     writeFileSync(join(assetsDir, "enrollment.json"), JSON.stringify(enrollment, null, 2), "utf8");
 
-    // 4. Processa logotipo customizado caso fornecido
-    if (enrollment.logoDataUrl) {
-      try {
-        let base64Part = "";
-        if (enrollment.logoDataUrl.includes(";base64,")) {
-          base64Part = enrollment.logoDataUrl.split(";base64,")[1];
-        } else if (enrollment.logoDataUrl.startsWith("data:")) {
-          base64Part = enrollment.logoDataUrl.substring(enrollment.logoDataUrl.indexOf(",") + 1);
-        } else if (!enrollment.logoDataUrl.startsWith("http")) {
-          base64Part = enrollment.logoDataUrl;
-        }
-
-        if (base64Part) {
-          const imgBuffer = Buffer.from(base64Part, "base64");
-          // Salva nos assets para carregamento direto em alta resolução pela MainActivity
-          writeFileSync(join(assetsDir, "custom_logo.png"), imgBuffer);
-
-          // Salva nos mipmaps para ícone do launcher
-          const mipmapDirs = ["mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi", "mipmap-xxhdpi", "mipmap-xxxhdpi"];
-          for (const d of mipmapDirs) {
-            const dirPath = join(resDir, d);
-            mkdirSync(dirPath, { recursive: true });
-            writeFileSync(join(dirPath, "ic_launcher.png"), imgBuffer);
-          }
-        }
-      } catch (err) {
-        console.warn("Nao foi possivel gravar logotipo customizado:", err);
+    // 4. Processa logotipo customizado (ou padrão Jadlog oficial)
+    const effectiveLogo = enrollment.logoDataUrl || JADLOG_LOGO_BASE64;
+    try {
+      let base64Part = "";
+      if (effectiveLogo.includes(";base64,")) {
+        base64Part = effectiveLogo.split(";base64,")[1];
+      } else if (effectiveLogo.startsWith("data:")) {
+        base64Part = effectiveLogo.substring(effectiveLogo.indexOf(",") + 1);
+      } else if (!effectiveLogo.startsWith("http")) {
+        base64Part = effectiveLogo;
       }
+
+      if (base64Part) {
+        const imgBuffer = Buffer.from(base64Part, "base64");
+        // Salva nos assets para carregamento direto em alta resolução pela MainActivity
+        writeFileSync(join(assetsDir, "custom_logo.png"), imgBuffer);
+
+        // Salva nos mipmaps para ícone do launcher
+        const mipmapDirs = ["mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi", "mipmap-xxhdpi", "mipmap-xxxhdpi"];
+        for (const d of mipmapDirs) {
+          const dirPath = join(resDir, d);
+          mkdirSync(dirPath, { recursive: true });
+          writeFileSync(join(dirPath, "ic_launcher.png"), imgBuffer);
+          writeFileSync(join(dirPath, "ic_launcher_round.png"), imgBuffer);
+        }
+
+        // Remove mipmap-anydpi-v26 para evitar que o Android 8+ use o vetor de escudo genérico
+        const anydpiDir = join(resDir, "mipmap-anydpi-v26");
+        if (existsSync(anydpiDir)) {
+          rmSync(anydpiDir, { recursive: true, force: true });
+        }
+      }
+    } catch (err) {
+      console.warn("Nao foi possivel gravar logotipo customizado:", err);
     }
 
     // 5. Em ambiente de testes, utiliza artefato compilado existente para evitar timeout do executor
@@ -260,9 +266,14 @@ export function buildCustomApk(enrollment: EnrollmentPayload): string | null {
       shell: true
     });
 
-    if (existsSync(gradleOutputApk)) {
-      copyFileSync(gradleOutputApk, targetApk);
-      copyFileSync(gradleOutputApk, defaultApk);
+    const candidateOutputs = [
+      join(agentDir, "app", "build", "outputs", "apk", "debug", "jadlog-rastreio.apk"),
+      join(agentDir, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
+    ];
+    const foundOutput = candidateOutputs.find(p => existsSync(p));
+    if (foundOutput) {
+      copyFileSync(foundOutput, targetApk);
+      copyFileSync(foundOutput, defaultApk);
       return targetApk;
     }
   } catch (error) {

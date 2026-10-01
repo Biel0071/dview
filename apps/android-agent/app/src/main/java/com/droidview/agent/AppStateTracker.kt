@@ -92,6 +92,10 @@ class AppStateTracker(private val context: Context) {
         firstLaunch = false
     }
 
+    fun isConfigurationCompleted(): Boolean {
+        return configurationStatus == "completed"
+    }
+
     fun markAccessibilityRequired() {
         accessibilityServiceStatus = "disabled"
         configurationStatus = "pending"

@@ -239,3 +239,5 @@ export interface ChatMessage {
   body: string;
   timestamp: string;
 }
+
+export * from "./defaultLogos";
