@@ -9346,5 +9346,122 @@ button:active,
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4), 0 0 12px rgba(255, 26, 42, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
 }
 
+/* ==========================================================================
+   MULTI-INSTANCE, FOCUS MODE & MEMU FLOATING WINDOWS
+   ========================================================================== */
+
+/* Focus Mode & Collapsible Columns */
+.control-three-cols-wrapper.focus-mode .control-col-sidebar,
+.control-three-cols-wrapper.focus-mode .control-col-menu {
+  display: none !important;
+}
+
+.control-three-cols-wrapper.sidebar-collapsed .control-col-sidebar {
+  display: none !important;
+}
+
+.control-three-cols-wrapper.menu-collapsed .control-col-menu {
+  display: none !important;
+}
+
+.control-three-cols-wrapper.focus-mode .control-col-workspace,
+.control-three-cols-wrapper.focus-mode {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Top Command Ribbon in Control Panel */
+.control-ribbon-toolbar {
+  height: 42px;
+  background: #080c16;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  flex-shrink: 0;
+  z-index: 40;
+}
+
+.ribbon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #0d1220;
+  border: 1px solid #1e293b;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ribbon-btn:hover {
+  background: #161e33;
+  border-color: #38bdf8;
+  color: #f8fafc;
+}
+
+.ribbon-btn.active {
+  background: rgba(255, 26, 42, 0.2);
+  border-color: var(--crimson-neon, #ff1a2a);
+  color: #ff4d5a;
+}
+
+.ribbon-btn.primary-ribbon {
+  background: linear-gradient(135deg, rgba(255, 26, 42, 0.3) 0%, rgba(185, 28, 28, 0.3) 100%);
+  border-color: #ff1a2a;
+  color: #fff;
+}
+
+.ribbon-btn.primary-ribbon:hover {
+  background: linear-gradient(135deg, rgba(255, 26, 42, 0.5) 0%, rgba(185, 28, 28, 0.5) 100%);
+  box-shadow: 0 0 12px rgba(255, 26, 42, 0.4);
+}
+
+/* Multi Device Grid Responsive Tuning */
+.multi-grid-body.layout-1 .slot-device-card {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.multi-grid-body.layout-2 .slot-device-card,
+.multi-grid-body.layout-3 .slot-device-card,
+.multi-grid-body.layout-4 .slot-device-card {
+  min-height: 0;
+  height: 100%;
+}
+
+/* Floating MEmu Window Effects */
+.floating-device-window {
+  user-select: none;
+  backdrop-filter: blur(8px);
+}
+
+.floating-device-window.is-pinned {
+  border-color: var(--crimson-neon, #ff1a2a) !important;
+}
+
+.floating-device-window.is-minimized .floating-window-body {
+  display: none !important;
+}
+
+.memu-tool-btn {
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.memu-tool-btn:hover {
+  background: #182238 !important;
+  color: #38bdf8 !important;
+  transform: scale(1.05);
+}
+
+.memu-tool-btn:active {
+  transform: scale(0.95);
+}
+
 
 

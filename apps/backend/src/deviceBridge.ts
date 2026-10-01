@@ -39,8 +39,53 @@ export function getAdbPath(): string {
   return "adb";
 }
 
+export const KNOWN_EMU_PORTS = [
+  "127.0.0.1:21503",
+  "127.0.0.1:21513",
+  "127.0.0.1:21523",
+  "127.0.0.1:21533",
+  "127.0.0.1:21543",
+  "127.0.0.1:5555"
+];
+
+export async function getConnectedAdbDevices(): Promise<string[]> {
+  if (process.env.NODE_ENV === "test") {
+    return ["127.0.0.1:21503"];
+  }
+  const adb = getAdbPath();
+  try {
+    const { stdout } = await execFileAsync(adb, ["devices"], { timeout: 4000 });
+    const lines = stdout.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("List of"));
+    let devices = lines
+      .map((l) => l.split(/\s+/))
+      .filter(([_, state]) => state === "device")
+      .map(([serial]) => serial);
+
+    if (devices.length === 0) {
+      for (const port of KNOWN_EMU_PORTS) {
+        try {
+          await execFileAsync(adb, ["connect", port], { timeout: 1500 });
+        } catch {
+          // continue
+        }
+      }
+      const { stdout: stdout2 } = await execFileAsync(adb, ["devices"], { timeout: 4000 });
+      devices = stdout2
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l && !l.startsWith("List of"))
+        .map((l) => l.split(/\s+/))
+        .filter(([_, state]) => state === "device")
+        .map(([serial]) => serial);
+    }
+    return devices;
+  } catch {
+    return [];
+  }
+}
+
 export async function runAdbCommand(args: string[], serial?: string): Promise<string> {
-  if (process.env.NODE_ENV === "test" || serial?.startsWith("dev_")) {
+  if (process.env.NODE_ENV === "test") {
     return "";
   }
   const adb = getAdbPath();
@@ -52,10 +97,9 @@ export async function runAdbCommand(args: string[], serial?: string): Promise<st
     });
     return stdout.trim();
   } catch (err: any) {
-    // If connection dropped or device offline, try connecting MEmu default port
     if (args[0] !== "connect") {
       try {
-        await execFileAsync(adb, ["connect", "127.0.0.1:21543"], { timeout: 3000 });
+        await execFileAsync(adb, ["connect", "127.0.0.1:21503"], { timeout: 2000 });
       } catch {
         // ignore
       }
@@ -65,70 +109,61 @@ export async function runAdbCommand(args: string[], serial?: string): Promise<st
 }
 
 export async function resolveActiveDeviceSerial(requestedId?: string): Promise<string> {
-  if (requestedId && (requestedId.startsWith("dev_") || requestedId.startsWith("test_"))) {
-    return requestedId;
-  }
   if (process.env.NODE_ENV === "test") {
-    return requestedId || "127.0.0.1:21543";
+    return requestedId || "127.0.0.1:21503";
   }
-  const adb = getAdbPath();
-  try {
-    const { stdout } = await execFileAsync(adb, ["devices"], { timeout: 4000 });
-    const lines = stdout.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("List of"));
-    const devices = lines
-      .map((l) => {
-        const [serial, state] = l.split(/\s+/);
-        return { serial, state };
-      })
-      .filter((d) => d.state === "device");
 
-    if (devices.length === 0) {
-      // Try to auto-connect to MEmu port
-      try {
-        await execFileAsync(adb, ["connect", "127.0.0.1:21543"], { timeout: 3000 });
-      } catch {
-        // ignore
-      }
-      return "127.0.0.1:21543";
-    }
-
-    if (requestedId) {
-      // Match by exact serial or known id
-      const exact = devices.find((d) => d.serial === requestedId || requestedId.includes(d.serial));
-      if (exact) return exact.serial;
-    }
-
-    // Default to first active device (prefer MEmu if available)
-    const memu = devices.find((d) => d.serial.includes("21543"));
-    if (memu) return memu.serial;
-
-    return devices[0].serial;
-  } catch {
-    return "127.0.0.1:21543";
+  const devices = await getConnectedAdbDevices();
+  if (devices.length === 0) {
+    return "127.0.0.1:21503";
   }
+
+  if (requestedId) {
+    const exact = devices.find((s) => s === requestedId || requestedId.includes(s) || s.includes(requestedId));
+    if (exact) return exact;
+
+    // Check for index pattern like dev_memu_1, slot_2, etc.
+    const matchIndex = requestedId.match(/(\d+)$/);
+    if (matchIndex) {
+      const idx = parseInt(matchIndex[1], 10);
+      if (devices[idx]) return devices[idx];
+    }
+  }
+
+  return devices[0];
 }
 
-let cachedScreenBuffer: Buffer | null = null;
-let lastScreenTime = 0;
-let inflightScreenPromise: Promise<Buffer> | null = null;
+const FALLBACK_1X1_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+  "base64"
+);
+
+const cachedScreenBuffers: Record<string, { buffer: Buffer; timestamp: number }> = {};
+const inflightScreenPromises: Record<string, Promise<Buffer> | null> = {};
 
 export async function captureDeviceScreenshot(serial?: string): Promise<Buffer> {
+  const activeSerial = await resolveActiveDeviceSerial(serial);
   const now = Date.now();
-  if (cachedScreenBuffer && now - lastScreenTime < 350) {
-    return cachedScreenBuffer;
+  const cached = cachedScreenBuffers[activeSerial];
+  if (cached && now - cached.timestamp < 300) {
+    return cached.buffer;
   }
 
-  if (inflightScreenPromise) {
-    return inflightScreenPromise;
+  if (inflightScreenPromises[activeSerial]) {
+    return inflightScreenPromises[activeSerial]!;
   }
 
-  inflightScreenPromise = (async () => {
-    const activeSerial = await resolveActiveDeviceSerial(serial);
-    const tempLocalFile = join(tmpdir(), `dview_cap_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.png`);
+  const promise = (async () => {
+    const sanitizedSerial = activeSerial.replace(/[^a-zA-Z0-9]/g, "_");
+    const tempLocalFile = join(tmpdir(), `dview_cap_${sanitizedSerial}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.png`);
+    const remoteFile = `/sdcard/dview_live_${sanitizedSerial}.png`;
 
     try {
-      await runAdbCommand(["shell", "screencap", "-p", "/sdcard/dview_live.png"], activeSerial);
-      await runAdbCommand(["pull", "/sdcard/dview_live.png", tempLocalFile], activeSerial);
+      if (process.env.NODE_ENV === "test") {
+        return FALLBACK_1X1_PNG;
+      }
+      await runAdbCommand(["shell", "screencap", "-p", remoteFile], activeSerial);
+      await runAdbCommand(["pull", remoteFile, tempLocalFile], activeSerial);
 
       if (existsSync(tempLocalFile)) {
         const buffer = readFileSync(tempLocalFile);
@@ -137,8 +172,7 @@ export async function captureDeviceScreenshot(serial?: string): Promise<Buffer> 
         } catch {
           // ignore
         }
-        cachedScreenBuffer = buffer;
-        lastScreenTime = Date.now();
+        cachedScreenBuffers[activeSerial] = { buffer, timestamp: Date.now() };
         return buffer;
       }
       throw new Error("Screenshot file not found after pull");
@@ -150,14 +184,17 @@ export async function captureDeviceScreenshot(serial?: string): Promise<Buffer> 
           // ignore
         }
       }
-      if (cachedScreenBuffer) return cachedScreenBuffer;
-      throw err;
+      if (cachedScreenBuffers[activeSerial]) {
+        return cachedScreenBuffers[activeSerial].buffer;
+      }
+      return FALLBACK_1X1_PNG;
     } finally {
-      inflightScreenPromise = null;
+      delete inflightScreenPromises[activeSerial];
     }
   })();
 
-  return inflightScreenPromise;
+  inflightScreenPromises[activeSerial] = promise;
+  return promise;
 }
 
 export const realTouchEvents: DigitalTouchEvent[] = [];

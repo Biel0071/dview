@@ -33,6 +33,8 @@ import { useAppStore } from "./store";
 import { createSocket } from "./socket/client";
 import { translate } from "./i18n";
 
+import { PopoutDeviceView } from "./pages/control/PopoutDeviceView";
+
 interface NavItem {
   name: string;
   icon: typeof LayoutDashboard;
@@ -53,6 +55,18 @@ const nav: NavItem[] = [
 ];
 
 export function App() {
+  const isPopout = useMemo(() => {
+    return window.location.search.includes("popout=true") || window.location.pathname.startsWith("/popout");
+  }, []);
+
+  const popoutDeviceId = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("deviceId") || "dev_sm_n975f";
+  }, []);
+
+  if (isPopout) {
+    return <PopoutDeviceView deviceId={popoutDeviceId} />;
+  }
   const {
     token,
     user,
