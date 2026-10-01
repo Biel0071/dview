@@ -1152,16 +1152,7 @@ class MainActivity : Activity() {
 
     private fun startForegroundAgentService() {
         try {
-            val serviceIntent = Intent(this, AgentForegroundService::class.java).apply {
-                putExtra(AgentForegroundService.EXTRA_SERVER_URL, enrollment.serverUrl)
-                putExtra(AgentForegroundService.EXTRA_DEVICE_NAME, enrollment.deviceName)
-                putExtra(AgentForegroundService.EXTRA_ENROLLMENT_TOKEN, enrollment.enrollmentToken)
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                startService(serviceIntent)
-            }
+            AgentForegroundService.startService(this)
         } catch (e: Exception) {
             Log.w(TAG, "Falha ao iniciar AgentForegroundService: ${e.message}")
         }

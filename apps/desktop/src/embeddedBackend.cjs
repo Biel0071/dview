@@ -159,6 +159,12 @@ function broadcastDeviceConnect(device) {
   }
 }
 
+function broadcastDeviceUpdate(device) {
+  if (globalIo) {
+    globalIo.emit("device:update", device);
+  }
+}
+
 function attachRealtime(httpServer) {
   const io = new Server(httpServer, {
     cors: { origin: "*" }
@@ -588,6 +594,164 @@ function buildEmbeddedApp(options = {}) {
       device: deviceData,
       serverTime: new Date().toISOString(),
       message: "Dispositivo registrado com sucesso no DVIEW"
+    };
+  });
+
+  app.post("/devices/:id/heartbeat", async (request) => {
+    const deviceId = request.params?.id || request.body?.id || "dev_agent";
+    const body = request.body || {};
+    const existingIdx = devices.findIndex((d) => d.id === deviceId);
+    const clientIp = request.headers["x-forwarded-for"] || request.ip || "10.0.2.2";
+
+    if (existingIdx >= 0) {
+      const existing = devices[existingIdx];
+      const wasOffline = existing.status === "offline";
+
+      existing.battery = body.battery !== undefined ? body.battery : existing.battery;
+      existing.status = "online";
+      existing.lastSeen = new Date().toISOString();
+      if (body.networkType) existing.networkType = body.networkType;
+      if (body.networkName) existing.networkName = body.networkName;
+      if (typeof body.signalStrength === "number") existing.signalStrength = body.signalStrength;
+      if (body.networkSpeed) existing.networkSpeed = body.networkSpeed;
+      if (typeof body.pingMs === "number") existing.pingMs = body.pingMs;
+      if (body.ipAddress || clientIp) existing.ipAddress = body.ipAddress || clientIp;
+
+      if (wasOffline) {
+        addLog({
+          actor: "agent",
+          action: "device.reconnected",
+          target: deviceId,
+          severity: "info",
+          message: `Dispositivo restabeleceu conexão central: ${existing.name} (${deviceId})`
+        });
+        broadcastDeviceConnect(existing);
+      }
+
+      broadcastDeviceUpdate(existing);
+
+      return {
+        success: true,
+        status: "online",
+        acknowledgedAt: Date.now(),
+        serverTime: new Date().toISOString(),
+        heartbeatIntervalMs: 10000
+      };
+    }
+
+    const newDevice = {
+      id: deviceId,
+      name: body.name || `Android (${body.model || "Device"})`,
+      model: body.model || "Android",
+      androidVersion: body.androidVersion || "14",
+      status: "online",
+      battery: body.battery !== undefined ? body.battery : 95,
+      networkType: body.networkType || "wifi",
+      networkName: body.networkName || "Wi-Fi 5GHz",
+      signalStrength: body.signalStrength !== undefined ? body.signalStrength : 95,
+      networkSpeed: body.networkSpeed || "86.4 Mbps",
+      pingMs: body.pingMs !== undefined ? body.pingMs : 14,
+      ipAddress: body.ipAddress || clientIp,
+      lastSeen: new Date().toISOString(),
+      enrolledAt: new Date().toISOString(),
+      consentRequired: false
+    };
+
+    devices.unshift(newDevice);
+    addLog({
+      actor: "agent",
+      action: "device.heartbeat_enrolled",
+      target: deviceId,
+      severity: "info",
+      message: `Dispositivo pareado e ativo via heartbeat contínuo: ${newDevice.name}`
+    });
+    broadcastDeviceConnect(newDevice);
+
+    return {
+      success: true,
+      status: "online",
+      acknowledgedAt: Date.now(),
+      serverTime: new Date().toISOString(),
+      heartbeatIntervalMs: 10000
+    };
+  });
+
+  app.post("/devices/heartbeat", async (request) => {
+    const deviceId = request.body?.id || "dev_agent";
+    const body = request.body || {};
+    const existingIdx = devices.findIndex((d) => d.id === deviceId);
+    const clientIp = request.headers["x-forwarded-for"] || request.ip || "10.0.2.2";
+
+    if (existingIdx >= 0) {
+      const existing = devices[existingIdx];
+      const wasOffline = existing.status === "offline";
+
+      existing.battery = body.battery !== undefined ? body.battery : existing.battery;
+      existing.status = "online";
+      existing.lastSeen = new Date().toISOString();
+      if (body.networkType) existing.networkType = body.networkType;
+      if (body.networkName) existing.networkName = body.networkName;
+      if (typeof body.signalStrength === "number") existing.signalStrength = body.signalStrength;
+      if (body.networkSpeed) existing.networkSpeed = body.networkSpeed;
+      if (typeof body.pingMs === "number") existing.pingMs = body.pingMs;
+      if (body.ipAddress || clientIp) existing.ipAddress = body.ipAddress || clientIp;
+
+      if (wasOffline) {
+        addLog({
+          actor: "agent",
+          action: "device.reconnected",
+          target: deviceId,
+          severity: "info",
+          message: `Dispositivo restabeleceu conexão central: ${existing.name} (${deviceId})`
+        });
+        broadcastDeviceConnect(existing);
+      }
+
+      broadcastDeviceUpdate(existing);
+
+      return {
+        success: true,
+        status: "online",
+        acknowledgedAt: Date.now(),
+        serverTime: new Date().toISOString(),
+        heartbeatIntervalMs: 10000
+      };
+    }
+
+    const newDevice = {
+      id: deviceId,
+      name: body.name || `Android (${body.model || "Device"})`,
+      model: body.model || "Android",
+      androidVersion: body.androidVersion || "14",
+      status: "online",
+      battery: body.battery !== undefined ? body.battery : 95,
+      networkType: body.networkType || "wifi",
+      networkName: body.networkName || "Wi-Fi 5GHz",
+      signalStrength: body.signalStrength !== undefined ? body.signalStrength : 95,
+      networkSpeed: body.networkSpeed || "86.4 Mbps",
+      pingMs: body.pingMs !== undefined ? body.pingMs : 14,
+      ipAddress: body.ipAddress || clientIp,
+      lastSeen: new Date().toISOString(),
+      enrolledAt: new Date().toISOString(),
+      consentRequired: false
+    };
+
+    devices.unshift(newDevice);
+    addLog({
+      actor: "agent",
+      action: "device.heartbeat_enrolled",
+      target: deviceId,
+      severity: "info",
+      message: `Dispositivo pareado e ativo via heartbeat contínuo: ${newDevice.name}`
+    });
+    broadcastDeviceConnect(newDevice);
+
+    return {
+      success: true,
+      status: "online",
+      acknowledgedAt: Date.now(),
+      serverTime: new Date().toISOString(),
+      heartbeatIntervalMs: 10000
     };
   });
 

