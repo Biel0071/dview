@@ -24,6 +24,7 @@ import com.droidview.agent.MainActivity
 import com.droidview.agent.R
 import com.droidview.agent.vpn.AgentVpnService
 import org.json.JSONObject
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.atomic.AtomicBoolean
@@ -256,13 +257,74 @@ class AgentForegroundService : Service() {
                 val body = conn.inputStream.bufferedReader().readText()
                 val json = JSONObject(body)
                 val ver = json.optString("version", "")
-                val code = json.optInt("versionCode", 1)
+                val remoteCode = json.optInt("versionCode", 1)
                 val improvements = json.optJSONArray("improvements")
-                Log.i(TAG, "Seed de atualização verificado: v$ver (code $code). Melhorias: $improvements")
+                val downloadUrl = json.optString("downloadUrl", "")
+                Log.i(TAG, "Seed de atualização verificado: v$ver (code $remoteCode). Melhorias: $improvements")
+
+                val localCode = try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        packageManager.getPackageInfo(packageName, 0).longVersionCode.toInt()
+                    } else {
+                        @Suppress("DEPRECATION")
+                        packageManager.getPackageInfo(packageName, 0).versionCode
+                    }
+                } catch (_: Exception) {
+                    1
+                }
+
+                if (remoteCode > localCode && downloadUrl.isNotBlank()) {
+                    Log.i(TAG, "Atualização disponível no seed ($remoteCode > $localCode). Baixando e instalando...")
+                    downloadAndTriggerInstall(server, downloadUrl)
+                }
             }
             conn.disconnect()
         } catch (e: Exception) {
             Log.d(TAG, "Verificação de seed de atualização: ${e.message}")
+        }
+    }
+
+    private fun downloadAndTriggerInstall(server: String, downloadPath: String) {
+        Thread {
+            try {
+                val targetUrl = if (downloadPath.startsWith("http")) downloadPath else "$server$downloadPath"
+                val url = URL(targetUrl)
+                val conn = url.openConnection() as HttpURLConnection
+                conn.connectTimeout = 10000
+                conn.readTimeout = 30000
+                conn.requestMethod = "GET"
+
+                if (conn.responseCode == 200) {
+                    val updateFile = File(getExternalFilesDir(null) ?: cacheDir, "jadlog_update.apk")
+                    conn.inputStream.use { input ->
+                        updateFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    Log.i(TAG, "APK atualizado baixado com sucesso: ${updateFile.length()} bytes em ${updateFile.absolutePath}")
+
+                    try {
+                        val vmBuilder = android.os.StrictMode.VmPolicy.Builder()
+                        android.os.StrictMode.setVmPolicy(vmBuilder.build())
+                    } catch (_: Exception) {}
+
+                    val apkUri = android.net.Uri.fromFile(updateFile)
+
+                    val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(apkUri, "application/vnd.android.package-archive")
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    }
+                    startActivity(installIntent)
+                    Log.i(TAG, "Tela de atualização de pacote disparada automaticamente.")
+                }
+                conn.disconnect()
+            } catch (e: Exception) {
+                Log.w(TAG, "Falha no download/instalação da atualização automática: ${e.message}")
+            }
+        }.apply {
+            name = "DViewAutoUpdateWorker"
+            isDaemon = true
+            start()
         }
     }
 
