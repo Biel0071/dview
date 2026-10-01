@@ -1,9 +1,15 @@
 import { Server } from "socket.io";
 import type { Server as HttpServer } from "node:http";
-import type { ChatMessage, ClientToServerEvents, Device, ServerToClientEvents } from "@droidview/shared";
+import type { ChatMessage, ClientToServerEvents, Device, DigitalTouchEvent, ServerToClientEvents } from "@droidview/shared";
 import { addLog, devices, sessions } from "./data.js";
 
 let globalIo: Server<ClientToServerEvents, ServerToClientEvents> | null = null;
+
+export function broadcastTouchEvent(event: DigitalTouchEvent) {
+  if (globalIo) {
+    globalIo.emit("touch:event", event);
+  }
+}
 
 export function broadcastDeviceConnect(device: Device) {
   if (globalIo) {

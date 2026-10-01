@@ -25,9 +25,14 @@ import {
   Volume2,
   VolumeX,
   Wifi,
-  X
+  X,
+  Crosshair,
+  Fingerprint,
+  Hand
 } from "lucide-react";
 import type { ControlDevice, InstalledAppItem, KeyboardEventItem } from "../types";
+import type { DigitalTouchEvent } from "@droidview/shared";
+import { subscribeToTouchEvents } from "../../../socket/client";
 import { initialKeyboardLogs } from "../mockData";
 import { api } from "../../../api";
 import { getAppEmojiFallback } from "../DeviceToolMenu";
@@ -115,6 +120,55 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
 
   // Drag detection
   const dragStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  // Digital Touch Detection & Simulation State
+  const [detectedTouches, setDetectedTouches] = useState<DigitalTouchEvent[]>([]);
+  const [activeTouchFeedback, setActiveTouchFeedback] = useState<DigitalTouchEvent | null>(null);
+  const [showTouchHUD, setShowTouchHUD] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.getDeviceTouchEvents(device.id).then((events) => {
+      if (isMounted && events && Array.isArray(events)) {
+        setDetectedTouches(events.slice(0, 50));
+      }
+    }).catch(() => {});
+
+    const unsubscribe = subscribeToTouchEvents((event) => {
+      if (!isMounted) return;
+      if (
+        event.deviceId === device.id ||
+        event.deviceId.includes(device.id) ||
+        device.id.includes(event.deviceId) ||
+        device.id.includes("emu") ||
+        event.deviceId.includes("emu")
+      ) {
+        setDetectedTouches((prev) => [event, ...prev.slice(0, 49)]);
+        setActiveTouchFeedback(event);
+
+        if (typeof event.x === "number" && typeof event.y === "number") {
+          const rect = imgRef.current?.getBoundingClientRect();
+          if (rect && rect.width > 0 && rect.height > 0) {
+            const screenX = (event.x / 720) * rect.width;
+            const screenY = (event.y / 1280) * rect.height;
+            const rippleId = Date.now();
+            setRipples((curr) => [...curr, { id: rippleId, x: screenX, y: screenY }]);
+            setTimeout(() => setRipples((curr) => curr.filter((r) => r.id !== rippleId)), 600);
+          }
+        }
+
+        const actionLabel = event.action === "swipe" ? "Gesto de Deslize" : (event.action === "long_click" ? "Toque Longo" : "Toque Digital");
+        const originLabel = event.source === "remote_simulation" ? "Simulado" : "Detectado";
+        const viewLabel = event.viewText ? ` em "${event.viewText}"` : (event.packageName ? ` (${event.packageName.split('.').pop()})` : "");
+        showToast(`${originLabel}: ${actionLabel}${viewLabel} (${Math.round(event.x)}, ${Math.round(event.y)})`, event.source === "remote_simulation" ? "success" : "info");
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [device.id]);
 
   // Real Accessibility Tree
   const [a11yNodes, setA11yNodes] = useState<AccessibilityNode[]>([]);
@@ -938,6 +992,48 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
                   />
                 ))}
 
+                {/* Tactical Digital Touch HUD Banner */}
+                {touchActive && showTouchHUD && activeTouchFeedback && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "10px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      background: "rgba(6, 7, 10, 0.9)",
+                      border: "1px solid rgba(34, 197, 94, 0.45)",
+                      borderRadius: "20px",
+                      padding: "4px 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontSize: "11px",
+                      color: "#cbd5e1",
+                      backdropFilter: "blur(6px)",
+                      zIndex: 10,
+                      boxShadow: "0 4px 14px rgba(0,0,0,0.6)",
+                      pointerEvents: "none"
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: "6px",
+                        height: "6px",
+                        borderRadius: "50%",
+                        background: activeTouchFeedback.source === "remote_simulation" ? "#38bdf8" : "#22c55e",
+                        boxShadow: `0 0 6px ${activeTouchFeedback.source === "remote_simulation" ? "#38bdf8" : "#22c55e"}`
+                      }}
+                    />
+                    <span style={{ fontWeight: 800, color: activeTouchFeedback.source === "remote_simulation" ? "#38bdf8" : "#22c55e" }}>
+                      {activeTouchFeedback.source === "remote_simulation" ? "TOQUE SIMULADO" : "TOQUE DETECTADO"}
+                    </span>
+                    <span style={{ color: "#94a3b8" }}>
+                      ({Math.round(activeTouchFeedback.x)}, {Math.round(activeTouchFeedback.y)})
+                      {activeTouchFeedback.viewText ? ` • "${activeTouchFeedback.viewText}"` : ""}
+                    </span>
+                  </div>
+                )}
+
                 {/* Stream Disconnect Overlay */}
                 {!isStreaming && (
                   <div
@@ -1528,6 +1624,42 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
               onClick={() => handleMacroAction("capture", "Capturar Tela")}
             >
               Capturar Tela
+            </button>
+            <button
+              type="button"
+              className="tactical-macro-chip"
+              onClick={async () => {
+                await api.sendTouch(device.id, 360, 640, 720, 1280);
+                showToast("Toque digital simulado no centro da tela (360, 640)", "success");
+              }}
+              title="Simular toque digital no centro da tela (360, 640)"
+              style={{ borderColor: "rgba(34, 197, 94, 0.4)", color: "#22c55e" }}
+            >
+              ● Simular Toque (360, 640)
+            </button>
+            <button
+              type="button"
+              className="tactical-macro-chip"
+              onClick={async () => {
+                await api.sendSwipe(device.id, 360, 800, 360, 300, 300);
+                showToast("Gesto digital simulado: Swipe para cima", "success");
+              }}
+              title="Simular gesto de deslize digital para cima"
+              style={{ borderColor: "rgba(56, 189, 248, 0.4)", color: "#38bdf8" }}
+            >
+              ↑ Simular Swipe Cima
+            </button>
+            <button
+              type="button"
+              className="tactical-macro-chip"
+              onClick={async () => {
+                await api.sendSwipe(device.id, 360, 300, 360, 800, 300);
+                showToast("Gesto digital simulado: Swipe para baixo", "success");
+              }}
+              title="Simular gesto de deslize digital para baixo"
+              style={{ borderColor: "rgba(56, 189, 248, 0.4)", color: "#38bdf8" }}
+            >
+              ↓ Simular Swipe Baixo
             </button>
           </div>
 

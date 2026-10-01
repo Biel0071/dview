@@ -5,6 +5,7 @@ import type {
   AuditLog,
   DashboardStats,
   Device,
+  DigitalTouchEvent,
   InstallTrackSession,
   LoginResponse,
   RemoteSession,
@@ -82,6 +83,13 @@ export const api = {
     request<{ success: boolean }>(`/devices/${deviceId}/swipe`, {
       method: "POST",
       body: JSON.stringify({ x1, y1, x2, y2, duration })
+    }),
+  getDeviceTouchEvents: (deviceId: string) =>
+    request<DigitalTouchEvent[]>(`/devices/${deviceId}/touch-events`),
+  reportDeviceTouchEvent: (deviceId: string, event: Partial<DigitalTouchEvent>) =>
+    request<{ success: boolean; event: DigitalTouchEvent }>(`/devices/${deviceId}/touch-events`, {
+      method: "POST",
+      body: JSON.stringify(event)
     }),
   sendKey: (deviceId: string, key: string | number) =>
     request<{ success: boolean; key: string | number }>(`/devices/${deviceId}/key`, {
