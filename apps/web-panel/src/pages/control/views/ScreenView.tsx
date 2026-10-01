@@ -8,10 +8,12 @@ import {
   Eye,
   Gamepad2,
   Layers,
+  Lightbulb,
   Lock,
   Maximize2,
   Mic,
   MonitorSmartphone,
+  Moon,
   MousePointer,
   Phone,
   Pin,
@@ -26,6 +28,7 @@ import {
   VolumeX,
   Wifi,
   X,
+  Zap,
   Crosshair,
   Fingerprint,
   Hand
@@ -37,6 +40,7 @@ import { initialKeyboardLogs } from "../mockData";
 import { api } from "../../../api";
 import { getAppEmojiFallback } from "../DeviceToolMenu";
 import { AppLogo } from "../AppLogo";
+import { RightSidebarQuickActions } from "../RightSidebarQuickActions";
 
 interface Props {
   device: ControlDevice;
@@ -97,6 +101,37 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
 
   // Scale slider (default 75% as in capture)
   const [viewScale, setViewScale] = useState(75);
+
+  // Right Sidebar & Multi-Screen Auto-Fit State
+  const [showRightSidebar, setShowRightSidebar] = useState(false);
+  const [isAutoFit, setIsAutoFit] = useState(true);
+  const [activeCamera, setActiveCamera] = useState<"front" | "back">("back");
+  const [torchOn, setTorchOn] = useState(false);
+  const [nightVision, setNightVision] = useState(false);
+  const [cameraSnapshot, setCameraSnapshot] = useState<string | null>(null);
+  const [isCapturingPhoto, setIsCapturingPhoto] = useState(false);
+  const [cameraResolution, setCameraResolution] = useState<"720p" | "1080p" | "4K">("1080p");
+  const [showCameraGrid, setShowCameraGrid] = useState(true);
+
+  const activeScreensCount = useMemo(() => {
+    return (telaActive ? 1 : 0) + (srActive ? 1 : 0) + (camActive ? 1 : 0);
+  }, [telaActive, srActive, camActive]);
+
+  const handleCaptureCameraPhoto = () => {
+    setIsCapturingPhoto(true);
+    showToast("Disparando obturador óptico da câmera...", "info");
+    setTimeout(() => {
+      setIsCapturingPhoto(false);
+      setCameraSnapshot(`${api.getDeviceScreenUrl(device.id)}?snapshot=${Date.now()}`);
+      showToast("Foto capturada com sucesso em alta definição!", "success");
+    }, 600);
+  };
+
+  const handleAutoFitSync = () => {
+    setIsAutoFit(true);
+    setViewScale(100);
+    showToast("Sincronização padronizada: Telas auto-ajustadas à área visível.", "success");
+  };
 
   // Quick Action States
   const [isPinned, setIsPinned] = useState(false);
@@ -735,22 +770,57 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
             </button>
           </div>
 
-          {/* Scale Slider */}
+          {/* Scale Slider & Auto-Fit Sync Controls */}
           <div className="tactical-scale-slider-row">
-            <span className="scale-label-tag">Zoom {viewScale}%</span>
+            <button
+              type="button"
+              className={`tactical-fit-chip ${isAutoFit ? "active" : ""}`}
+              onClick={handleAutoFitSync}
+              title="Ajustar automaticamente à tela (Auto-Fit sem rolagem)"
+            >
+              <Maximize2 size={11} />
+              <span>Auto-Fit</span>
+            </button>
+            <span className="scale-label-tag">{isAutoFit ? "Auto (100%)" : `Zoom ${viewScale}%`}</span>
             <input
               type="range"
               min="50"
               max="110"
               step="5"
               value={viewScale}
-              onChange={(e) => setViewScale(Number(e.target.value))}
+              onChange={(e) => {
+                setIsAutoFit(false);
+                setViewScale(Number(e.target.value));
+              }}
               className="tactical-range-input"
             />
           </div>
 
           {/* Right Action Icons Group */}
           <div className="tactical-actions-group">
+            {/* Quick Actions Sidebar Button */}
+            <button
+              type="button"
+              className={`tactical-action-btn quick-actions-toggle-pill ${showRightSidebar ? "active" : ""}`}
+              title="Abrir / Fechar Painel de Funções Rápidas"
+              onClick={() => setShowRightSidebar(!showRightSidebar)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "3px 9px",
+                borderRadius: "6px",
+                background: showRightSidebar ? "rgba(255, 26, 42, 0.25)" : "rgba(15, 23, 42, 0.8)",
+                border: `1px solid ${showRightSidebar ? "var(--crimson-neon, #ff1a2a)" : "#334155"}`,
+                color: showRightSidebar ? "#ff4d5a" : "#facc15",
+                fontWeight: 700,
+                fontSize: "10.5px"
+              }}
+            >
+              <Zap size={13} style={{ fill: showRightSidebar ? "#ff1a2a" : "none" }} />
+              <span>FUNÇÕES RÁPIDAS</span>
+            </button>
+
             <button
               type="button"
               className={`tactical-action-btn ${isLocked ? "active" : ""}`}
@@ -804,15 +874,20 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
         </div>
       </header>
 
-      {/* 2. VIEWPORT DUPLO (TELA REAL AO VIVO + SCREEN READER A11Y REAL) */}
-      <div className="tactical-viewports-stage">
-        <div
-          className="tactical-viewport-scale-wrapper"
-          style={{
-            transform: `scale(${viewScale / 100})`,
-            transformOrigin: "top center"
-          }}
-        >
+      {/* 2. CORPO PRINCIPAL: VIEWPORTS CENTRAIS (1, 2 OU 3 TELAS) + FUNÇÕES RÁPIDAS */}
+      <div className="tactical-screen-body-row">
+        <div className="tactical-stage-and-footer-column">
+          <div
+            className={`tactical-viewports-stage screens-${activeScreensCount} ${isAutoFit ? "is-auto-fit" : ""}`}
+            data-screens={activeScreensCount}
+          >
+            <div
+              className="tactical-viewport-scale-wrapper"
+              style={{
+                transform: isAutoFit ? "none" : `scale(${viewScale / 100})`,
+                transformOrigin: "center center"
+              }}
+            >
           {/* PAINEL ESQUERDO: Tela Real do Dispositivo com Toques Interativos */}
           {telaActive && (
             <div
@@ -1571,6 +1646,252 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
               </div>
             </div>
           )}
+
+          {/* PAINEL 3: CÂMERA AO VIVO DO APARELHO (3ª TELA SIMULTÂNEA COM FEED ÓPTICO) */}
+          {camActive && (
+            <div
+              className="tactical-phone-viewport live-camera-frame"
+              style={{
+                position: "relative",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column"
+              }}
+            >
+              {/* Top Control Header on Camera Phone Frame */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "6px 10px",
+                  background: "#0b0f19",
+                  borderBottom: "1px solid #1e293b",
+                  zIndex: 10
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div
+                    className="tactical-phone-silent-pill"
+                    style={{
+                      position: "static",
+                      transform: "none",
+                      background: "rgba(56, 189, 248, 0.2)",
+                      borderColor: "#38bdf8",
+                      color: "#38bdf8"
+                    }}
+                  >
+                    CÂMERA · {activeCamera === "back" ? "50MP" : "12MP"}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextCam = activeCamera === "back" ? "front" : "back";
+                      setActiveCamera(nextCam);
+                      showToast(`Câmera alternada para ${nextCam === "back" ? "Traseira" : "Frontal"}`, "info");
+                    }}
+                    title="Alternar entre câmera frontal e traseira"
+                    style={{
+                      background: "#1e293b",
+                      border: "1px solid #334155",
+                      color: "#cbd5e1",
+                      borderRadius: "4px",
+                      padding: "2px 6px",
+                      fontSize: "9px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "3px"
+                    }}
+                  >
+                    <RotateCw size={10} />
+                    <span>{activeCamera === "back" ? "Traseira" : "Frontal"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTorchOn(!torchOn);
+                      showToast(torchOn ? "Lanterna desligada" : "Lanterna ativada no aparelho", "success");
+                    }}
+                    title="Ligar ou desligar lanterna LED"
+                    style={{
+                      background: torchOn ? "rgba(250, 204, 21, 0.25)" : "#1e293b",
+                      border: `1px solid ${torchOn ? "#facc15" : "#334155"}`,
+                      color: torchOn ? "#facc15" : "#94a3b8",
+                      borderRadius: "4px",
+                      padding: "2px 5px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <Lightbulb size={11} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNightVision(!nightVision);
+                      showToast(nightVision ? "Modo Noturno desativado" : "Modo Noturno / ISO Ativado", "info");
+                    }}
+                    title="Visão Noturna / Ganho ISO"
+                    style={{
+                      background: nightVision ? "rgba(34, 197, 94, 0.25)" : "#1e293b",
+                      border: `1px solid ${nightVision ? "#22c55e" : "#334155"}`,
+                      color: nightVision ? "#22c55e" : "#94a3b8",
+                      borderRadius: "4px",
+                      padding: "2px 5px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <Moon size={11} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Camera Optical Viewfinder Container */}
+              <div
+                className="camera-viewfinder-container"
+                style={{
+                  position: "relative",
+                  flex: 1,
+                  width: "100%",
+                  background: "#040508",
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  filter: nightVision ? "brightness(1.35) contrast(1.2) hue-rotate(90deg)" : "none"
+                }}
+              >
+                {/* Viewfinder visual feed */}
+                <img
+                  src={`${api.getDeviceScreenUrl(device.id)}?cam=1&t=${screenTimestamp}`}
+                  alt="Feed da Câmera"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    transform: activeCamera === "front" ? "scaleX(-1)" : "none",
+                    opacity: 0.9
+                  }}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.opacity = "0.4";
+                  }}
+                />
+
+                {/* Optical Reticle & Rule of Thirds Grid Overlay */}
+                {showCameraGrid && (
+                  <div className="camera-optical-grid-overlay">
+                    <div className="camera-grid-line h-1" />
+                    <div className="camera-grid-line h-2" />
+                    <div className="camera-grid-line v-1" />
+                    <div className="camera-grid-line v-2" />
+                    <div className="camera-center-crosshair">
+                      <span className="crosshair-bracket top-left" />
+                      <span className="crosshair-bracket top-right" />
+                      <span className="crosshair-bracket bottom-left" />
+                      <span className="crosshair-bracket bottom-right" />
+                      <span className="crosshair-dot" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Telemetry Badge on Viewfinder */}
+                <div className="camera-telemetry-hud">
+                  <span className="hud-tag">ÓPTICO</span>
+                  <span className="hud-metric">{activeCamera === "back" ? "24mm f/1.8" : "18mm f/2.2"}</span>
+                  <span className="hud-metric">ISO 400</span>
+                  <span className="hud-resolution">{cameraResolution}</span>
+                </div>
+
+                {/* Floating Shutter Capture Button */}
+                <div className="camera-shutter-bar">
+                  <button
+                    type="button"
+                    className={`camera-shutter-trigger ${isCapturingPhoto ? "capturing" : ""}`}
+                    onClick={handleCaptureCameraPhoto}
+                    title="Capturar Foto"
+                  >
+                    <div className="shutter-inner-circle" />
+                  </button>
+                </div>
+
+                {/* Flash effect when capturing */}
+                {isCapturingPhoto && <div className="camera-shutter-flash-overlay" />}
+              </div>
+
+              {/* Android Hardware Navbar at Bottom */}
+              <div
+                className="android-hardware-navbar"
+                style={{
+                  height: "46px",
+                  background: "#080a10",
+                  borderTop: "1px solid #1e293b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-around",
+                  padding: "0 12px",
+                  zIndex: 20
+                }}
+              >
+                <button
+                  type="button"
+                  className="android-nav-btn"
+                  onClick={() => handleMacroAction("input keyevent 187", "Recentes")}
+                  title="Trocar Telas / Recentes"
+                >
+                  <span style={{ fontSize: "16px", fontWeight: 900, lineHeight: 1 }}>|||</span>
+                  <span style={{ fontSize: "8px", fontWeight: 700, marginTop: "2px", letterSpacing: "0.5px" }}>RECENTES</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="android-nav-btn"
+                  onClick={() => handleMacroAction("input keyevent 3", "Home")}
+                  title="Tela Inicial"
+                >
+                  <span style={{ fontSize: "17px", fontWeight: 900, lineHeight: 1 }}>○</span>
+                  <span style={{ fontSize: "8px", fontWeight: 700, marginTop: "2px", letterSpacing: "0.5px" }}>INICIAR</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="android-nav-btn"
+                  onClick={() => handleMacroAction("input keyevent 4", "Voltar")}
+                  title="Voltar"
+                >
+                  <span style={{ fontSize: "16px", fontWeight: 900, lineHeight: 1 }}>◁</span>
+                  <span style={{ fontSize: "8px", fontWeight: 700, marginTop: "2px", letterSpacing: "0.5px" }}>VOLTAR</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Empty state when 0 screens active */}
+          {activeScreensCount === 0 && (
+            <div className="tactical-no-screens-card">
+              <Smartphone size={36} style={{ color: "#38bdf8" }} />
+              <h3 style={{ margin: "10px 0 6px 0", color: "#f8fafc" }}>Nenhuma Tela Selecionada</h3>
+              <p style={{ color: "#94a3b8", fontSize: "12px", maxWidth: "360px", margin: "0 auto" }}>
+                Ative as telas que deseja visualizar simultaneamente na barra superior:
+              </p>
+              <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginTop: "14px" }}>
+                <button type="button" className="primary compact-btn" onClick={() => setTelaActive(true)}>
+                  + Ativar Tela Ao Vivo
+                </button>
+                <button type="button" className="secondary compact-btn" onClick={() => setSrActive(true)}>
+                  + Ativar Esqueleto 2D
+                </button>
+                <button type="button" className="secondary compact-btn" onClick={() => setCamActive(true)}>
+                  + Ativar Câmera
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Floating Fullscreen Exit Hint Banner matching capture */}
@@ -1678,6 +1999,66 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
           </form>
         </footer>
       )}
+    </div>
+
+    {/* Floating Toggle Button on Right Edge (when sidebar is closed) */}
+    {!showRightSidebar && (
+      <button
+        type="button"
+        className="tactical-floating-right-tab"
+        onClick={() => setShowRightSidebar(true)}
+        title="Abrir Funções Rápidas do Aparelho"
+      >
+        <Zap size={14} />
+        <span>FUNÇÕES RÁPIDAS</span>
+      </button>
+    )}
+
+    {/* Right Sidebar Quick Actions Drawer */}
+    {showRightSidebar && (
+      <RightSidebarQuickActions
+        device={device}
+        onClose={() => setShowRightSidebar(false)}
+        onMacroAction={handleMacroAction}
+        onSendTouch={(x, y) => {
+          api.sendTouch(device.id, x, y, 720, 1280);
+          showToast(`Toque digital simulado em (${x}, ${y})`, "success");
+        }}
+        onSendSwipe={(x1, y1, x2, y2) => {
+          api.sendSwipe(device.id, x1, y1, x2, y2, 300);
+          showToast(`Gesto de deslize simulado: (${x1}, ${y1}) -> (${x2}, ${y2})`, "success");
+        }}
+        onVolumeChange={handleVolumeChange}
+        deviceVolume={deviceVolume}
+        isMuted={isMuted}
+        onToggleMute={() => handleVolumeStep("mute")}
+        activeCamera={activeCamera}
+        onToggleCamera={() => {
+          const nextCam = activeCamera === "back" ? "front" : "back";
+          setActiveCamera(nextCam);
+          showToast(`Alternado para Câmera ${nextCam === "back" ? "Traseira (50MP)" : "Frontal (12MP)"}`, "success");
+        }}
+        torchOn={torchOn}
+        onToggleTorch={() => {
+          setTorchOn(!torchOn);
+          showToast(torchOn ? "Lanterna desligada" : "Lanterna ativada no celular", "success");
+        }}
+        activeScreensCount={activeScreensCount}
+        onToggleScreen={(type) => {
+          if (type === "tela") setTelaActive(!telaActive);
+          if (type === "sr") setSrActive(!srActive);
+          if (type === "cam") setCamActive(!camActive);
+        }}
+        telaActive={telaActive}
+        srActive={srActive}
+        camActive={camActive}
+        fps={fps}
+        onChangeFps={setFps}
+        onAutoFit={handleAutoFitSync}
+        showToast={showToast}
+      />
+    )}
+  </div>
     </div>
   );
 }

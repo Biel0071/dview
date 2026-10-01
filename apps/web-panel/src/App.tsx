@@ -253,7 +253,7 @@ export function App() {
         </div>
       </aside>
 
-      <main className="content">
+      <main className={`content ${view === "Controle" ? "content-controle-mode" : ""}`}>
         <header className="topbar">
           <div className="topbar-left">
             <div className="topbar-breadcrumbs">
