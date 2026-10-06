@@ -2549,6 +2549,38 @@ export function ApkBuilder() {
                             </small>
                           </div>
                         )}
+
+                        {/* GUIA DE SEGURANÇA E DISPOSITIVO REAL (GOOGLE PLAY PROTECT & RESTRICTED SETTINGS) */}
+                        {platform === "android" && (
+                          <div
+                            style={{
+                              background: "rgba(245, 158, 11, 0.08)",
+                              border: "1px solid rgba(245, 158, 11, 0.3)",
+                              borderRadius: "8px",
+                              padding: "12px",
+                              fontSize: "12px",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "6px"
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <ShieldAlert size={15} style={{ color: "#f59e0b" }} />
+                              <strong style={{ color: "#fef3c7" }}>Instalação em Aparelho Físico (Android 13 / 14 / 15):</strong>
+                            </div>
+                            <div style={{ color: "#cbd5e1", fontSize: "11.5px", lineHeight: "1.4" }}>
+                              <p style={{ margin: "2px 0" }}>
+                                🛡️ <strong>Google Play Protect:</strong> Como o APK corporativo é instalado fora da Play Store (sideload), se o Android exibir alerta de verificação, toque em <em>"Mais detalhes"</em> ➔ <em>"Instalar assim mesmo"</em>.
+                              </p>
+                              <p style={{ margin: "4px 0 2px" }}>
+                                🔓 <strong>Configuração Restrita (Android 13+):</strong> Caso a chave de acessibilidade fique indisponível, o app agora conta com um botão direto para abrir Detalhes do App ➔ toque nos 3 pontinhos (⋮) no topo direito ➔ <em>"Permitir configurações restritas"</em>.
+                              </p>
+                              <p style={{ margin: "4px 0 0", color: "#38bdf8" }}>
+                                ✨ <em>Dica Pro:</em> Para aprovação corporativa direta sem esses diálogos manuais, utilize o <strong>QR Code Zero-Touch (Android Enterprise MDM)</strong> na aba ao lado!
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 

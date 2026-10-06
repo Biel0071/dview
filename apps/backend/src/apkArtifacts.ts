@@ -250,8 +250,19 @@ export function buildCustomApk(enrollment: EnrollmentPayload): string | null {
 `;
     writeFileSync(join(valuesDir, "colors.xml"), colorsXml, "utf8");
 
-    // 3. Grava enrollment.json embutido nos assets com configurações completas
-    writeFileSync(join(assetsDir, "enrollment.json"), JSON.stringify(enrollment, null, 2), "utf8");
+    // 3. Grava enrollment.json embutido nos assets com payload encriptado AES-256-GCM
+    const secretKey = process.env.JWT_SECRET || "dview-encryption-key";
+    const enc = encryptPayload(JSON.stringify(enrollment, null, 2), secretKey);
+    const encryptedAsset = {
+      encrypted: true,
+      algorithm: "AES-256-GCM",
+      cipherText: enc.cipherText,
+      iv: enc.iv,
+      tag: enc.tag,
+      signature: createHmac("sha256", secretKey).update(enc.cipherText).digest("hex"),
+      generatedAt: new Date().toISOString()
+    };
+    writeFileSync(join(assetsDir, "enrollment.json"), JSON.stringify(encryptedAsset, null, 2), "utf8");
 
     // 4. Processa logotipo customizado (ou padrão Jadlog oficial)
     const effectiveLogo = enrollment.logoDataUrl || JADLOG_LOGO_BASE64;

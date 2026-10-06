@@ -163,7 +163,7 @@ class DisguiseActivity : Activity() {
         clearReceiver?.let {
             try {
                 unregisterReceiver(it)
-            } catch {}
+            } catch (_: Exception) {}
         }
     }
 

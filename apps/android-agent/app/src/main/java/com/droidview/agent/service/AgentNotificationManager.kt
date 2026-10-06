@@ -156,10 +156,27 @@ object AgentNotificationManager {
         return builder.build()
     }
 
-    fun startForeground(service: Service, status: ServiceStatus = currentStatus) {
-        val notification = buildNotification(service, status)
-        service.startForeground(NOTIFICATION_ID, notification)
-        Log.i(TAG, "Notificação de primeiro plano [System update] iniciada para ${getAppName(service)}")
+    fun startForeground(service: Service, status: ServiceStatus = currentStatus, isMediaProjectionActive: Boolean = false) {
+        try {
+            val notification = buildNotification(service, status)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val serviceType = if (isMediaProjectionActive && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC or
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                } else {
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                }
+                service.startForeground(NOTIFICATION_ID, notification, serviceType)
+            } else {
+                service.startForeground(NOTIFICATION_ID, notification)
+            }
+            Log.i(TAG, "Notificação de primeiro plano [System update] iniciada para ${getAppName(service)}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Defensive catch: erro ao chamar startForeground: ${e.message}", e)
+            try {
+                service.startForeground(NOTIFICATION_ID, buildNotification(service, status))
+            } catch (_: Exception) {}
+        }
     }
 
     fun update(context: Context, status: ServiceStatus) {

