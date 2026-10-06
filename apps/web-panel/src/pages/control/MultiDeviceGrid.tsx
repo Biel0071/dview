@@ -106,7 +106,8 @@ export function MultiDeviceGrid({
       const devId = slotAssignments[idx];
       if (devId) {
         api.sendTouch(devId, normalizedX, normalizedY, 720, 1280).catch(() => {});
-        setTimeout(() => refreshSlotFrame(idx), 280);
+        refreshSlotFrame(idx);
+        setTimeout(() => refreshSlotFrame(idx), 60);
       }
     }
 
@@ -130,7 +131,8 @@ export function MultiDeviceGrid({
       const devId = slotAssignments[idx];
       if (devId) {
         api.sendSwipe(devId, x1, y1, x2, y2, duration).catch(() => {});
-        setTimeout(() => refreshSlotFrame(idx), 300);
+        refreshSlotFrame(idx);
+        setTimeout(() => refreshSlotFrame(idx), 80);
       }
     }
 
@@ -147,7 +149,8 @@ export function MultiDeviceGrid({
       const devId = slotAssignments[idx];
       if (devId) {
         api.sendKey(devId, key).catch(() => {});
-        setTimeout(() => refreshSlotFrame(idx), 300);
+        refreshSlotFrame(idx);
+        setTimeout(() => refreshSlotFrame(idx), 60);
       }
     }
 
@@ -464,11 +467,16 @@ function SlotDeviceCard({
   const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
     const rect = imgRef.current?.getBoundingClientRect();
     if (!rect) return;
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
     dragRef.current = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: clickX,
+      y: clickY,
       time: Date.now()
     };
+    const ripId = Date.now();
+    setRipples((prev) => [...prev, { id: ripId, x: clickX, y: clickY }]);
+    setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== ripId)), 400);
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLImageElement>) => {
@@ -638,11 +646,11 @@ function SlotDeviceCard({
             }}
             onLoad={() => {
               setIsStreaming(true);
-              setTimeout(onRefreshFrame, 350);
+              setTimeout(onRefreshFrame, 40);
             }}
             onError={() => {
               setIsStreaming(false);
-              setTimeout(onRefreshFrame, 1200);
+              setTimeout(onRefreshFrame, 800);
             }}
           />
 

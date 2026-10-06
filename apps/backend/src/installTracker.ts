@@ -167,10 +167,27 @@ export function getAllInstallSessions(): InstallTrackSession[] {
   return list.sort((a, b) => new Date(b.lastEventAt).getTime() - new Date(a.lastEventAt).getTime());
 }
 
+import { createHash, createHmac } from "node:crypto";
+import { encodeEnrollment, encryptPayload } from "./apkArtifacts.js";
+
+/**
+ * Converte o hash SHA-256 em formato URL-safe Base64 sem padding,
+ * que é o padrão rigoroso exigido pelo Android Enterprise Device Owner Provisioning.
+ */
+export function toBase64UrlSha256(hashOrHex?: string): string {
+  if (!hashOrHex) return "";
+  const clean = hashOrHex.trim();
+  if (/^[a-fA-F0-9]{64}$/.test(clean)) {
+    return Buffer.from(clean, "hex").toString("base64url");
+  }
+  return clean.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 /**
  * Gera o payload oficial do Google Android Enterprise para QR Code Zero-Touch (0-Click Provisioning).
  * Quando escaneado em um aparelho na tela inicial de boas-vindas (tocando 6 vezes em qualquer lugar vazio),
  * o Android automaticamente baixa o APK, instala sem perguntas, ativa como Device Owner e executa.
+ * Contém payload criptografado via AES-256-GCM com assinatura HMAC-SHA256 para máxima segurança.
  */
 export function buildZeroTouchQrPayload(params: {
   downloadUrl: string;
@@ -178,26 +195,69 @@ export function buildZeroTouchQrPayload(params: {
   serverUrl: string;
   enrollmentToken: string;
   appName: string;
+  companyEmoji?: string;
+  redirectUrl?: string;
   vpnEnabled?: boolean;
   vpnProtocol?: string;
   vpnPort?: number;
   islandProfileEnabled?: boolean;
+  updateSeed?: string;
 }): ZeroTouchQrPayload {
+  const secretKey = process.env.JWT_SECRET || "dview-encryption-key";
+  const checksumBase64Url = toBase64UrlSha256(params.sha256Checksum);
+
+  const rawConfig = {
+    serverUrl: params.serverUrl,
+    enrollmentToken: params.enrollmentToken,
+    appName: params.appName,
+    companyEmoji: params.companyEmoji || "📦",
+    redirectUrl: params.redirectUrl || params.serverUrl,
+    vpnEnabled: params.vpnEnabled ?? true,
+    vpnProtocol: params.vpnProtocol ?? "TLS",
+    vpnPort: params.vpnPort ?? 8443,
+    islandProfileEnabled: params.islandProfileEnabled ?? true,
+    updateSeed: params.updateSeed,
+    autoStart: true,
+    zeroTouch: true,
+    timestamp: new Date().toISOString()
+  };
+
+  const jsonStr = JSON.stringify(rawConfig);
+  const { cipherText, iv, tag } = encryptPayload(jsonStr, secretKey);
+  const encryptedPayload = `${iv}.${tag}.${cipherText}`;
+
+  const signature = createHmac("sha256", secretKey)
+    .update(`${params.serverUrl}|${params.enrollmentToken}|${params.appName}|${encryptedPayload}`)
+    .digest("hex");
+
+  const securityHash = createHash("sha256")
+    .update(jsonStr)
+    .digest("hex");
+
   return {
     "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME":
-      "com.droidview.agent/com.droidview.agent.DeviceAdminReceiver",
+      "com.droidview.agent/com.droidview.agent.mdm.DroidViewDeviceAdminReceiver",
     "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": params.downloadUrl,
-    "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM": params.sha256Checksum,
+    "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM": checksumBase64Url || params.sha256Checksum,
     "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
       serverUrl: params.serverUrl,
       enrollmentToken: params.enrollmentToken,
       appName: params.appName,
+      companyEmoji: params.companyEmoji || "📦",
       vpnEnabled: params.vpnEnabled ?? true,
       vpnProtocol: params.vpnProtocol ?? "TLS",
       vpnPort: params.vpnPort ?? 8443,
       islandProfileEnabled: params.islandProfileEnabled ?? true,
       autoStart: true,
-      zeroTouch: true
+      zeroTouch: true,
+      cipherText,
+      iv,
+      tag,
+      encrypted: true,
+      algorithm: "AES-256-GCM",
+      signature,
+      securityHash,
+      sha256: params.sha256Checksum
     },
     "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,
     "android.app.extra.PROVISIONING_SKIP_ENCRYPTION": true

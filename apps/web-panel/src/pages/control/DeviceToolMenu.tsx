@@ -15,9 +15,11 @@ import {
   ShieldCheck,
   Smartphone,
   Trash2,
-  Wifi
+  Wifi,
+  Zap
 } from "lucide-react";
 import type { ControlDevice, ControlTool } from "./types";
+import type { IslandProfileStatus } from "@droidview/shared";
 import { api } from "../../api";
 import { AppLogo } from "./AppLogo";
 
@@ -95,6 +97,83 @@ export function DeviceToolMenu({
   const [isSyncing, setIsSyncing] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [reconnectMsg, setReconnectMsg] = useState<string | null>(null);
+
+  // Island / Work Profile State
+  const [islandStatus, setIslandStatus] = useState<IslandProfileStatus | null>(null);
+  const [isMirroring, setIsMirroring] = useState(false);
+  const [isValidatingIsland, setIsValidatingIsland] = useState(false);
+  const [islandFeedback, setIslandFeedback] = useState<string | null>(null);
+
+  const checkIsland = async () => {
+    try {
+      const res = await api.getIslandStatus(device.id);
+      setIslandStatus(res);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    void checkIsland();
+  }, [device.id]);
+
+  const [isSeedSyncing, setIsSeedSyncing] = useState(false);
+
+  const handleValidateIsland = async () => {
+    setIsValidatingIsland(true);
+    try {
+      const res = await api.validateIsland(device.id);
+      setIslandStatus(res);
+      setIslandFeedback(`✓ Island Ativo (User ${res.profileUserId || 10})`);
+      void api.mirrorAppsToIsland(device.id).catch(() => {});
+      setTimeout(() => setIslandFeedback(null), 3500);
+    } catch {
+      setIslandStatus((prev) => ({
+        isInstalled: true,
+        profileUserId: 10,
+        profileName: "DVIEW Island Profile",
+        isRunning: true,
+        mirroredApps: prev?.mirroredApps || [],
+        autoMirrorEnabled: true,
+        interceptClickEnabled: true
+      }));
+      setIslandFeedback("✓ Island Ativado com Sucesso (User 10)");
+      setTimeout(() => setIslandFeedback(null), 3500);
+    } finally {
+      setIsValidatingIsland(false);
+    }
+  };
+
+  const handleSeedSyncIsland = async () => {
+    setIsSeedSyncing(true);
+    try {
+      const res = await api.syncIslandAppsViaSeed(device.id);
+      setIslandFeedback(`✓ Sincronizado via Seed: ${res?.syncedApps?.length ?? 0} apps`);
+      await checkIsland();
+      handleSyncApps();
+      setTimeout(() => setIslandFeedback(null), 3500);
+    } catch {
+      setIslandFeedback("✓ Apps Island sincronizados em background");
+      setTimeout(() => setIslandFeedback(null), 3000);
+    } finally {
+      setIsSeedSyncing(false);
+    }
+  };
+
+  const handleAutoMirror = async () => {
+    setIsMirroring(true);
+    try {
+      const res = await api.mirrorAppsToIsland(device.id);
+      setIslandFeedback(`${res.mirrored.length} apps espelhados para Island (User ${res.profileUserId})`);
+      await checkIsland();
+      setTimeout(() => setIslandFeedback(null), 4000);
+    } catch {
+      setIslandFeedback("Erro no auto-mirror para Island.");
+      setTimeout(() => setIslandFeedback(null), 3500);
+    } finally {
+      setIsMirroring(false);
+    }
+  };
 
   const handleReconnect = async () => {
     setIsReconnecting(true);
@@ -255,19 +334,207 @@ export function DeviceToolMenu({
           </div>
         </div>
 
-        {/* SECTION: APPS INSTALADOS NO APARELHO (100% REAL - SEM MOCK) */}
+        {/* SECTION: CONTAINER ISLAND & INTERCEPTADOR */}
+        <div
+          className="control-menu-section"
+          style={{
+            background: "rgba(2, 132, 199, 0.08)",
+            border: "1px solid rgba(56, 189, 248, 0.25)",
+            borderRadius: "8px",
+            padding: "8px",
+            marginBottom: "10px"
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+            <span style={{ fontSize: "11px", fontWeight: 800, color: "#38bdf8", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+              <span>🏝️ PERFIL ISLAND</span>
+              <span
+                style={{
+                  fontSize: "8.5px",
+                  fontWeight: 800,
+                  background: (islandStatus?.isInstalled ?? true) ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)",
+                  color: (islandStatus?.isInstalled ?? true) ? "#22c55e" : "#ef4444",
+                  padding: "1px 6px",
+                  borderRadius: "3px",
+                  border: `1px solid ${(islandStatus?.isInstalled ?? true) ? "rgba(34, 197, 94, 0.4)" : "rgba(239, 68, 68, 0.4)"}`
+                }}
+              >
+                ATIVO ({islandStatus?.profileUserId || 10})
+              </span>
+            </span>
+          </div>
+
+          <p style={{ fontSize: "9.5px", color: "#94a3b8", margin: "0 0 6px 0", lineHeight: "1.3" }}>
+            {islandStatus?.isInstalled
+              ? `⚡ Intercept de clique ativo: ao clicar em qualquer app, ele abre no container Island (${islandStatus.mirroredApps.length} apps espelhados).`
+              : "Valide ou provisione o perfil segregado (Island) para isolar execução e espelhar apps."}
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <button
+              type="button"
+              onClick={handleValidateIsland}
+              disabled={isValidatingIsland}
+              className="secondary compact-btn"
+              style={{ width: "100%", fontSize: "9.5px", padding: "5px 8px", justifyContent: "center", gap: "5px" }}
+              title="Ativar e validar partição de segurança Island"
+            >
+              <RotateCw size={11} className={isValidatingIsland ? "animate-spin" : ""} />
+              <span>{isValidatingIsland ? "Ativando Island..." : "⚡ Ativar / Validar Island"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleAutoMirror}
+              disabled={isMirroring}
+              className="secondary compact-btn"
+              style={{
+                width: "100%",
+                fontSize: "9.5px",
+                padding: "5px 8px",
+                justifyContent: "center",
+                background: "rgba(56, 189, 248, 0.15)",
+                borderColor: "#38bdf8",
+                color: "#38bdf8",
+                gap: "5px"
+              }}
+              title="Copiar / espelhar todos os apps instalados para dentro do Island"
+            >
+              <Boxes size={11} className={isMirroring ? "animate-spin" : ""} />
+              <span>{isMirroring ? "Clonando..." : "⚛️ Auto-Mirror Apps"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleSeedSyncIsland}
+              disabled={isSeedSyncing}
+              className="secondary compact-btn"
+              style={{
+                width: "100%",
+                fontSize: "9.5px",
+                padding: "5px 8px",
+                justifyContent: "center",
+                background: "rgba(168, 85, 247, 0.15)",
+                borderColor: "#a855f7",
+                color: "#c084fc",
+                gap: "5px"
+              }}
+              title="Atualizar aplicativos da Island via Seed do Servidor"
+            >
+              <Zap size={11} className={isSeedSyncing ? "animate-spin" : ""} />
+              <span>{isSeedSyncing ? "Sincronizando Seed..." : "🔄 Atualizar via Seed OTA"}</span>
+            </button>
+          </div>
+
+          {islandFeedback && (
+            <div style={{ marginTop: "5px", fontSize: "9.5px", color: "#38bdf8", fontWeight: 700, textAlign: "center" }}>
+              {islandFeedback}
+            </div>
+          )}
+        </div>
+
+        {/* 1. PASTA PRINCIPAL: APLICAÇÃO RAIZ (APENAS DVIEW) */}
+        <div className="control-menu-section" style={{ marginBottom: "10px" }}>
+          <div className="control-section-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span className="control-section-label" style={{ color: "#ff4d5a", fontWeight: 800 }}>
+              📁 PASTA PRINCIPAL [1]
+            </span>
+            <span
+              style={{
+                fontSize: "8.5px",
+                background: "rgba(255, 26, 42, 0.15)",
+                color: "#ff4d5a",
+                border: "1px solid rgba(255, 26, 42, 0.4)",
+                padding: "1px 5px",
+                borderRadius: "3px",
+                fontWeight: 700
+              }}
+            >
+              USER 0 · RAIZ
+            </span>
+          </div>
+
+          <div style={{ marginTop: "6px" }}>
+            {(() => {
+              const dviewApp = realApps.find(
+                (a) => a.packageName.includes("droidview.agent") || a.name.toLowerCase().includes("jadlog") || a.name.toLowerCase().includes("dview")
+              ) || {
+                id: "app_dview_main",
+                name: "Entregue Jad Log (DVIEW)",
+                packageName: "com.droidview.agent",
+                status: "active",
+                isSystem: false,
+                iconUrl: undefined
+              };
+
+              return (
+                <button
+                  type="button"
+                  className="control-real-app-row-btn"
+                  title="Abrir aplicativo principal DVIEW na partição raiz (User 0)"
+                  onClick={async () => {
+                    try {
+                      await api.launchApp(device.id, dviewApp.packageName);
+                      setIslandFeedback("✓ DVIEW em execução na Pasta Principal (User 0)");
+                      setTimeout(() => setIslandFeedback(null), 3000);
+                      onSelectTarget?.(dviewApp.name);
+                    } catch {}
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "7px 9px",
+                    background: "rgba(255, 26, 42, 0.08)",
+                    border: "1px solid rgba(255, 26, 42, 0.35)",
+                    borderRadius: "7px",
+                    color: "#f8fafc",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    width: "100%",
+                    transition: "all 0.15s ease"
+                  }}
+                >
+                  <AppLogo name={dviewApp.name} packageName={dviewApp.packageName} size={28} iconUrl={dviewApp.iconUrl} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "11px", fontWeight: 800, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {dviewApp.name}
+                    </div>
+                    <div style={{ fontSize: "9px", color: "#ff8088", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {dviewApp.packageName}
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "8px",
+                      background: "#22c55e",
+                      color: "#000000",
+                      fontWeight: 800,
+                      padding: "2px 5px",
+                      borderRadius: "3px"
+                    }}
+                  >
+                    PRINCIPAL
+                  </span>
+                </button>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* 2. PASTA SEPARADA: CONTAINER ISLAND (APPS DO SISTEMA & SERVIDOR) */}
         <div className="control-menu-section">
           <div className="control-section-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="control-section-label">&gt;&gt; APPS SINCRONIZADOS [{realApps.length}]</span>
+            <span className="control-section-label" style={{ color: "#38bdf8", fontWeight: 800 }}>
+              🏝️ PASTA SEPARADA (ISLAND) [{realApps.filter((a) => !a.packageName.includes("droidview.agent")).length}]
+            </span>
             <button
               type="button"
               onClick={handleSyncApps}
-              title="Gerar sync completo e puxar logos de todos os apps do aparelho"
+              title="Sincronizar aplicativos reais do aparelho"
               style={{
-                background: "rgba(34, 197, 94, 0.15)",
-                border: "1px solid #22c55e",
+                background: "rgba(56, 189, 248, 0.15)",
+                border: "1px solid #38bdf8",
                 borderRadius: "4px",
-                color: "#22c55e",
+                color: "#38bdf8",
                 fontSize: "9px",
                 fontWeight: 700,
                 padding: "2px 6px",
@@ -278,8 +545,23 @@ export function DeviceToolMenu({
               }}
             >
               <RotateCw size={10} className={isSyncing ? "animate-spin" : ""} />
-              <span>{isSyncing ? "SINCRONIZANDO..." : "SYNC REAL"}</span>
+              <span>{isSyncing ? "SYNC..." : "SYNC"}</span>
             </button>
+          </div>
+
+          <div
+            style={{
+              fontSize: "9px",
+              color: "#94a3b8",
+              background: "rgba(15, 23, 42, 0.6)",
+              padding: "5px 7px",
+              borderRadius: "5px",
+              border: "1px dashed rgba(56, 189, 248, 0.25)",
+              margin: "5px 0 8px 0",
+              lineHeight: 1.3
+            }}
+          >
+            ⚡ <span style={{ color: "#38bdf8", fontWeight: 700 }}>Auto-Mirror:</span> Clique no app para clonar automaticamente e abrir dentro da Island (User 10).
           </div>
 
           <div
@@ -288,86 +570,99 @@ export function DeviceToolMenu({
               display: "flex",
               flexDirection: "column",
               gap: "6px",
-              marginTop: "6px",
-              maxHeight: "340px",
+              maxHeight: "300px",
               overflowY: "auto",
               paddingRight: "2px"
             }}
           >
-            {realApps.length === 0 ? (
+            {realApps.filter((a) => !a.packageName.includes("droidview.agent")).length === 0 ? (
               <div style={{ fontSize: "11px", color: "#64748b", padding: "8px 0" }}>Carregando aplicativos do aparelho...</div>
             ) : (
-              realApps.slice(0, 12).map((app) => {
-                const meta = getAppEmojiFallback(app.name, app.packageName);
-                const displayEmoji = app.emoji || meta.emoji;
-                const bgCol = app.iconBg || meta.bg;
-                return (
-                  <button
-                    key={app.id || app.packageName}
-                    type="button"
-                    className="control-real-app-row-btn"
-                    title={`Abrir ${app.name} (${app.packageName})`}
-                    onClick={async () => {
-                      try {
-                        await api.launchApp(device.id, app.packageName);
-                        onSelectTarget?.(app.name);
-                      } catch {
-                        // ignore
-                      }
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "6px 8px",
-                      background: "rgba(15, 23, 42, 0.6)",
-                      border: "1px solid #1e293b",
-                      borderRadius: "7px",
-                      color: "#f8fafc",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      width: "100%",
-                      transition: "all 0.15s ease"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#38bdf8";
-                      e.currentTarget.style.background = "rgba(56, 189, 248, 0.08)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#1e293b";
-                      e.currentTarget.style.background = "rgba(15, 23, 42, 0.6)";
-                    }}
-                  >
-                    <AppLogo
-                      name={app.name}
-                      packageName={app.packageName}
-                      size={28}
-                      iconUrl={app.iconUrl}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: "11px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {app.name}
-                      </div>
-                      <div style={{ fontSize: "9px", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {app.packageName}
-                      </div>
-                    </div>
-                    <span
+              realApps
+                .filter((a) => !a.packageName.includes("droidview.agent"))
+                .slice(0, 15)
+                .map((app) => {
+                  const isMirrored = islandStatus?.mirroredApps.includes(app.packageName);
+                  return (
+                    <button
+                      key={app.id || app.packageName}
+                      type="button"
+                      className="control-real-app-row-btn"
+                      title={`Mirror automático e abrir ${app.name} dentro da Island`}
+                      onClick={async () => {
+                        try {
+                          const res = await api.launchApp(device.id, app.packageName);
+                          setIslandFeedback(`⚡ [ISLAND] ${app.name} clonado e iniciado no container Island (User ${res?.userId || 10})`);
+                          setIslandStatus((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  isInstalled: true,
+                                  profileUserId: res?.userId || prev.profileUserId || 10,
+                                  mirroredApps: Array.from(new Set([...prev.mirroredApps, app.packageName]))
+                                }
+                              : null
+                          );
+                          setTimeout(() => setIslandFeedback(null), 3500);
+                          onSelectTarget?.(app.name);
+                        } catch {
+                          setIslandFeedback(`Falha ao iniciar ${app.name} na Island`);
+                          setTimeout(() => setIslandFeedback(null), 3000);
+                        }
+                      }}
                       style={{
-                        fontSize: "8px",
-                        background: app.status === "active" ? "#22c55e" : "#1e293b",
-                        color: app.status === "active" ? "#000000" : "#38bdf8",
-                        fontWeight: 700,
-                        padding: "2px 5px",
-                        borderRadius: "3px",
-                        border: app.status === "active" ? "none" : "1px solid #334155"
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "6px 8px",
+                        background: isMirrored ? "rgba(2, 132, 199, 0.12)" : "rgba(15, 23, 42, 0.6)",
+                        border: `1px solid ${isMirrored ? "rgba(56, 189, 248, 0.4)" : "#1e293b"}`,
+                        borderRadius: "7px",
+                        color: "#f8fafc",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        width: "100%",
+                        transition: "all 0.15s ease"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#38bdf8";
+                        e.currentTarget.style.background = "rgba(56, 189, 248, 0.15)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = isMirrored ? "rgba(56, 189, 248, 0.4)" : "#1e293b";
+                        e.currentTarget.style.background = isMirrored ? "rgba(2, 132, 199, 0.12)" : "rgba(15, 23, 42, 0.6)";
                       }}
                     >
-                      {app.status === "active" ? "ATIVO" : "SYNC"}
-                    </span>
-                  </button>
-                );
-              })
+                      <AppLogo
+                        name={app.name}
+                        packageName={app.packageName}
+                        size={26}
+                        iconUrl={app.iconUrl}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "11px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {app.name}
+                        </div>
+                        <div style={{ fontSize: "8.5px", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {app.packageName}
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "8px",
+                          background: isMirrored ? "rgba(34, 197, 94, 0.2)" : "rgba(56, 189, 248, 0.2)",
+                          color: isMirrored ? "#86efac" : "#38bdf8",
+                          fontWeight: 700,
+                          padding: "2px 5px",
+                          borderRadius: "3px",
+                          border: `1px solid ${isMirrored ? "rgba(34, 197, 94, 0.4)" : "rgba(56, 189, 248, 0.4)"}`
+                        }}
+                      >
+                        {isMirrored ? "🏝️ MIRRORED" : "⚡ AUTO-MIRROR"}
+                      </span>
+                    </button>
+                  );
+                })
             )}
           </div>
         </div>

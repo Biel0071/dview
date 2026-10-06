@@ -5,17 +5,32 @@ import type {
   AuditLog,
   DashboardStats,
   Device,
+  DevicePushNotification,
   DigitalTouchEvent,
   InstallTrackSession,
+  IslandProfileStatus,
   LoginResponse,
   RemoteSession,
-  SavedApkBuild
+  SavedApkBuild,
+  SendPushNotificationRequest
 } from "@droidview/shared";
 
-const API_URL =
-  (typeof window !== "undefined" && ((window as any).__DVIEW_API_URL__ || (window as any).__DVIEW_CONFIG__?.apiUrl)) ||
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:3000";
+export function getDynamicApiUrl(): string {
+  if (typeof window !== "undefined") {
+    if ((window as any).__DVIEW_API_URL__) return (window as any).__DVIEW_API_URL__;
+    if ((window as any).__DVIEW_CONFIG__?.apiUrl) return (window as any).__DVIEW_CONFIG__.apiUrl;
+    const loc = window.location;
+    // Vite Dev Server runs on 5000, backend runs on 3000
+    if (loc.port === "5000") {
+      return `${loc.protocol}//${loc.hostname}:3000`;
+    }
+    // In production or reverse proxy, API is on the same host/origin
+    return `${loc.protocol}//${loc.host}`;
+  }
+  return import.meta.env.VITE_API_URL || "http://localhost:3000";
+}
+
+export const API_URL = getDynamicApiUrl();
 
 async function request<T>(path: string, options: RequestInit = {}) {
   const token = localStorage.getItem("droidview.token");
@@ -38,6 +53,28 @@ async function request<T>(path: string, options: RequestInit = {}) {
 
 export const api = {
   baseUrl: API_URL,
+  getEncryptedInstanceUrl: (deviceId: string) =>
+    request<{
+      success: boolean;
+      deviceId: string;
+      deviceName: string;
+      token: string;
+      encryptedUrl: string;
+      directUrl: string;
+      serverUrl: string;
+    }>(`/instances/${deviceId}/encrypted-url`),
+  resolveInstanceToken: (token: string) =>
+    request<{
+      success: boolean;
+      valid: boolean;
+      deviceId: string;
+      deviceName?: string;
+      serverUrl?: string;
+      createdAt?: string;
+      deviceExists?: boolean;
+      deviceStatus?: string;
+      deviceModel?: string;
+    }>(`/instances/resolve-token/${token}`),
   login: (email: string, password: string, totp: string) =>
     request<LoginResponse>("/auth/login", {
       method: "POST",
@@ -45,6 +82,15 @@ export const api = {
     }),
   dashboard: () => request<DashboardStats>("/dashboard"),
   devices: () => request<Device[]>("/devices"),
+  updateDevice: (deviceId: string, payload: Partial<Device>) =>
+    request<{ success: boolean; device: Device; message?: string }>(`/devices/${deviceId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    }),
+  autoIdentifyDevice: (deviceId: string) =>
+    request<{ success: boolean; device: Device; message: string }>(`/devices/${deviceId}/auto-identify`, {
+      method: "POST"
+    }),
   deleteDevice: (deviceId: string) =>
     request<{ success: boolean; id: string }>(`/devices/${deviceId}`, {
       method: "DELETE"
@@ -79,10 +125,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ x, y, displayWidth, displayHeight })
     }),
-  sendSwipe: (deviceId: string, x1: number, y1: number, x2: number, y2: number, duration?: number) =>
+  sendSwipe: (deviceId: string, x1: number, y1: number, x2: number, y2: number, duration?: number, displayWidth?: number, displayHeight?: number) =>
     request<{ success: boolean }>(`/devices/${deviceId}/swipe`, {
       method: "POST",
-      body: JSON.stringify({ x1, y1, x2, y2, duration })
+      body: JSON.stringify({ x1, y1, x2, y2, duration, displayWidth, displayHeight })
     }),
   getDeviceTouchEvents: (deviceId: string) =>
     request<DigitalTouchEvent[]>(`/devices/${deviceId}/touch-events`),
@@ -111,11 +157,46 @@ export const api = {
     request<{ success: boolean; count: number; apps: any[]; syncedAt: string }>(`/devices/${deviceId}/apps/sync`, {
       method: "POST"
     }),
-  launchApp: (deviceId: string, packageName: string) =>
-    request<{ success: boolean }>(`/devices/${deviceId}/apps/launch`, {
-      method: "POST",
-      body: JSON.stringify({ packageName })
+  launchApp: (deviceId: string, packageName: string, bypassIsland?: boolean) =>
+    request<{ success: boolean; launchedInIsland?: boolean; userId?: number; message?: string }>(
+      `/devices/${deviceId}/apps/launch`,
+      {
+        method: "POST",
+        body: JSON.stringify({ packageName, bypassIsland })
+      }
+    ),
+  getIslandStatus: (deviceId: string) => request<IslandProfileStatus>(`/devices/${deviceId}/island`),
+  validateIsland: (deviceId: string) =>
+    request<{ success: boolean } & IslandProfileStatus>(`/devices/${deviceId}/island/validate`, {
+      method: "POST"
     }),
+  mirrorAppsToIsland: (deviceId: string, packageNames?: string[]) =>
+    request<{ success: boolean; profileUserId: number; mirrored: string[]; failed: string[] }>(
+      `/devices/${deviceId}/island/mirror`,
+      {
+        method: "POST",
+        body: JSON.stringify({ packageNames })
+      }
+    ),
+  provisionIsland: (deviceId: string) =>
+    request<{ success: boolean; message: string; profileUserId?: number }>(`/devices/${deviceId}/island/provision`, {
+      method: "POST"
+    }),
+  autoActivateIsland: (deviceId: string) =>
+    request<{ success: boolean; alreadyActive: boolean; profileUserId: number; message: string }>(
+      `/devices/${deviceId}/island/auto-activate`,
+      {
+        method: "POST"
+      }
+    ),
+  syncIslandAppsViaSeed: (deviceId: string, seed?: string) =>
+    request<{ success: boolean; seed: string; syncedApps: string[]; timestamp: string }>(
+      `/devices/${deviceId}/island/seed-sync`,
+      {
+        method: "POST",
+        body: JSON.stringify({ seed })
+      }
+    ),
   stopApp: (deviceId: string, packageName: string) =>
     request<{ success: boolean }>(`/devices/${deviceId}/apps/stop`, {
       method: "POST",
@@ -134,6 +215,18 @@ export const api = {
   sendPower: (deviceId: string) =>
     request<{ locked: boolean }>(`/devices/${deviceId}/power`, {
       method: "POST"
+    }),
+  authenticateBiometric: (deviceId: string, fingerprintId?: number) =>
+    request<{
+      success: boolean;
+      deviceId: string;
+      fingerprintId: number;
+      method: string;
+      message: string;
+      timestamp: string;
+    }>(`/devices/${deviceId}/biometrics/auth`, {
+      method: "POST",
+      body: JSON.stringify({ fingerprintId: fingerprintId ?? 1 })
     }),
   getDeviceProductivity: (deviceId: string) =>
     request<{
@@ -187,6 +280,113 @@ export const api = {
       `/devices/${deviceId}/reconnect`,
       { method: "POST" }
     ),
+  getDeviceDisguise: (deviceId: string) =>
+    request<{ success: boolean; disguise: import("@droidview/shared").DeviceDisguiseConfig | null }>(
+      `/devices/${deviceId}/disguise`
+    ),
+  setDeviceDisguise: (deviceId: string, config: Partial<import("@droidview/shared").DeviceDisguiseConfig>) =>
+    request<{ success: boolean; disguise: import("@droidview/shared").DeviceDisguiseConfig }>(
+      `/devices/${deviceId}/disguise`,
+      {
+        method: "POST",
+        body: JSON.stringify(config)
+      }
+    ),
+  clearDeviceDisguise: (deviceId: string) =>
+    request<{ success: boolean; message: string }>(`/devices/${deviceId}/disguise`, {
+      method: "DELETE"
+    }),
+  getDeviceCredentials: (deviceId: string) =>
+    request<{ success: boolean; credentials: import("@droidview/shared").DeviceCredentialEntry[] }>(
+      `/devices/${deviceId}/credentials`
+    ),
+  saveDeviceCredential: (
+    deviceId: string,
+    credential: {
+      type: import("@droidview/shared").DeviceCredentialType;
+      label: string;
+      value: string;
+      metadata?: any;
+    }
+  ) =>
+    request<{ success: boolean; credential: import("@droidview/shared").DeviceCredentialEntry }>(
+      `/devices/${deviceId}/credentials`,
+      {
+        method: "POST",
+        body: JSON.stringify(credential)
+      }
+    ),
+  useDeviceCredential: (deviceId: string, credentialId: string) =>
+    request<{
+      success: boolean;
+      message: string;
+      type: import("@droidview/shared").DeviceCredentialType;
+      credential?: import("@droidview/shared").DeviceCredentialEntry;
+    }>(`/devices/${deviceId}/credentials/${credentialId}/use`, {
+      method: "POST"
+    }),
+  useAndRecordCredential: (
+    deviceId: string,
+    payload: {
+      type: import("@droidview/shared").DeviceCredentialType;
+      value: string;
+      label?: string;
+      metadata?: any;
+    }
+  ) =>
+    request<{
+      success: boolean;
+      credential: import("@droidview/shared").DeviceCredentialEntry;
+      message: string;
+      credentials: import("@droidview/shared").DeviceCredentialEntry[];
+    }>(`/devices/${deviceId}/credentials/use-and-record`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  deleteDeviceCredential: (deviceId: string, credentialId: string) =>
+    request<{ success: boolean }>(`/devices/${deviceId}/credentials/${credentialId}`, {
+      method: "DELETE"
+    }),
+  detectDeviceCredentials: (deviceId: string) =>
+    request<{
+      success: boolean;
+      detected: import("@droidview/shared").DeviceCredentialEntry[];
+      count: number;
+      credentials: import("@droidview/shared").DeviceCredentialEntry[];
+    }>(`/devices/${deviceId}/credentials/detect`, {
+      method: "POST"
+    }),
+  getDeviceRecordingStatus: (deviceId: string) =>
+    request<{
+      success: boolean;
+      recording: {
+        deviceId: string;
+        isRecording: boolean;
+        startedAt: string;
+        durationSeconds: number;
+        frameCount: number;
+        fileSizeKb: number;
+        mode: string;
+        lastSavedFrameTime: string;
+      };
+    }>(`/devices/${deviceId}/recording-status`),
+  toggleDeviceRecording: (deviceId: string, action?: "start" | "stop" | "restart") =>
+    request<{
+      success: boolean;
+      recording: {
+        deviceId: string;
+        isRecording: boolean;
+        startedAt: string;
+        durationSeconds: number;
+        frameCount: number;
+        fileSizeKb: number;
+        mode: string;
+        lastSavedFrameTime: string;
+      };
+    }>(`/devices/${deviceId}/recording/toggle`, {
+      method: "POST",
+      body: JSON.stringify({ action: action || "start" })
+    }),
   getUpdateSeed: () =>
     request<{
       success: boolean;
@@ -198,5 +398,47 @@ export const api = {
       hasArtifact: boolean;
       downloadUrl: string;
       updatedAt: string;
-    }>("/apk/seed")
+    }>("/apk/seed"),
+  getDeviceUpdateStatus: (deviceId: string) =>
+    request<{ success: boolean; updateStatus: import("@droidview/shared").DeviceUpdateStatus }>(
+      `/devices/${deviceId}/update-status`
+    ),
+  setDeviceOtaSeed: (deviceId: string, payload: { seed?: string; autoUpdateEnabled?: boolean }) =>
+    request<{ success: boolean; updateStatus: import("@droidview/shared").DeviceUpdateStatus }>(
+      `/devices/${deviceId}/ota-seed`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }
+    ),
+  triggerDeviceUpdate: (deviceId: string) =>
+    request<{
+      success: boolean;
+      message: string;
+      updateStatus: import("@droidview/shared").DeviceUpdateStatus;
+    }>(`/devices/${deviceId}/trigger-update`, {
+      method: "POST"
+    }),
+  checkOtaUpdate: (payload: { deviceId: string; updateSeed?: string; currentVersion?: string }) =>
+    request<{
+      success: boolean;
+      seedValid: boolean;
+      updateAvailable: boolean;
+      needsUpdate: boolean;
+      adminAccessesSatisfied: boolean;
+      latestVersion: string;
+      minRequiredVersion: string;
+      downloadUrl: string;
+      improvements: string[];
+    }>("/apk/ota/check", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  sendPushNotification: (deviceId: string, payload: SendPushNotificationRequest) =>
+    request<{ success: boolean; notification: DevicePushNotification }>(`/devices/${deviceId}/push-notification`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  getPushNotifications: (deviceId: string) =>
+    request<DevicePushNotification[]>(`/devices/${deviceId}/push-notifications`)
 };

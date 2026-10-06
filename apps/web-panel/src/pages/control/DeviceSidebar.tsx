@@ -41,6 +41,9 @@ export function DeviceSidebar({
       const matchQuery =
         !q ||
         d.name.toLowerCase().includes(q) ||
+        (d.contactName && d.contactName.toLowerCase().includes(q)) ||
+        (d.phoneNumber && d.phoneNumber.toLowerCase().includes(q)) ||
+        (d.apkName && d.apkName.toLowerCase().includes(q)) ||
         d.model.toLowerCase().includes(q) ||
         d.ip.includes(q);
 
@@ -176,29 +179,48 @@ export function DeviceSidebar({
                     </div>
 
                     <div className="control-device-info-col">
-                      <span className="control-device-label-name" title={device.name}>
-                        {device.name}
-                      </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                        <span className="control-device-label-name" title={device.name} style={{ fontWeight: 800 }}>
+                          {device.contactName || device.name}
+                        </span>
+                        {device.contactName && (
+                          <span style={{ fontSize: "9px", color: "#38bdf8", padding: "0 3px", borderRadius: "3px", background: "rgba(56, 189, 248, 0.12)", border: "1px solid rgba(56, 189, 248, 0.25)" }}>
+                            Contato
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", margin: "1px 0" }}>
+                        <span style={{ fontSize: "9px", fontWeight: 700, color: "#f87171", background: "rgba(255, 26, 42, 0.12)", borderRadius: "3px", padding: "0 4px" }}>
+                          📦 {device.apkName || "JADLOG Rastreio"}
+                        </span>
+                        {device.phoneNumber && (
+                          <span style={{ fontSize: "9px", color: "#86efac", fontFamily: "var(--font-mono)" }}>
+                            📞 {device.phoneNumber}
+                          </span>
+                        )}
+                      </div>
                       <div className="control-device-row-bottom">
-                        <span className="control-device-sub-ip">{device.ip}</span>
+                        <span className="control-device-sub-ip" title={device.name}>
+                          {device.model || (device.contactName ? device.name : device.ip)}
+                        </span>
                         {isOnline ? (
                           <span
                             className={`sidebar-net-pill ${
-                              device.networkType === "4g" || device.networkType === "5g" ? "cellular" : "wifi"
+                              device.networkType === "4g" || device.networkType === "5g" || device.networkType === "3g" ? "cellular" : "wifi"
                             }`}
-                            title={`${device.networkName || "Wi-Fi"} · ${device.networkSpeed || "86 Mbps"}`}
+                            title={device.networkType === "4g" || device.networkType === "5g" || device.networkType === "3g" ? "Conectado via Dados Móveis (4G)" : "Conectado via Rede Wi-Fi"}
                           >
-                            {device.networkType === "4g" || device.networkType === "5g" ? (
-                              <Radio size={9} />
+                            {device.networkType === "4g" || device.networkType === "5g" || device.networkType === "3g" ? (
+                              <Radio size={8} />
                             ) : (
-                              <Wifi size={9} />
+                              <Wifi size={8} />
                             )}
-                            <span>{device.networkSpeed || "86 Mbps"}</span>
+                            <span>{device.networkType === "4g" || device.networkType === "5g" || device.networkType === "3g" ? "4G" : "Wi-Fi"}</span>
                           </span>
                         ) : (
                           <span className="sidebar-net-pill offline" title="Aparelho offline">
-                            <WifiOff size={9} />
-                            <span>Offline</span>
+                            <WifiOff size={8} />
+                            <span>Off</span>
                           </span>
                         )}
                       </div>

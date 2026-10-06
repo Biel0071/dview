@@ -1,10 +1,20 @@
 import type { Device, DigitalTouchEvent, RemoteSession } from "@droidview/shared";
 import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL =
-  (typeof window !== "undefined" && ((window as any).__DVIEW_SOCKET_URL__ || (window as any).__DVIEW_CONFIG__?.socketUrl)) ||
-  import.meta.env.VITE_SOCKET_URL ||
-  "http://localhost:3000";
+export function getDynamicSocketUrl(): string {
+  if (typeof window !== "undefined") {
+    if ((window as any).__DVIEW_SOCKET_URL__) return (window as any).__DVIEW_SOCKET_URL__;
+    if ((window as any).__DVIEW_CONFIG__?.socketUrl) return (window as any).__DVIEW_CONFIG__.socketUrl;
+    const loc = window.location;
+    if (loc.port === "5000") {
+      return `${loc.protocol}//${loc.hostname}:3000`;
+    }
+    return `${loc.protocol}//${loc.host}`;
+  }
+  return import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+}
+
+const SOCKET_URL = getDynamicSocketUrl();
 
 let globalSocket: Socket | null = null;
 const touchListeners = new Set<(event: DigitalTouchEvent) => void>();

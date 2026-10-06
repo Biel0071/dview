@@ -26,8 +26,8 @@
   --text-crimson: #ff4d5a;
   --text-platinum: #cbd5e1;
 
-  --font-tactical: 'Rajdhani', 'Orbitron', -apple-system, sans-serif;
-  --font-brand: 'Orbitron', 'Rajdhani', sans-serif;
+  --font-tactical: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-brand: 'Orbitron', 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -100,6 +100,11 @@ button:focus-visible {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 270px 1fr;
+  transition: grid-template-columns 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-shell.sidebar-shell-collapsed {
+  grid-template-columns: 64px 1fr;
 }
 
 /* ==========================================================================
@@ -114,6 +119,63 @@ button:focus-visible {
   gap: 24px;
   position: relative;
   box-shadow: 4px 0 25px rgba(0, 0, 0, 0.6);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar.sidebar-collapsed-compact {
+  padding: 16px 8px;
+  gap: 16px;
+  align-items: center;
+}
+
+.sidebar.sidebar-collapsed-compact .brand {
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+}
+
+.sidebar.sidebar-collapsed-compact .brand-emblem-wrap {
+  width: 36px;
+  height: 36px;
+}
+
+.sidebar.sidebar-collapsed-compact nav {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sidebar.sidebar-collapsed-compact nav button {
+  justify-content: center;
+  padding: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+}
+
+.sidebar.sidebar-collapsed-compact .nav-label,
+.sidebar.sidebar-collapsed-compact .nav-badge-pill,
+.sidebar.sidebar-collapsed-compact .sidebar-operator-card,
+.sidebar.sidebar-collapsed-compact .settings-nav-btn span,
+.sidebar.sidebar-collapsed-compact .logout-btn span {
+  display: none !important;
+}
+
+.sidebar.sidebar-collapsed-compact .sidebar-footer-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sidebar.sidebar-collapsed-compact .settings-nav-btn,
+.sidebar.sidebar-collapsed-compact .logout-btn {
+  justify-content: center;
+  padding: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
 }
 
 .sidebar::after {
@@ -302,13 +364,17 @@ nav button.active svg {
    MAIN CONTENT & TOPBAR
    ========================================================================== */
 .content {
-  padding: 30px 36px;
+  padding: 16px 20px;
   background: transparent;
   min-height: 100vh;
+  box-sizing: border-box;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .content.content-controle-mode {
-  padding: 10px 16px 8px 16px;
+  padding: 0;
+  margin: 0;
   height: 100vh;
   max-height: 100vh;
   min-height: 100vh;
@@ -319,9 +385,7 @@ nav button.active svg {
 }
 
 .content.content-controle-mode .topbar {
-  margin-bottom: 8px;
-  padding-bottom: 6px;
-  flex-shrink: 0;
+  display: none !important;
 }
 
 .content.content-controle-mode .page-transition {
@@ -331,6 +395,8 @@ nav button.active svg {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 .topbar {
@@ -478,15 +544,35 @@ small,
   padding-bottom: 14px;
 }
 
+.panel-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .panel-heading h2 {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 4px;
+  margin: 0;
+  font-family: var(--font-brand);
+  font-size: 16px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: 1px;
 }
 
 .panel-heading h2 svg {
   color: var(--crimson-bright);
+}
+
+.panel-heading small {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  font-family: var(--font-base, sans-serif);
+  line-height: 1.4;
+  margin: 0;
 }
 
 .toolbar,
@@ -620,8 +706,8 @@ small,
 
 .device-table-header {
   display: grid;
-  grid-template-columns: 32px 1.4fr 0.9fr 0.8fr 80px 130px 160px 120px 130px 145px;
-  gap: 14px;
+  grid-template-columns: 28px minmax(175px, 1.3fr) minmax(145px, 1.1fr) minmax(95px, 0.8fr) 60px 105px 105px 75px minmax(235px, 1.4fr);
+  gap: 10px;
   align-items: center;
   padding: 12px 16px;
   background: rgba(15, 23, 42, 0.75);
@@ -633,7 +719,7 @@ small,
   color: #94a3b8;
   text-transform: uppercase;
   user-select: none;
-  min-width: 1100px;
+  min-width: 1020px;
 }
 
 .device-table-header .th-check {
@@ -642,8 +728,10 @@ small,
 }
 
 .device-row {
-  grid-template-columns: 32px 1.4fr 0.9fr 0.8fr 80px 130px 160px 120px 130px 145px;
-  min-width: 1100px;
+  grid-template-columns: 28px minmax(175px, 1.3fr) minmax(145px, 1.1fr) minmax(95px, 0.8fr) 60px 105px 105px 75px minmax(235px, 1.4fr);
+  gap: 10px;
+  min-width: 1020px;
+  padding: 10px 16px;
 }
 
 .device-info-cell {
@@ -1153,7 +1241,7 @@ label {
   text-transform: uppercase;
 }
 
-input,
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
 select {
   min-height: 42px;
   border: 1px solid var(--border-card);
@@ -3235,21 +3323,24 @@ progress {
    ========================================================================== */
 
 .apk-builder-master-view {
-  padding: 24px;
-  max-width: 860px;
-  margin: 0 auto;
+  padding: 0;
+  max-width: 100%;
+  margin: 0;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .apk-build-card-wrapper {
   background: #101319;
   border: 1px solid #242936;
   border-radius: 12px;
-  padding: 24px 28px;
+  padding: 22px 26px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .apk-build-header-section {
@@ -3328,7 +3419,13 @@ progress {
 
 .compact-btn {
   padding: 5px 10px !important;
-  font-size: 11px !important;
+  font-size: 11.5px !important;
+  height: 30px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
 }
 
 .apk-builds-list {
@@ -3346,11 +3443,14 @@ progress {
   border-radius: 8px;
   padding: 12px 16px;
   gap: 14px;
-  transition: border-color 0.15s;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .apk-build-item-row:hover {
   border-color: #2e3748;
+  background: #0d1017;
 }
 
 .apk-item-icon-box {
@@ -3381,18 +3481,21 @@ progress {
   flex-direction: column;
   gap: 3px;
   flex: 1;
+  min-width: 0;
 }
 
 .apk-item-title-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .apk-item-name {
   font-size: 14px;
   font-weight: 700;
   color: #ffffff;
+  white-space: nowrap;
 }
 
 .apk-tag-concluido {
@@ -3426,28 +3529,35 @@ progress {
   color: #94a3b8;
   font-family: var(--font-mono);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .apk-item-actions-col {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .apk-btn-baixar {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   background: linear-gradient(180deg, #facc15 0%, #d97706 100%);
   color: #0b0d13;
   border: 1px solid rgba(254, 240, 138, 0.5);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 800;
-  padding: 7px 15px;
-  border-radius: 8px;
+  padding: 6px 14px;
+  border-radius: 6px;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 12px rgba(245, 158, 11, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  height: 30px;
+  box-sizing: border-box;
 }
 
 .apk-btn-baixar:hover {
@@ -3462,11 +3572,13 @@ progress {
   border: 1px solid #2a3344;
   color: #94a3b8;
   padding: 6px 10px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  height: 30px;
+  box-sizing: border-box;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -3515,16 +3627,19 @@ progress {
   padding: 6px 8px;
   border-radius: 6px;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s, border-color 0.15s;
+  height: 30px;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
 }
 
 .apk-btn-edit:hover {
   color: #ffffff;
   border-color: #38bdf8;
   background: rgba(56, 189, 248, 0.1);
+  transform: translateY(-1px);
 }
 
 /* ==========================================================================
@@ -5397,6 +5512,32 @@ progress {
   font-family: var(--font-mono);
 }
 
+.sidebar-quick-refresh-btn {
+  margin-left: auto;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid #1e293b;
+  border-radius: 4px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-quick-refresh-btn:hover {
+  background: rgba(255, 26, 42, 0.15);
+  border-color: var(--crimson-neon);
+  color: #ffffff;
+}
+
+.sidebar-quick-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .nav-item-btn {
   display: flex;
   align-items: center;
@@ -5533,6 +5674,33 @@ progress {
   font-weight: 700;
   color: var(--crimson-bright);
   letter-spacing: 0.5px;
+}
+
+.settings-nav-btn {
+  min-height: 38px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 6px;
+  color: #7dd3fc;
+  font-family: var(--font-tactical);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.settings-nav-btn:hover,
+.settings-nav-btn.active {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
 }
 
 .logout-btn {
@@ -6035,8 +6203,10 @@ progress {
   flex-direction: column;
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: #080a10;
+  width: 100%;
 }
 
 .dashboard-table-header {
@@ -6052,6 +6222,7 @@ progress {
   font-weight: 700;
   color: #64748b;
   letter-spacing: 0.8px;
+  min-width: 820px;
 }
 
 .dashboard-table-body {
@@ -6067,6 +6238,7 @@ progress {
   padding: 14px 16px;
   border-bottom: 1px solid rgba(28, 33, 46, 0.6);
   transition: background 0.15s ease;
+  min-width: 820px;
 }
 
 .dashboard-device-row:last-child {
@@ -7209,14 +7381,14 @@ progress {
 }
 
 .control-device-card.selected-tactical {
-  border-color: #2563eb;
-  background: linear-gradient(90deg, rgba(37, 99, 235, 0.16) 0%, rgba(15, 23, 42, 0.7) 100%);
-  box-shadow: 0 0 14px rgba(37, 99, 235, 0.25), inset 0 0 8px rgba(37, 99, 235, 0.08);
+  border-color: rgba(255, 26, 42, 0.55);
+  background: linear-gradient(90deg, rgba(255, 26, 42, 0.14) 0%, rgba(15, 23, 42, 0.85) 100%);
+  box-shadow: 0 0 14px rgba(255, 26, 42, 0.22), inset 0 0 8px rgba(255, 26, 42, 0.06);
 }
 
 .control-device-card.selected-tactical .control-device-label-name {
-  color: #60a5fa;
-  text-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(255, 26, 42, 0.35);
 }
 
 .control-device-card.offline {
@@ -7412,7 +7584,7 @@ progress {
 
 .tactical-toast-badge {
   position: fixed;
-  top: 14px;
+  bottom: 24px;
   right: 24px;
   z-index: 10000;
   display: flex;
@@ -7485,13 +7657,32 @@ progress {
 
 /* Top Tactical Controls Bar */
 .tactical-top-controls-bar {
-  background: #0d111a;
-  border-bottom: 1px solid #1c2438;
+  background: #090c14;
+  border-bottom: 1px solid #1a2337;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  height: 38px;
+  min-height: 38px;
   flex-shrink: 0;
+  gap: 6px;
+  z-index: 20;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.tactical-top-controls-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.tactical-single-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 4px;
 }
 
 .tactical-header-title-row {
@@ -7502,7 +7693,7 @@ progress {
 .tactical-device-header-left {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 5px;
   flex-shrink: 0;
 }
 
@@ -7532,50 +7723,54 @@ progress {
 
 .tactical-main-mode-title {
   font-family: var(--font-tactical);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 13.5px;
+  font-weight: 700;
   color: #ffffff;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .tactical-device-id-sub {
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: #64748b;
+  font-size: 11.5px;
+  color: #cbd5e1;
+  white-space: nowrap;
 }
 
 .tactical-toolbar-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  overflow-x: auto;
+  gap: 8px;
 }
 
 /* Tactical Interactive Pill Toggles */
 .tactical-pill-toggles-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 
 .tactical-pill-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 20px;
+  gap: 2px;
+  padding: 1px 4.5px;
+  border-radius: 10px;
   font-family: var(--font-tactical);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
   background: #111622;
   border: 1px solid #1e283d;
-  color: #94a3b8;
+  color: #cbd5e1;
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  flex-shrink: 0;
+  height: 21px;
 }
 
 .tactical-pill-toggle:hover {
@@ -7687,6 +7882,50 @@ progress {
   cursor: pointer;
 }
 
+/* Tactical Volume Slider Line - Sleek Single Line */
+.tactical-volume-slider-line {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  height: 3px !important;
+  min-height: 3px !important;
+  max-height: 3px !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 2px !important;
+  outline: none !important;
+  cursor: pointer;
+  margin: 0 2px !important;
+  box-sizing: border-box !important;
+}
+
+.tactical-volume-slider-line::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  border: 1.5px solid #38bdf8 !important;
+  box-shadow: 0 0 5px rgba(56, 189, 248, 0.8) !important;
+  cursor: pointer !important;
+  margin-top: 0 !important;
+  transition: transform 0.1s ease !important;
+}
+
+.tactical-volume-slider-line::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+.tactical-volume-slider-line::-moz-range-thumb {
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  border: 1.5px solid #38bdf8 !important;
+  box-shadow: 0 0 5px rgba(56, 189, 248, 0.8) !important;
+  cursor: pointer !important;
+}
+
 .tactical-slider-val {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -7699,14 +7938,49 @@ progress {
 .tactical-actions-group {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
   flex-shrink: 0;
+  margin-left: auto;
+}
+
+.quick-actions-toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  height: 23px;
+  width: auto !important;
+  max-width: none !important;
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid #334155;
+  color: #facc15;
+  font-weight: 700;
+  font-size: 9.5px;
+  font-family: var(--font-tactical);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.quick-actions-toggle-pill:hover {
+  border-color: #facc15;
+  background: rgba(250, 204, 21, 0.12);
+  color: #fde047;
+}
+
+.quick-actions-toggle-pill.active {
+  background: rgba(255, 26, 42, 0.25);
+  border-color: var(--crimson-neon, #ff1a2a);
+  color: #ff4d5a;
+  box-shadow: 0 0 10px rgba(255, 26, 42, 0.35);
 }
 
 .tactical-action-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 5px;
+  width: 23px;
+  height: 23px;
+  border-radius: 4px;
   background: #111622;
   border: 1px solid #1e283d;
   color: #94a3b8;
@@ -7714,6 +7988,7 @@ progress {
   place-items: center;
   cursor: pointer;
   transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .tactical-action-btn:hover {
@@ -7762,7 +8037,7 @@ progress {
   flex: 1;
   min-height: 0;
   height: 100%;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7798,34 +8073,18 @@ progress {
 }
 
 .tactical-phone-viewport {
-  height: 100%;
-  max-height: 100%;
-  aspect-ratio: 9 / 18.5;
-  width: auto;
-  border-radius: 24px;
-  background: #0f121b;
-  border: 3px solid #1f273b;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6);
+  border-radius: 28px;
+  background: #000000;
+  border: 3px solid #232d44;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  flex-shrink: 1;
+  flex-shrink: 0;
   min-width: 0;
   box-sizing: border-box;
-  transition: all 0.2s ease;
-}
-
-.tactical-viewports-stage.screens-1 .tactical-phone-viewport {
-  max-width: min(390px, 90%);
-}
-
-.tactical-viewports-stage.screens-2 .tactical-phone-viewport {
-  max-width: min(340px, calc(50% - 10px));
-}
-
-.tactical-viewports-stage.screens-3 .tactical-phone-viewport {
-  max-width: min(290px, calc(33.333% - 10px));
+  transition: width 0.15s ease, height 0.15s ease;
 }
 
 .tactical-phone-viewport.live-device-frame {
@@ -8004,14 +8263,17 @@ progress {
   border: 1px solid rgba(56, 189, 248, 0.4);
   color: #38bdf8;
   border-radius: 6px;
-  padding: 2px 7px;
-  font-size: 10px;
+  padding: 1px 5px;
+  font-size: 9.5px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  height: 22px;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tactical-fit-chip:hover {
@@ -8063,9 +8325,9 @@ progress {
 
 /* Right Sidebar Quick Actions Drawer */
 .tactical-right-quick-sidebar {
-  width: 320px;
-  min-width: 320px;
-  max-width: 320px;
+  width: 345px;
+  min-width: 280px;
+  max-width: 520px;
   height: 100%;
   background: #080a10;
   border-left: 1px solid #1e293b;
@@ -8121,6 +8383,54 @@ progress {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.pin-toggle-btn {
+  background: #0f172a !important;
+  border: 1px solid #1e293b !important;
+  color: #94a3b8 !important;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-toggle-btn:hover {
+  background: #1e293b !important;
+  border-color: #38bdf8 !important;
+  color: #cbd5e1 !important;
+}
+
+.pin-toggle-btn.active {
+  background: rgba(56, 189, 248, 0.2) !important;
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+}
+
+.right-sidebar-close-btn {
+  background: #ff1a2a !important;
+  border: 1px solid #ff4d5a !important;
+  color: #ffffff !important;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(255, 26, 42, 0.6) !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.right-sidebar-close-btn:hover {
+  background: #e01524 !important;
+  border-color: #ff808b !important;
+  box-shadow: 0 0 14px rgba(255, 26, 42, 0.9) !important;
+  transform: scale(1.05);
+}
+
+.right-sidebar-close-btn:active {
+  transform: scale(0.95);
 }
 
 .right-sidebar-filter-tabs {
@@ -8756,6 +9066,73 @@ progress {
   color: #ff4d5a !important;
 }
 
+.android-hardware-navbar,
+.android-system-nav-bar {
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  width: 100% !important;
+  background: #080a10 !important;
+  border-top: 1px solid #1e293b !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-around !important;
+  padding: 0 12px !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+  z-index: 20 !important;
+}
+
+.android-hardware-navbar .android-nav-btn,
+.android-system-nav-bar .android-nav-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #cbd5e1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  padding: 2px 14px !important;
+  border-radius: 8px !important;
+  transition: all 0.15s ease !important;
+  user-select: none !important;
+  flex: 1 !important;
+  max-width: 90px !important;
+}
+
+.android-hardware-navbar .android-nav-btn:hover,
+.android-system-nav-bar .android-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+}
+
+.android-hardware-navbar .android-nav-btn:active,
+.android-system-nav-bar .android-nav-btn:active {
+  background: rgba(255, 26, 42, 0.25) !important;
+  transform: scale(0.92) !important;
+  color: #ff4d5a !important;
+}
+
+.android-hardware-navbar .nav-btn-icon,
+.android-system-nav-bar .nav-btn-icon {
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  color: #f8fafc !important;
+}
+
+.android-hardware-navbar .nav-btn-text,
+.android-system-nav-bar .nav-btn-text {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px !important;
+  color: #94a3b8 !important;
+  margin-top: 2px !important;
+}
+
 /* SCREEN READER (Right Panel Wireframe) */
 .sr-header-bar {
   height: 36px;
@@ -8996,57 +9373,79 @@ progress {
   background: rgba(250, 204, 21, 0.1);
 }
 
-.tactical-shell-command-form {
+.tactical-shell-command-form,
+.tactical-command-input-form {
   display: flex;
   align-items: center;
   gap: 8px;
   background: #06080c;
   border: 1px solid #1e2638;
   border-radius: 6px;
-  padding: 3px 6px;
+  padding: 4px 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.tactical-cmd-prompt-badge {
+.tactical-cmd-prompt-badge,
+.command-prefix-tag {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-family: var(--font-tactical);
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
   font-weight: 700;
   color: #38bdf8;
   background: rgba(56, 189, 248, 0.12);
-  padding: 2px 6px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 3px 8px;
   border-radius: 4px;
+  flex-shrink: 0;
+  user-select: none;
 }
 
-.tactical-cmd-input {
+.tactical-cmd-input,
+.tactical-shell-input {
   flex: 1;
   background: transparent;
   border: none;
   outline: none;
   color: #ffffff;
   font-family: var(--font-mono);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.tactical-cmd-input::placeholder,
+.tactical-shell-input::placeholder {
+  color: #64748b;
   font-size: 11.5px;
 }
 
-.tactical-cmd-submit-btn {
+.tactical-cmd-submit-btn,
+.tactical-send-cmd-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 4px;
-  background: #2563eb;
-  border: none;
+  background: var(--crimson-neon, #ff1a2a);
+  border: 1px solid rgba(255, 26, 42, 0.5);
   color: #ffffff;
   font-family: var(--font-tactical);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  box-shadow: 0 0 8px rgba(255, 26, 42, 0.25);
 }
 
-.tactical-cmd-submit-btn:hover {
-  background: #1d4ed8;
+.tactical-cmd-submit-btn:hover,
+.tactical-send-cmd-btn:hover {
+  background: var(--crimson-bright, #ff3848);
+  box-shadow: 0 0 12px rgba(255, 26, 42, 0.5);
+  transform: translateY(-1px);
 }
 
 /* Floating Fullscreen Exit Hint Banner */
@@ -9381,6 +9780,13 @@ button:active,
   padding: 0 12px;
   flex-shrink: 0;
   z-index: 40;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.control-ribbon-toolbar::-webkit-scrollbar {
+  display: none;
 }
 
 .ribbon-btn {
@@ -9463,5 +9869,194 @@ button:active,
   transform: scale(0.95);
 }
 
+/* =======================================================================
+   TACTICAL CONTEXT MENU (RIGHT-CLICK ON DEVICES)
+   ======================================================================= */
+.tactical-context-menu {
+  background: #0b0f19;
+  border: 1px solid #1e293b;
+  border-left: 2px solid var(--crimson-neon, #ff1a2a);
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9), 0 0 15px rgba(255, 26, 42, 0.2);
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  animation: contextMenuFadeIn 0.15s ease-out;
+  backdrop-filter: blur(8px);
+}
 
+@keyframes contextMenuFadeIn {
+  from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
 
+.context-menu-device-header {
+  padding: 8px 12px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.context-menu-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.context-menu-sub {
+  font-size: 10px;
+  font-family: var(--font-mono, monospace);
+  color: #64748b;
+  padding-left: 19px;
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: #1a2233;
+  margin: 4px 0;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.12s ease;
+}
+
+.context-menu-item:hover {
+  background: rgba(56, 189, 248, 0.12);
+  color: #ffffff;
+}
+
+.context-menu-item.primary-action {
+  color: #ffffff;
+}
+
+.context-menu-item.primary-action:hover {
+  background: rgba(255, 26, 42, 0.18);
+  color: #ffffff;
+}
+
+.context-menu-item.danger-item:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ef4444;
+}
+
+/* =======================================================================
+   UNIFIED CONTROL SIDEBAR
+   ======================================================================= */
+.unified-sidebar {
+  background: #090c14;
+  border-right: 1px solid #1a2233;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s ease, min-width 0.2s ease;
+}
+
+.unified-sidebar.is-collapsed {
+  background: #060810;
+  align-items: center;
+  padding-top: 10px;
+}
+
+.sidebar-expand-toggle-btn {
+  background: #0d121f;
+  border: 1px solid #1e293b;
+  border-radius: 4px;
+  color: #38bdf8;
+  padding: 6px 4px;
+  cursor: pointer;
+}
+
+.sidebar-expand-toggle-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+}
+
+.unified-sidebar-top-header {
+  padding: 8px 10px;
+  background: #060810;
+  border-bottom: 1px solid #141b2a;
+}
+
+.unified-sidebar-tabs-bar {
+  display: flex;
+  background: #080a12;
+  border-bottom: 1px solid #1a2233;
+  padding: 4px 6px;
+  gap: 4px;
+}
+
+.unified-tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.unified-tab-btn:hover:not(:disabled) {
+  color: #ffffff;
+  background: #0d111c;
+}
+
+.unified-tab-btn.active {
+  background: #101626;
+  border-color: #232e42;
+  color: #38bdf8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.unified-tab-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* =======================================================================
+   SCREEN PRESETS & KEYLOGGER HOVER EFFECTS
+   ======================================================================= */
+.screen-preset-card-hover:hover {
+  border-color: #38bdf8 !important;
+  background: #101626 !important;
+  transform: translateY(-1px);
+}
+
+.keystroke-card-hover:hover {
+  border-color: #38bdf8 !important;
+}
+
+@keyframes rippleAnim {
+  0% {
+    transform: translate(-50%, -50%) scale(0.35);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.65);
+    opacity: 0;
+  }
+}

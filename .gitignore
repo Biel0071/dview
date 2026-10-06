@@ -157,3 +157,10 @@ window_dump.xml
 
 # Local code graph output
 graphify-out/
+
+# Temporary test captures, proofs and runtime data
+proof_*.png
+print_zoom_*.png
+print_modal_*.png
+apps/backend/data/
+scratch/

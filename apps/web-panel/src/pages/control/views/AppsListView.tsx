@@ -18,6 +18,7 @@ import {
   Unlock
 } from "lucide-react";
 import type { ControlDevice, InstalledAppItem } from "../types";
+import type { IslandProfileStatus } from "@droidview/shared";
 import { initialInstalledApps } from "../mockData";
 import { api } from "../../../api";
 import { getAppEmojiFallback } from "../DeviceToolMenu";
@@ -31,6 +32,7 @@ interface Props {
 export function AppsListView({ device, onOpenAppControl }: Props) {
   const [apps, setApps] = useState<InstalledAppItem[]>(initialInstalledApps);
   const [query, setQuery] = useState("");
+  const [folderTab, setFolderTab] = useState<"all" | "principal" | "island">("all");
   const [filterType, setFilterType] = useState<"all" | "user" | "system" | "finance">("all");
   const [selectedApp, setSelectedApp] = useState<InstalledAppItem | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -38,9 +40,47 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
   const [copiedPkg, setCopiedPkg] = useState(false);
   const [confirmDeleteAppId, setConfirmDeleteAppId] = useState<string | null>(null);
 
+  // Island / Work Profile state
+  const [islandStatus, setIslandStatus] = useState<IslandProfileStatus | null>(null);
+  const [isMirroring, setIsMirroring] = useState(false);
+
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  const fetchIsland = async () => {
+    try {
+      const res = await api.getIslandStatus(device.id);
+      if (res?.isInstalled && res.profileUserId !== null) {
+        localStorage.setItem(`island_active_${device.id}`, "true");
+        setIslandStatus(res);
+      } else {
+        const auto = await api.autoActivateIsland(device.id);
+        if (auto?.success) {
+          localStorage.setItem(`island_active_${device.id}`, "true");
+          const updated = await api.getIslandStatus(device.id);
+          setIslandStatus(updated);
+        } else {
+          setIslandStatus(res);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleAutoMirrorApps = async () => {
+    setIsMirroring(true);
+    try {
+      const res = await api.mirrorAppsToIsland(device.id);
+      showToast(`⚡ ${res.mirrored.length} apps espelhados para o perfil Island (User ${res.profileUserId}).`);
+      await fetchIsland();
+    } catch {
+      showToast("Falha no auto-mirror para Island.");
+    } finally {
+      setIsMirroring(false);
+    }
   };
 
   const loadRealApps = async () => {
@@ -60,6 +100,7 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
 
   useEffect(() => {
     loadRealApps();
+    void fetchIsland();
   }, [device.id]);
 
   const handleDetectSync = () => {
@@ -80,6 +121,12 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
   };
 
   const filtered = apps.filter((app) => {
+    const isDview = app.packageName.includes("droidview.agent");
+    const matchFolder =
+      folderTab === "all" ||
+      (folderTab === "principal" && isDview) ||
+      (folderTab === "island" && !isDview);
+
     const matchType =
       filterType === "all" ||
       (filterType === "system" && app.isSystem) ||
@@ -91,14 +138,18 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
       app.name.toLowerCase().includes(query.toLowerCase()) ||
       app.packageName.toLowerCase().includes(query.toLowerCase());
 
-    return matchType && matchQuery;
+    return matchFolder && matchType && matchQuery;
   });
 
   // Action Handlers
   const handleLaunch = async (app: InstalledAppItem) => {
     try {
-      await api.launchApp(device.id, app.packageName);
-      showToast(`Iniciando ${app.name} (${app.packageName}) no dispositivo.`);
+      const res = await api.launchApp(device.id, app.packageName);
+      if (res?.launchedInIsland) {
+        showToast(`⚡ [ISLAND] ${app.name} aberto no container seguro (User ${res.userId || 10}).`);
+      } else {
+        showToast(`Iniciando ${app.name} (${app.packageName}) no dispositivo.`);
+      }
     } catch {
       showToast(`Comando enviado para iniciar ${app.name}.`);
     }
@@ -192,6 +243,32 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
         </div>
 
         <div className="control-view-actions" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {islandStatus?.isInstalled && (
+            <button
+              type="button"
+              className="secondary compact-btn"
+              onClick={handleAutoMirrorApps}
+              disabled={isMirroring}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "7px 12px",
+                background: "rgba(56, 189, 248, 0.15)",
+                border: "1px solid #38bdf8",
+                color: "#38bdf8",
+                fontWeight: 700,
+                fontSize: "12px",
+                borderRadius: "6px",
+                cursor: isMirroring ? "not-allowed" : "pointer"
+              }}
+              title="Auto-mirror / clonar aplicativos para dentro do perfil Island"
+            >
+              <Boxes size={14} className={isMirroring ? "animate-spin" : ""} />
+              <span>{isMirroring ? "Espelhando..." : `Auto-Mirror Island (${islandStatus.mirroredApps.length})`}</span>
+            </button>
+          )}
+
           <button
             className={`primary detect-sync-btn ${isSyncing ? "syncing" : ""}`}
             onClick={handleDetectSync}
@@ -213,34 +290,73 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
         </div>
       </div>
 
-      {/* Sub Header / Filters & Search */}
-      <div className="control-files-nav-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
-        <div className="control-filter-tabs">
+      {/* Sub Header / Folder Navigation & Search */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "16px" }}>
+        {/* Pasta Principal vs Pasta Separada Island */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <button
-            className={`control-filter-pill ${filterType === "all" ? "active" : ""}`}
-            onClick={() => setFilterType("all")}
+            type="button"
+            className={`control-filter-pill ${folderTab === "all" ? "active" : ""}`}
+            onClick={() => setFolderTab("all")}
+            style={{ fontWeight: 800 }}
           >
-            Todos ({apps.length})
+            Todas as Pastas ({apps.length})
           </button>
           <button
-            className={`control-filter-pill ${filterType === "user" ? "active" : ""}`}
-            onClick={() => setFilterType("user")}
+            type="button"
+            className={`control-filter-pill ${folderTab === "principal" ? "active" : ""}`}
+            onClick={() => setFolderTab("principal")}
+            style={{
+              fontWeight: 800,
+              background: folderTab === "principal" ? "rgba(255, 26, 42, 0.2)" : undefined,
+              borderColor: folderTab === "principal" ? "#ff1a2a" : undefined,
+              color: folderTab === "principal" ? "#ff4d5a" : undefined
+            }}
           >
-            Usuário ({apps.filter((a) => !a.isSystem).length})
+            📁 Pasta Principal (Apenas DVIEW)
           </button>
           <button
-            className={`control-filter-pill ${filterType === "system" ? "active" : ""}`}
-            onClick={() => setFilterType("system")}
+            type="button"
+            className={`control-filter-pill ${folderTab === "island" ? "active" : ""}`}
+            onClick={() => setFolderTab("island")}
+            style={{
+              fontWeight: 800,
+              background: folderTab === "island" ? "rgba(56, 189, 248, 0.2)" : undefined,
+              borderColor: folderTab === "island" ? "#38bdf8" : undefined,
+              color: folderTab === "island" ? "#38bdf8" : undefined
+            }}
           >
-            Sistema ({apps.filter((a) => a.isSystem).length})
-          </button>
-          <button
-            className={`control-filter-pill ${filterType === "finance" ? "active" : ""}`}
-            onClick={() => setFilterType("finance")}
-          >
-            Bancos ({apps.filter(isFinanceApp).length})
+            🏝️ Pasta Separada · Container Island ({apps.filter((a) => !a.packageName.includes("droidview.agent")).length})
           </button>
         </div>
+
+        <div className="control-files-nav-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+          <div className="control-filter-tabs">
+            <button
+              className={`control-filter-pill ${filterType === "all" ? "active" : ""}`}
+              onClick={() => setFilterType("all")}
+            >
+              Todos ({apps.length})
+            </button>
+            <button
+              className={`control-filter-pill ${filterType === "user" ? "active" : ""}`}
+              onClick={() => setFilterType("user")}
+            >
+              Usuário ({apps.filter((a) => !a.isSystem).length})
+            </button>
+            <button
+              className={`control-filter-pill ${filterType === "system" ? "active" : ""}`}
+              onClick={() => setFilterType("system")}
+            >
+              Sistema ({apps.filter((a) => a.isSystem).length})
+            </button>
+            <button
+              className={`control-filter-pill ${filterType === "finance" ? "active" : ""}`}
+              onClick={() => setFilterType("finance")}
+            >
+              Bancos ({apps.filter(isFinanceApp).length})
+            </button>
+          </div>
 
         <div className="control-search-inline" style={{ minWidth: "240px" }}>
           <Search size={14} style={{ color: "#64748b" }} />
@@ -256,6 +372,7 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
             </button>
           )}
         </div>
+      </div>
       </div>
 
       {/* Launcher Grid Area Matching Screenshot media_1789659588703.png */}
@@ -274,6 +391,28 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
                   <AppLogo name={app.name} packageName={app.packageName} size={48} iconUrl={app.iconUrl} />
                   {app.status === "active" && <span className="app-running-dot" />}
                   {app.status === "disabled" && <span className="app-disabled-badge">OFF</span>}
+                  {islandStatus?.isInstalled && islandStatus.mirroredApps.includes(app.packageName) && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        bottom: "-2px",
+                        right: "-2px",
+                        fontSize: "9px",
+                        background: "rgba(2, 132, 199, 0.9)",
+                        border: "1px solid #38bdf8",
+                        borderRadius: "50%",
+                        width: "16px",
+                        height: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 0 8px rgba(56, 189, 248, 0.5)"
+                      }}
+                      title="Espelhado no container Island"
+                    >
+                      🏝️
+                    </span>
+                  )}
                 </div>
                 <span className="app-launcher-label" title={app.name}>
                   {app.name}

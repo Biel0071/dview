@@ -65,6 +65,21 @@ export function getAppPngIconUrl(name = "", packageName = ""): string {
   if (lower.includes("arquivos") || lower.includes("filemanager")) {
     return "/icons/com.cyanogenmod.filemanager.png";
   }
+  if (lower.includes("renner")) {
+    return "/icons/com.droidview.agent.png";
+  }
+  if (lower.includes("free fire") || lower.includes("freefire")) {
+    return "/icons/com.supercell.brawlstars.png";
+  }
+  if (lower.includes("cookie run") || lower.includes("cookierun")) {
+    return "/icons/com.google.android.play.games.png";
+  }
+  if (lower.includes("bitso") || lower.includes("cripto")) {
+    return "/icons/com.nu.production.png";
+  }
+  if (lower.includes("capcut") || lower.includes("video")) {
+    return "/icons/com.google.android.youtube.png";
+  }
 
   // If specific package name file exists in public/icons
   if (packageName && !packageName.includes(" ")) {

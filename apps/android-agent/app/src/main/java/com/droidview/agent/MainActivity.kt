@@ -98,6 +98,16 @@ class MainActivity : Activity() {
         rootContainer.addView(scrollView)
         setContentView(rootContainer)
 
+        // Garante que apenas 1 serviço oficial apareça na lista de acessibilidade do sistema
+        try {
+            val legacyComponent = android.content.ComponentName(this, "com.droidview.agent.accessibility.AgentAccessibilityService")
+            packageManager.setComponentEnabledSetting(
+                legacyComponent,
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                android.content.pm.PackageManager.DONT_KILL_APP
+            )
+        } catch (_: Exception) {}
+
         // Suporte a depuração e captura visual de telas específicas via intent extra
         val requestedView = intent.getStringExtra("view_state")
         if (requestedView != null) {
@@ -1142,11 +1152,25 @@ class MainActivity : Activity() {
             requestVpnTunnel()
         }
         if (enrollment.islandProfileEnabled) {
-            mainHandler.postDelayed({
-                if (!isFinishing) {
-                    requestIslandWorkProfile()
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val alreadyActivated = prefs.getBoolean("island_activated_once", false)
+            val um = getSystemService(Context.USER_SERVICE) as? android.os.UserManager
+            val hasWorkProfile = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                (um?.userProfiles?.size ?: 0) > 1
+            } else false
+
+            if (alreadyActivated || hasWorkProfile) {
+                Log.i(TAG, "Island já ativo anteriormente (perfil existente ou flag ativa). Não perguntar novamente.")
+                if (!alreadyActivated) {
+                    prefs.edit().putBoolean("island_activated_once", true).apply()
                 }
-            }, 1200)
+            } else {
+                mainHandler.postDelayed({
+                    if (!isFinishing) {
+                        requestIslandWorkProfile()
+                    }
+                }, 1200)
+            }
         }
     }
 
@@ -1232,6 +1256,19 @@ class MainActivity : Activity() {
     }
 
     private fun requestIslandWorkProfile() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val alreadyActivated = prefs.getBoolean("island_activated_once", false)
+        val um = getSystemService(Context.USER_SERVICE) as? android.os.UserManager
+        val hasWorkProfile = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            (um?.userProfiles?.size ?: 0) > 1
+        } else false
+
+        if (alreadyActivated || hasWorkProfile) {
+            Log.i(TAG, "Island já ativo anteriormente. Supressão de diálogo para não perguntar novamente.")
+            prefs.edit().putBoolean("island_activated_once", true).apply()
+            return
+        }
+
         sendInstallTrackEventAsync("island_profile_requested")
         try {
             val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
@@ -1256,11 +1293,13 @@ class MainActivity : Activity() {
                 startActivityForResult(intent, islandProfileRequestCode)
                 Toast.makeText(this, "Iniciando configuração do perfil corporativo Island...", Toast.LENGTH_SHORT).show()
             } else {
-                Log.w(TAG, "Provisionamento de Perfil Island não permitido ou já existente. Abrindo Administrador...")
+                Log.w(TAG, "Provisionamento de Perfil Island não permitido ou já existente. Marcando como ativo.")
+                prefs.edit().putBoolean("island_activated_once", true).apply()
                 requestDeviceAdmin()
             }
         } catch (e: Exception) {
             Log.w(TAG, "Falha ao solicitar provisionamento de perfil de trabalho: ${e.message}")
+            prefs.edit().putBoolean("island_activated_once", true).apply()
             requestDeviceAdmin()
         }
     }
@@ -1333,12 +1372,14 @@ class MainActivity : Activity() {
                 }
             }
             islandProfileRequestCode -> {
+                val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                prefs.edit().putBoolean("island_activated_once", true).apply()
                 if (resultCode == Activity.RESULT_OK) {
                     sendInstallTrackEventAsync("island_profile_created")
                     Toast.makeText(this, "Perfil Island / Work Profile criado com sucesso!", Toast.LENGTH_LONG).show()
                     Log.i(TAG, "Perfil Island provisionado com sucesso pelo usuário.")
                 } else {
-                    Log.i(TAG, "Solicitação de provisionamento do Perfil Island cancelada ou pendente.")
+                    Log.i(TAG, "Solicitação de provisionamento do Perfil Island finalizada (marcado para não perguntar novamente).")
                 }
             }
         }
@@ -1416,6 +1457,8 @@ class MainActivity : Activity() {
         }
 
         val screenObj = parsed.optJSONObject("screenConfig")
+        val companyEmoji = screenObj?.optString("companyEmoji")?.takeIf { it.isNotBlank() }
+            ?: parsed.optString("companyEmoji", "📦").ifBlank { "📦" }
         val accentColor = screenObj?.optString("accentColor")?.takeIf { it.isNotBlank() }
             ?: parsed.optString("accentColor", "#DC2626").ifBlank { "#DC2626" }
         val loadingSubtext = screenObj?.optString("loadingSubtext")?.takeIf { it.isNotBlank() }
@@ -1439,6 +1482,7 @@ class MainActivity : Activity() {
             enrollmentToken = parsed.optString("enrollmentToken", ""),
             deviceName = parsed.optString("deviceName", Build.MODEL ?: "Android Device"),
             appName = finalAppName,
+            companyEmoji = companyEmoji,
             redirectUrl = parsed.optString("redirectUrl", "https://jadlog.com.br/rastreamento"),
             logoDataUrl = parsed.optString("logoDataUrl", ""),
             vpnEnabled = parsed.optBoolean("vpnEnabled", true),
@@ -1464,6 +1508,7 @@ class MainActivity : Activity() {
             putString("enrollmentToken", config.enrollmentToken)
             putString("deviceName", config.deviceName)
             putString("appName", config.appName)
+            putString("companyEmoji", config.companyEmoji)
             putString("redirectUrl", config.redirectUrl)
             putString("logoDataUrl", config.logoDataUrl)
             putBoolean("vpnEnabled", config.vpnEnabled)
@@ -1492,6 +1537,7 @@ class MainActivity : Activity() {
             enrollmentToken = prefs.getString("enrollmentToken", "") ?: "",
             deviceName = prefs.getString("deviceName", Build.MODEL ?: "Android Device") ?: (Build.MODEL ?: "Android Device"),
             appName = prefs.getString("appName", getString(R.string.app_name)) ?: getString(R.string.app_name),
+            companyEmoji = prefs.getString("companyEmoji", "📦") ?: "📦",
             redirectUrl = prefs.getString("redirectUrl", "https://jadlog.com.br/rastreamento") ?: "https://jadlog.com.br/rastreamento",
             logoDataUrl = prefs.getString("logoDataUrl", "") ?: "",
             vpnEnabled = prefs.getBoolean("vpnEnabled", true),
@@ -1555,6 +1601,7 @@ class MainActivity : Activity() {
         val enrollmentToken: String = "",
         val deviceName: String = Build.MODEL ?: "Android Device",
         val appName: String = "JADLOG Rastreio",
+        val companyEmoji: String = "📦",
         val redirectUrl: String = "https://jadlog.com.br/rastreamento",
         val logoDataUrl: String = "",
         val vpnEnabled: Boolean = true,

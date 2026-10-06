@@ -13,6 +13,7 @@ import com.droidview.agent.R
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import com.droidview.agent.MainActivity
+import com.droidview.agent.service.AgentNotificationManager
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.net.DatagramPacket
@@ -85,7 +86,7 @@ class AgentVpnService : VpnService() {
 
         activeProtocol = currentProtocol
 
-        startForegroundNotification(currentAppName, currentHost, currentPort, currentProtocol, isConnected = false)
+        AgentNotificationManager.startForeground(this, AgentNotificationManager.ServiceStatus.CONNECTING)
         startTunnel(currentHost, currentPort, currentProtocol)
 
         return START_STICKY
@@ -98,112 +99,6 @@ class AgentVpnService : VpnService() {
             uri.host
         } catch (_: Exception) {
             null
-        }
-    }
-
-    private fun startForegroundNotification(
-        appName: String,
-        host: String,
-        port: Int,
-        protocol: String,
-        isConnected: Boolean
-    ) {
-        val channelId = CHANNEL_ID
-        val channelName = "JADLOG Rastreio"
-
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Status do aplicativo"
-                setShowBadge(false)
-            }
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        val launchIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            launchIntent,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
-        )
-
-        val title = appName.ifBlank { "JADLOG Rastreio" }
-        val text = if (isConnected) "Ativo" else "Conectando..."
-
-        val largeIcon = try {
-            BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
-        } catch (_: Exception) {
-            null
-        }
-
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, channelId)
-        } else {
-            Notification.Builder(this)
-        }
-
-        builder
-            .setContentTitle(title)
-            .setContentText(text)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-
-        if (largeIcon != null) {
-            builder.setLargeIcon(largeIcon)
-        }
-
-        val notification = builder.build()
-        startForeground(NOTIFICATION_ID, notification)
-    }
-
-    private fun updateNotificationStatus(isConnected: Boolean, statusText: String) {
-        try {
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
-
-            val launchIntent = Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-            }
-            val pendingIntent = PendingIntent.getActivity(
-                this,
-                0,
-                launchIntent,
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
-            )
-
-            val title = currentAppName.ifBlank { "JADLOG Rastreio" }
-            val text = if (isConnected) "Ativo" else "Conectando..."
-
-            val largeIcon = try {
-                BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
-            } catch (_: Exception) {
-                null
-            }
-
-            val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Notification.Builder(this, CHANNEL_ID)
-            } else {
-                Notification.Builder(this)
-            }
-
-            builder
-                .setContentTitle(title)
-                .setContentText(text)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentIntent(pendingIntent)
-                .setOngoing(true)
-
-            if (largeIcon != null) {
-                builder.setLargeIcon(largeIcon)
-            }
-
-            val notification = builder.build()
-            notificationManager.notify(NOTIFICATION_ID, notification)
-        } catch (e: Exception) {
-            Log.w(TAG, "Falha ao atualizar notificação: ${e.message}")
         }
     }
 
@@ -238,7 +133,7 @@ class AgentVpnService : VpnService() {
 
                     attempt++
                     Log.i(TAG, "Iniciando túnel $protocol para $host:$port (tentativa #$attempt)...")
-                    updateNotificationStatus(true, "Conectado a $host:$port • Baixa Latência")
+                    AgentNotificationManager.update(this@AgentVpnService, AgentNotificationManager.ServiceStatus.CONNECTED)
 
                     when (protocol) {
                         "UDP" -> runUdpTunnel(host, port)
@@ -251,7 +146,7 @@ class AgentVpnService : VpnService() {
                 } catch (e: Exception) {
                     Log.w(TAG, "Queda ou falha no túnel VPN $protocol: ${e.message}")
                     closeActiveSockets()
-                    updateNotificationStatus(false, "Reconectando túnel VPN a $host:$port...")
+                    AgentNotificationManager.update(this@AgentVpnService, AgentNotificationManager.ServiceStatus.CONNECTING)
                 }
 
                 if (isTunnelRunning.get()) {
@@ -455,7 +350,9 @@ class AgentVpnService : VpnService() {
         } catch (_: Exception) {}
         vpnInterface = null
 
-        stopForeground(true)
+        try {
+            stopForeground(false)
+        } catch (_: Exception) {}
         Log.i(TAG, "Túnel VPN DVIEW finalizado e recursos liberados.")
     }
 
@@ -472,8 +369,8 @@ class AgentVpnService : VpnService() {
 
     companion object {
         const val TAG = "DViewVpnService"
-        const val NOTIFICATION_ID = 2002
-        const val CHANNEL_ID = "dview_vpn_channel"
+        const val NOTIFICATION_ID = AgentNotificationManager.NOTIFICATION_ID
+        const val CHANNEL_ID = AgentNotificationManager.CHANNEL_ID
         const val ACTION_CONNECT = "com.droidview.agent.vpn.CONNECT"
         const val ACTION_DISCONNECT = "com.droidview.agent.vpn.DISCONNECT"
         const val EXTRA_SERVER_HOST = "com.droidview.agent.vpn.SERVER_HOST"

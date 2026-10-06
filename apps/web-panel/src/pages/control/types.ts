@@ -28,6 +28,19 @@ export interface ControlDevice {
   screenLocked: boolean;
   dateGroup?: string;
   isFavorite?: boolean;
+  disguiseScreen?: import("@droidview/shared").DeviceDisguiseConfig | null;
+  agentVersion?: string;
+  updateSeed?: string;
+  updateStatus?: import("@droidview/shared").DeviceUpdateStatus;
+  contactName?: string;
+  phoneNumber?: string;
+  apkName?: string;
+  notes?: string;
+  userAccount?: string;
+  operator?: string;
+  deviceOwner?: string;
+  autoIdentified?: boolean;
+  identifiedAt?: string;
 }
 
 export interface KeyboardEventItem {

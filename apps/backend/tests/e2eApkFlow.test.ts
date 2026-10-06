@@ -56,6 +56,33 @@ describe("E2E APK Creation, Customization & Telemetry Flow", () => {
     expect(buildResult.sha256).toBeDefined();
     expect(buildResult.sha256.length).toBe(64);
     expect(buildResult.qrPayload).toBeDefined();
+    expect(buildResult.zeroTouchQrPayload).toBeDefined();
+
+    const parsedMdm = JSON.parse(buildResult.zeroTouchQrPayload);
+    expect(parsedMdm["android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME"]).toBe(
+      "com.droidview.agent/com.droidview.agent.mdm.DroidViewDeviceAdminReceiver"
+    );
+    expect(parsedMdm["android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM"]).toBeDefined();
+    expect(parsedMdm["android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION"]).toContain("/apk/download/");
+    const adminExtras = parsedMdm["android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE"];
+    expect(adminExtras).toBeDefined();
+    expect(adminExtras.encrypted).toBe(true);
+    expect(adminExtras.algorithm).toBe("AES-256-GCM");
+    expect(adminExtras.cipherText).toBeDefined();
+    expect(adminExtras.iv).toBeDefined();
+    expect(adminExtras.tag).toBeDefined();
+    expect(adminExtras.signature).toBeDefined();
+    expect(adminExtras.securityHash).toBeDefined();
+
+    // Verify Plural Route Alias (/apks/build)
+    const pluralRes = await app.inject({
+      method: "POST",
+      url: "/apks/build",
+      headers,
+      payload: buildPayload
+    });
+    expect(pluralRes.statusCode).toBe(200);
+    expect(pluralRes.json().zeroTouchQrPayload).toBeDefined();
 
     // 3. Verify Decoded Enrollment Config matches submitted customization
     const configToken = buildResult.downloadUrl.replace("/apk/download/", "");
