@@ -1,19 +1,14 @@
 import {
   Activity,
   AlertTriangle,
-  BatteryCharging,
-  CheckCircle2,
   ChevronRight,
-  Clock,
   Download,
-  Gauge,
   MonitorSmartphone,
   Radio,
   SlidersHorizontal,
   Smartphone,
   Wifi,
-  WifiOff,
-  Zap
+  WifiOff
 } from "lucide-react";
 import { useAppStore } from "../store";
 
@@ -21,8 +16,6 @@ export function Dashboard() {
   const { stats, devices, sessions, setView, setSelectedDeviceId } = useAppStore();
 
   const onlineDevices = devices.filter((device) => device.status === "online");
-  const offlineDevices = devices.filter((device) => device.status === "offline");
-  const lowBattery = devices.filter((device) => device.battery <= 25);
   const recentDevices = [...devices]
     .sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime())
     .slice(0, 6);
@@ -71,167 +64,38 @@ export function Dashboard() {
 
   return (
     <section className="stack dashboard-stack">
-      {/* KPI Cards Grid */}
-      <div className="kpi-grid">
+      {/* KPI Cards Grid (Compacto ~0.75 ratio e layout ajustado para tela única) */}
+      <div className="compact-kpi-grid">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
             <article
-              className={`metric ${card.colorClass}`}
+              className={`compact-metric ${card.colorClass}`}
               key={card.label}
               onClick={() => setView(card.targetView)}
               title={`Clique para navegar para ${card.label}`}
               style={{ cursor: "pointer" }}
             >
-              <div className="metric-header-row">
-                <div className="metric-icon-wrap">
-                  <Icon size={20} />
+              <div className="compact-metric-top">
+                <div className="compact-metric-icon-wrap">
+                  <Icon size={15} />
                 </div>
-                <span className="metric-trend-pill">{card.trend}</span>
+                <span className="compact-metric-trend-pill">{card.trend}</span>
               </div>
-              <span className="metric-label">{card.label}</span>
-              <strong className="metric-value">{card.value}</strong>
-              <div className="metric-footer-hint">
+              <div className="compact-metric-content">
+                <span className="compact-metric-label">{card.label}</span>
+                <strong className="compact-metric-value">{card.value}</strong>
+              </div>
+              <div className="compact-metric-footer-hint">
                 <span>Ver detalhes</span>
-                <ChevronRight size={13} />
+                <ChevronRight size={11} />
               </div>
             </article>
           );
         })}
       </div>
 
-      {/* Operational Grid: Queue & Real-Time Capacity */}
-      <div className="ops-grid">
-        {/* Fila Operacional */}
-        <article className="panel ops-panel">
-          <div className="panel-heading">
-            <div>
-              <h2>
-                <Radio size={16} style={{ color: "var(--crimson-bright)" }} />
-                Fila Operacional
-              </h2>
-              <small>Status de supervisão em tempo real dos aparelhos.</small>
-            </div>
-            <button className="secondary compact-btn" onClick={() => setView("Clients")}>
-              Abrir Clientes <ChevronRight size={13} />
-            </button>
-          </div>
-
-          <div className="insight-list">
-            <div
-              className={`insight ${offlineDevices.length > 0 ? "warning" : "ok"}`}
-              onClick={() => setView("Clients")}
-              style={{ cursor: "pointer" }}
-            >
-              <WifiOff size={18} />
-              <div className="insight-info-col">
-                <strong>{offlineDevices.length} aparelho(s) offline</strong>
-                <small>Aguardando reconexão ou sinal de rede</small>
-              </div>
-              <span className="insight-count-tag">{offlineDevices.length}</span>
-            </div>
-
-            <div
-              className={`insight ${lowBattery.length > 0 ? "warning" : "ok"}`}
-              onClick={() => setView("Clients")}
-              style={{ cursor: "pointer" }}
-            >
-              <BatteryCharging size={18} />
-              <div className="insight-info-col">
-                <strong>{lowBattery.length} com bateria baixa (&le; 25%)</strong>
-                <small>Recomendado conectar ao carregador</small>
-              </div>
-              <span className="insight-count-tag">{lowBattery.length}</span>
-            </div>
-
-            <div
-              className="insight info"
-              onClick={() => setView("Remote Session")}
-              style={{ cursor: "pointer" }}
-            >
-              <Clock size={18} />
-              <div className="insight-info-col">
-                <strong>{sessions.length} sessões registradas no painel</strong>
-                <small>Histórico supervisionado e logs de eventos</small>
-              </div>
-              <span className="insight-count-tag">{sessions.length}</span>
-            </div>
-          </div>
-        </article>
-
-        {/* Capacidade Agora */}
-        <article className="panel ops-panel">
-          <div className="panel-heading">
-            <div>
-              <h2>
-                <Gauge size={16} style={{ color: "var(--crimson-bright)" }} />
-                Capacidade & Recursos
-              </h2>
-              <small>Disponibilidade instantânea para sessões autorizadas.</small>
-            </div>
-            {onlineCount > 0 ? (
-              <span className="badge online">
-                <CheckCircle2 size={12} /> Servidor Ativo
-              </span>
-            ) : (
-              <span className="badge offline" style={{ background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.3)", display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                <WifiOff size={12} /> Conexão OFF
-              </span>
-            )}
-          </div>
-
-          <div className="capacity-card-content">
-            <div className="capacity-bar-wrap">
-              <div className="capacity-bar-labels">
-                <span className="capacity-label">Taxa de Conectividade</span>
-                <strong className="capacity-stat-val">
-                  {onlineCount} / {totalDevicesCount || 1} ({onlinePercentage}%)
-                </strong>
-              </div>
-              <div className="custom-progress-track">
-                <div
-                  className="custom-progress-fill"
-                  style={{ width: `${Math.min(100, Math.max(5, onlinePercentage))}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="capacity-metrics-grid">
-              <div className="capacity-sub-metric">
-                <span className="sub-metric-label">Latência de Rede Estimada</span>
-                <strong className="sub-metric-val">{onlineCount > 0 ? "~18 ms" : "0 ms"}</strong>
-                <small className="sub-metric-hint">{onlineCount > 0 ? "Link Local / Loopback" : "Sem Conexão Ativa"}</small>
-              </div>
-
-              <div className="capacity-sub-metric">
-                <span className="sub-metric-label">Segurança & Criptografia</span>
-                <strong className="sub-metric-val" style={{ color: "#22c55e" }}>
-                  AES-256-GCM
-                </strong>
-                <small className="sub-metric-hint">Túnel Certificado</small>
-              </div>
-
-              <div className="capacity-sub-metric">
-                <span className="sub-metric-label">Aparelhos Prontos</span>
-                <strong className="sub-metric-val" style={{ color: "#38bdf8" }}>
-                  {onlineCount}
-                </strong>
-                <small className="sub-metric-hint">Disponíveis p/ controle</small>
-              </div>
-
-              <div className="capacity-sub-metric">
-                <span className="sub-metric-label">Status do Agente</span>
-                <strong className="sub-metric-val" style={{ color: "#facc15" }}>
-                  v1.4.8 Ativo
-                </strong>
-                <small className="sub-metric-hint">Versão em produção</small>
-              </div>
-            </div>
-          </div>
-        </article>
-      </div>
-
-      {/* Dispositivos Recentes */}
+      {/* Dispositivos Recentes (Elevado logo abaixo dos 4 cards para visualização sem rolagem) */}
       <div className="panel recent-devices-panel">
         <div className="panel-heading">
           <div>
