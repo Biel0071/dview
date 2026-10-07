@@ -220,7 +220,6 @@ export function buildApp() {
 
   app.get("/devices", { preHandler: (app as any).authenticate }, async () => {
     const adbList = await getConnectedAdbDevices().catch(() => []);
-    const isAdbConnected = process.env.NODE_ENV === "test" || adbList.length > 0;
 
     if (devices.length === 0) {
       devices.push({
@@ -228,15 +227,15 @@ export function buildApp() {
         name: "Entregue Jad Log (SM-N975F)",
         model: "SM-N975F",
         androidVersion: "7.1.2",
-        status: isAdbConnected ? "online" : "offline",
+        status: "offline",
         battery: 100,
-        networkType: isAdbConnected ? "wifi" : "offline",
-        networkName: isAdbConnected ? "Wi-Fi 5GHz" : "Sem Conexão",
-        signalStrength: isAdbConnected ? 96 : 0,
-        networkSpeed: isAdbConnected ? "86.4 Mbps" : "0 Mbps",
-        pingMs: isAdbConnected ? 14 : 0,
+        networkType: "offline",
+        networkName: "Sem Conexão",
+        signalStrength: 0,
+        networkSpeed: "0 Mbps",
+        pingMs: 0,
         ipAddress: "127.0.0.1",
-        lastSeen: isAdbConnected ? new Date().toISOString() : new Date(0).toISOString(),
+        lastSeen: new Date(0).toISOString(),
         enrolledAt: new Date().toISOString(),
         consentRequired: false
       });
@@ -244,19 +243,17 @@ export function buildApp() {
 
     const now = Date.now();
     for (const d of devices) {
-      const hasAdb = adbList.length > 0 && (
-        adbList.some((s) => s === d.id || d.id.includes(s) || s.includes(d.id)) ||
-        d.id === "dev_sm_n975f" ||
-        d.id.startsWith("emu_")
-      );
+      const hasAdb = adbList.length > 0 && adbList.some((s) => s === d.id || d.id.includes(s) || s.includes(d.id));
       const lastSeenMs = d.lastSeen ? now - new Date(d.lastSeen).getTime() : Infinity;
       const hasRecentHeartbeat = lastSeenMs < 25000;
       const isOnline = (process.env.NODE_ENV === "test" && !d.lastSeen) ? true : (hasAdb || hasRecentHeartbeat);
       d.status = isOnline ? "online" : "offline";
       if (!isOnline) {
         d.networkType = "offline";
+        d.networkName = "Sem Conexão";
         d.networkSpeed = "0 Mbps";
         d.pingMs = 0;
+        d.signalStrength = 0;
       }
     }
 
@@ -273,22 +270,19 @@ export function buildApp() {
       try {
         const telem = await getRealDeviceTelemetry().catch(() => null);
         if (telem) {
-          const found = devices.find((d) => d.id === telem.id || (d.id === "dev_sm_n975f" && !telem.id));
-          if (found) {
+          const found = devices.find((d) => d.id === telem.id || (d.id === "dev_sm_n975f" && (!telem.id || telem.id === "dev_sm_n975f")));
+          if (found && found.status === "online" && telem.status === "online") {
             found.name = telem.name;
             found.model = telem.model;
             found.androidVersion = telem.androidVersion;
             found.battery = telem.batteryLevel;
-            found.status = telem.status || found.status;
-            found.networkType = telem.networkType || found.networkType;
-            found.networkName = telem.networkName || found.networkName;
-            found.signalStrength = telem.signalStrength ?? found.signalStrength;
-            found.networkSpeed = telem.networkSpeed || found.networkSpeed;
-            found.pingMs = telem.pingMs ?? found.pingMs;
+            found.networkType = telem.networkType;
+            found.networkName = telem.networkName;
+            found.signalStrength = telem.signalStrength;
+            found.networkSpeed = telem.networkSpeed;
+            found.pingMs = telem.pingMs;
             found.ipAddress = telem.ip;
-            if (telem.status === "online") {
-              found.lastSeen = new Date().toISOString();
-            }
+            found.lastSeen = new Date().toISOString();
           }
         }
         for (const d of devices) {
@@ -613,7 +607,7 @@ export function buildApp() {
           ? `Island já ativo no dispositivo ${request.params.id} (User ${result.profileUserId}). Sem perguntas repetidas.`
           : `Script de autoativação Island executado para o dispositivo ${request.params.id} (User ${result.profileUserId}).`
       });
-      return { success: true, ...result };
+      return { ...result };
     } catch (err: any) {
       return reply.code(500).send({ error: err.message });
     }
@@ -1641,20 +1635,22 @@ export function buildApp() {
       if (body.contactName && d.contactName && body.contactName.trim().toLowerCase() === d.contactName.trim().toLowerCase() && body.model === d.model) return true;
       return false;
     });
+    const isExplicitlyOffline = (body as any).status === "offline";
+    const devStatus: "online" | "offline" = isExplicitlyOffline ? "offline" : "online";
     const deviceData = {
       id: deviceId,
       name: deviceName,
       model: body.model || (body.isEmulator ? "Android Studio AVD" : "Pixel 8"),
       androidVersion: body.androidVersion || "14",
-      status: "online" as const,
+      status: devStatus,
       battery: body.battery ?? 95,
-      networkType: body.networkType || "wifi",
-      networkName: body.networkName || "Wi-Fi 5GHz",
-      signalStrength: body.signalStrength ?? 95,
-      networkSpeed: body.networkSpeed || "86.4 Mbps",
-      pingMs: body.pingMs ?? 14,
+      networkType: isExplicitlyOffline ? ("offline" as const) : (body.networkType || "wifi"),
+      networkName: isExplicitlyOffline ? "Sem Conexão" : (body.networkName || "Wi-Fi 5GHz"),
+      signalStrength: isExplicitlyOffline ? 0 : (body.signalStrength ?? 95),
+      networkSpeed: isExplicitlyOffline ? "0 Mbps" : (body.networkSpeed || "86.4 Mbps"),
+      pingMs: isExplicitlyOffline ? 0 : (body.pingMs ?? 14),
       ipAddress: body.ipAddress || body.ip || "10.0.2.2",
-      lastSeen: new Date().toISOString(),
+      lastSeen: (body as any).lastSeen || new Date().toISOString(),
       enrolledAt: existingIdx >= 0 ? devices[existingIdx].enrolledAt : new Date().toISOString(),
       consentRequired: false
     };
@@ -1809,20 +1805,22 @@ export function buildApp() {
     }
 
     // Caso o dispositivo ainda não estivesse na lista, registra imediatamente
+    const isExplicitlyOffline = (body as any).status === "offline";
+    const devStatus: "online" | "offline" = isExplicitlyOffline ? "offline" : "online";
     const newDevice = {
       id: deviceId,
       name: body.name || `Android (${body.model || "Device"})`,
       model: body.model || "Android",
       androidVersion: body.androidVersion || "14",
-      status: "online" as const,
+      status: devStatus,
       battery: body.battery ?? 95,
-      networkType: body.networkType || "wifi",
-      networkName: body.networkName || "Wi-Fi 5GHz",
-      signalStrength: body.signalStrength ?? 95,
-      networkSpeed: body.networkSpeed || "86.4 Mbps",
-      pingMs: body.pingMs ?? 14,
+      networkType: isExplicitlyOffline ? ("offline" as const) : (body.networkType || "wifi"),
+      networkName: isExplicitlyOffline ? "Sem Conexão" : (body.networkName || "Wi-Fi 5GHz"),
+      signalStrength: isExplicitlyOffline ? 0 : (body.signalStrength ?? 95),
+      networkSpeed: isExplicitlyOffline ? "0 Mbps" : (body.networkSpeed || "86.4 Mbps"),
+      pingMs: isExplicitlyOffline ? 0 : (body.pingMs ?? 14),
       ipAddress: body.ipAddress || clientIp,
-      lastSeen: new Date().toISOString(),
+      lastSeen: (body as any).lastSeen || new Date().toISOString(),
       enrolledAt: new Date().toISOString(),
       consentRequired: false
     };
@@ -2876,11 +2874,7 @@ export function buildApp() {
         const adbList = await getConnectedAdbDevices().catch(() => []);
         const now = Date.now();
         for (const d of devices) {
-          const hasAdb = adbList.length > 0 && (
-            adbList.some((s) => s === d.id || d.id.includes(s) || s.includes(d.id)) ||
-            d.id === "dev_sm_n975f" ||
-            d.id.startsWith("emu_")
-          );
+          const hasAdb = adbList.length > 0 && adbList.some((s) => s === d.id || d.id.includes(s) || s.includes(d.id));
           const lastSeenMs = d.lastSeen ? now - new Date(d.lastSeen).getTime() : Infinity;
           const hasRecentHeartbeat = lastSeenMs < 30000;
           const realStatus: "online" | "offline" = (hasAdb || hasRecentHeartbeat) ? "online" : "offline";
@@ -2889,13 +2883,17 @@ export function buildApp() {
             d.status = realStatus;
             if (realStatus === "offline") {
               d.networkType = "offline";
+              d.networkName = "Sem Conexão";
               d.networkSpeed = "0 Mbps";
               d.pingMs = 0;
+              d.signalStrength = 0;
               broadcastDeviceDisconnect(d.id);
             } else {
               d.networkType = "wifi";
+              d.networkName = "Wi-Fi 5GHz";
               d.networkSpeed = "86.4 Mbps";
               d.pingMs = 14;
+              d.signalStrength = 96;
               broadcastDeviceConnect(d);
             }
             broadcastDeviceUpdate(d);

@@ -104,4 +104,45 @@ describe("Device Deduplication System", () => {
     const uniquePhones = new Set(phones);
     expect(phones.length).toBe(uniquePhones.size);
   });
+
+  it("marks devices as offline with 'Sem Conexão' and 0 Mbps when no recent heartbeat or connection", async () => {
+    const app = buildApp();
+    const loginRes = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      payload: { email: "admin@dview.local", password: "admin123", totp: "123456" }
+    });
+    const { token } = JSON.parse(loginRes.body);
+
+    // Register a disconnected device (expired lastSeen)
+    await app.inject({
+      method: "POST",
+      url: "/devices/register",
+      headers: { Authorization: `Bearer ${token}` },
+      payload: {
+        id: "dev_disconnected_test",
+        name: "Aparelho Desconectado",
+        model: "SM-A525M",
+        androidVersion: "12",
+        status: "offline",
+        battery: 45,
+        lastSeen: new Date(Date.now() - 60000).toISOString() // 60s ago (> 25s threshold)
+      }
+    });
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/devices",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    expect(res.statusCode).toBe(200);
+    const devicesList: Device[] = JSON.parse(res.body);
+    const target = devicesList.find((d) => d.id === "dev_disconnected_test");
+    expect(target).toBeDefined();
+    expect(target?.status).toBe("offline");
+    expect(target?.networkName).toBe("Sem Conexão");
+    expect(target?.networkSpeed).toBe("0 Mbps");
+    expect(target?.pingMs).toBe(0);
+    expect(target?.signalStrength).toBe(0);
+  });
 });

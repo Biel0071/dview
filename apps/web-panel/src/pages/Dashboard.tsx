@@ -169,9 +169,15 @@ export function Dashboard() {
               </h2>
               <small>Disponibilidade instantânea para sessões autorizadas.</small>
             </div>
-            <span className="badge online">
-              <CheckCircle2 size={12} /> Servidor Ativo
-            </span>
+            {onlineCount > 0 ? (
+              <span className="badge online">
+                <CheckCircle2 size={12} /> Servidor Ativo
+              </span>
+            ) : (
+              <span className="badge offline" style={{ background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.3)", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                <WifiOff size={12} /> Conexão OFF
+              </span>
+            )}
           </div>
 
           <div className="capacity-card-content">
@@ -193,8 +199,8 @@ export function Dashboard() {
             <div className="capacity-metrics-grid">
               <div className="capacity-sub-metric">
                 <span className="sub-metric-label">Latência de Rede Estimada</span>
-                <strong className="sub-metric-val">&sim;18 ms</strong>
-                <small className="sub-metric-hint">Link Local / Loopback</small>
+                <strong className="sub-metric-val">{onlineCount > 0 ? "~18 ms" : "0 ms"}</strong>
+                <small className="sub-metric-hint">{onlineCount > 0 ? "Link Local / Loopback" : "Sem Conexão Ativa"}</small>
               </div>
 
               <div className="capacity-sub-metric">
@@ -286,9 +292,9 @@ export function Dashboard() {
                         <span>DISPONÍVEL</span>
                       </span>
                     ) : (
-                      <span className="badge-availability offline" title="Offline / sem sinal">
+                      <span className="badge-availability offline" title="Offline / sem conexão (Conexão OFF)">
                         <span className="status-beacon offline" />
-                        <span>OFFLINE</span>
+                        <span>CONEXÃO OFF</span>
                       </span>
                     )}
                   </div>

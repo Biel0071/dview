@@ -759,8 +759,10 @@ export async function getRealDeviceTelemetry(requestedId?: string): Promise<Real
     // Keep defaults
   }
 
-  const connectedAdbList = await getConnectedAdbDevices().catch(() => []);
-  const isAdbConnected = connectedAdbList.length > 0;
+  const connectedAdbList: string[] = await getConnectedAdbDevices().catch(() => []);
+  const isAdbConnected = requestedId
+    ? connectedAdbList.some((s) => s === requestedId || requestedId.includes(s) || s.includes(requestedId))
+    : (connectedAdbList.length > 0 && connectedAdbList.includes(activeSerial));
   const isActuallyOnline = process.env.NODE_ENV === "test" || isAdbConnected;
 
   const res: RealDeviceTelemetry = {

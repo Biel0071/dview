@@ -5491,6 +5491,15 @@ progress {
   50% { opacity: 0.45; transform: scale(0.85); }
 }
 
+.c2-beacon-offline {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.45);
+  flex-shrink: 0;
+}
+
 .c2-status-details {
   display: flex;
   flex-direction: column;

@@ -414,14 +414,28 @@ export function App() {
           </button>
         </div>
 
-        {/* Live Pulse Indicator in Sidebar */}
+        {/* Live Pulse / Offline Indicator in Sidebar */}
         {!isGlobalSidebarCollapsed && (
           <div className="sidebar-c2-status-card">
-            <span className="c2-live-beacon" />
-            <div className="c2-status-details" style={{ flex: 1 }}>
-              <span className="c2-status-title">REDE CENTRAL ATIVA</span>
-              <small className="c2-status-sub">{onlineDevicesCount} aparelhos conectados</small>
-            </div>
+            {onlineDevicesCount > 0 ? (
+              <>
+                <span className="c2-live-beacon" />
+                <div className="c2-status-details" style={{ flex: 1 }}>
+                  <span className="c2-status-title">REDE CENTRAL ATIVA</span>
+                  <small className="c2-status-sub">
+                    {onlineDevicesCount} {onlineDevicesCount === 1 ? "aparelho conectado" : "aparelhos conectados"}
+                  </small>
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="c2-beacon-offline" />
+                <div className="c2-status-details" style={{ flex: 1 }}>
+                  <span className="c2-status-title" style={{ color: "#ef4444" }}>CONEXÃO OFF</span>
+                  <small className="c2-status-sub" style={{ color: "#f87171" }}>Sem Conexão (0 aparelhos)</small>
+                </div>
+              </>
+            )}
             <button
               type="button"
               className="sidebar-quick-refresh-btn"

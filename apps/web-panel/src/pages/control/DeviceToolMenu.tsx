@@ -16,6 +16,7 @@ import {
   Smartphone,
   Trash2,
   Wifi,
+  WifiOff,
   Zap
 } from "lucide-react";
 import type { ControlDevice, ControlTool } from "./types";
@@ -221,7 +222,15 @@ export function DeviceToolMenu({
         <span className="control-clock">{timeStr}</span>
         <div className="control-status-icons" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <span style={{ fontSize: "11px", fontWeight: 700, color: battColor }}>{device.battery}%</span>
-          {device.networkType === "4g" || device.networkType === "5g" ? (
+          {device.status !== "online" || device.networkType === "offline" ? (
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: "3px", color: "#ef4444" }}
+              title="Sem Conexão · Conexão OFF"
+            >
+              <WifiOff size={13} style={{ color: "#ef4444" }} />
+              <span style={{ fontSize: "10px", fontWeight: 700 }}>OFF</span>
+            </span>
+          ) : device.networkType === "4g" || device.networkType === "5g" ? (
             <span
               style={{ display: "inline-flex", alignItems: "center" }}
               title={`${device.networkName || "4G LTE"} · ${device.networkSpeed || "52.8 Mbps"}`}
@@ -233,7 +242,7 @@ export function DeviceToolMenu({
               style={{ display: "inline-flex", alignItems: "center" }}
               title={`${device.networkName || "Wi-Fi 5GHz"} · ${device.networkSpeed || "86.4 Mbps"}`}
             >
-              <Wifi size={13} style={{ color: device.status === "online" ? "#38bdf8" : "#64748b" }} />
+              <Wifi size={13} style={{ color: "#38bdf8" }} />
             </span>
           )}
           <Battery size={13} style={{ color: battColor }} />

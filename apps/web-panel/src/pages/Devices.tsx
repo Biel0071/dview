@@ -399,9 +399,9 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
                       <span>PENDENTE</span>
                     </span>
                   ) : (
-                    <span className="badge-availability offline" title="Dispositivo offline / desconectado">
+                    <span className="badge-availability offline" title="Dispositivo sem conexão (Conexão OFF)">
                       <span className="status-beacon offline" />
-                      <span>OFFLINE</span>
+                      <span>CONEXÃO OFF</span>
                     </span>
                   )}
                 </div>
@@ -412,9 +412,9 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
                     <div className="net-signal-cell offline">
                       <div className="net-signal-top">
                         <WifiOff size={14} className="net-icon offline" />
-                        <span className="net-name">Sem Sinal</span>
+                        <span className="net-name">Sem Conexão</span>
                       </div>
-                      <span className="net-offline-hint">Desconectado</span>
+                      <span className="net-offline-hint">Conexão OFF</span>
                     </div>
                   ) : (
                     <div className={`net-signal-cell ${isWifi ? "wifi" : "cellular"}`}>

@@ -218,9 +218,9 @@ export function DeviceSidebar({
                             <span>{device.networkType === "4g" || device.networkType === "5g" || device.networkType === "3g" ? "4G" : "Wi-Fi"}</span>
                           </span>
                         ) : (
-                          <span className="sidebar-net-pill offline" title="Aparelho offline">
+                          <span className="sidebar-net-pill offline" title="Aparelho sem conexão (Conexão OFF)">
                             <WifiOff size={8} />
-                            <span>Off</span>
+                            <span>Conexão OFF</span>
                           </span>
                         )}
                       </div>

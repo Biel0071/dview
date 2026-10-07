@@ -1598,7 +1598,7 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
                     fontWeight: 800,
                     letterSpacing: "0.5px"
                   }}
-                  title={isOnline ? "Dispositivo Conectado e Operacional" : "Dispositivo Desconectado (Offline)"}
+                  title={isOnline ? "Dispositivo Conectado e Operacional" : "Dispositivo Sem Conexão (Conexão OFF)"}
                 >
                   <span
                     style={{
@@ -1610,7 +1610,7 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
                       animation: isOnline ? "pulse 1.8s infinite" : "none"
                     }}
                   />
-                  {isOnline ? "Online" : "Offline"}
+                  {isOnline ? "Online" : "Conexão OFF"}
                 </div>
               );
             })()}
@@ -1634,10 +1634,10 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
                       fontFamily: "var(--font-mono)",
                       color: "#f87171"
                     }}
-                    title="Sem Conexão de Rede com o Aparelho"
+                    title="Sem Conexão de Rede com o Aparelho (Conexão OFF)"
                   >
                     <WifiOff size={11} />
-                    <span>Desconectado</span>
+                    <span>Sem Conexão</span>
                   </div>
                 );
               }

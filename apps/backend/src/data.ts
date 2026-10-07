@@ -115,7 +115,9 @@ export interface DeviceCustomMetadata {
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const METADATA_DIR = join(process.cwd(), "apps/backend/data");
+const METADATA_DIR = existsSync(join(process.cwd(), "apps/backend"))
+  ? join(process.cwd(), "apps/backend/data")
+  : join(process.cwd(), "data");
 const METADATA_FILE = join(METADATA_DIR, "devices-metadata.json");
 
 let deviceMetadataStore: Record<string, DeviceCustomMetadata> = {

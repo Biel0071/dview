@@ -99,7 +99,18 @@ export const useAppStore = create<AppState>((set) => ({
   markDeviceOffline: (deviceId) =>
     set((state) => ({
       devices: state.devices.map((d) =>
-        d.id === deviceId ? { ...d, status: "offline", lastSeen: new Date().toISOString() } : d
+        d.id === deviceId
+          ? {
+              ...d,
+              status: "offline",
+              networkType: "offline",
+              networkName: "Sem Conexão",
+              networkSpeed: "0 Mbps",
+              pingMs: 0,
+              signalStrength: 0,
+              lastSeen: new Date().toISOString()
+            }
+          : d
       )
     })),
   removeDevice: (deviceId) =>
