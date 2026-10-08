@@ -191,17 +191,19 @@ export function invalidateScreenCache(serial?: string) {
   }
 }
 
-export async function captureDeviceScreenshot(serial?: string): Promise<Buffer> {
+export async function captureDeviceScreenshot(serial?: string, quality?: "ultra" | "high" | "balanced" | "eco" | "fluid"): Promise<Buffer> {
   if (process.env.NODE_ENV === "test") {
     return FALLBACK_1X1_PNG;
   }
 
   const reqKey = serial || "default";
   const now = Date.now();
+  // Dynamic cache TTL based on adaptive stream profile (lower latency for ultra, conservative pacing for eco/weak signal)
+  const cacheTtlMs = quality === "eco" || quality === "fluid" ? 90 : quality === "balanced" ? 65 : quality === "high" ? 45 : 35;
 
-  // 1. Fast memory cache check (50ms cache allows ~20-25 FPS with zero adb overload)
+  // 1. Fast memory cache check with adaptive TTL
   const cachedReq = cachedScreenBuffers[reqKey];
-  if (cachedReq && now - cachedReq.timestamp < 50) {
+  if (cachedReq && now - cachedReq.timestamp < cacheTtlMs) {
     return cachedReq.buffer;
   }
 
@@ -216,7 +218,7 @@ export async function captureDeviceScreenshot(serial?: string): Promise<Buffer> 
       activeSerial = await resolveActiveDeviceSerial(serial);
 
       const cachedActive = cachedScreenBuffers[activeSerial];
-      if (cachedActive && Date.now() - cachedActive.timestamp < 50) {
+      if (cachedActive && Date.now() - cachedActive.timestamp < cacheTtlMs) {
         cachedScreenBuffers[reqKey] = cachedActive;
         return cachedActive.buffer;
       }

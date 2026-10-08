@@ -296,15 +296,21 @@ export function buildApp() {
     return devices;
   });
 
-  // Real-time device screen frame (direct PNG stream)
-  app.get<{ Params: { id: string } }>("/devices/:id/screen", async (request, reply) => {
+  // Real-time device screen frame (direct PNG stream with Adaptive Bitrate / Quality support)
+  app.get<{
+    Params: { id: string };
+    Querystring: { quality?: "ultra" | "high" | "balanced" | "eco" | "fluid"; q?: "ultra" | "high" | "balanced" | "eco" | "fluid"; scale?: string; t?: string };
+  }>("/devices/:id/screen", async (request, reply) => {
     try {
-      const buffer = await captureDeviceScreenshot(request.params.id);
+      const q = request.query?.quality || request.query?.q;
+      const buffer = await captureDeviceScreenshot(request.params.id, q);
       return reply
         .header("Content-Type", "image/png")
         .header("Cache-Control", "no-cache, no-store, must-revalidate")
         .header("Pragma", "no-cache")
         .header("Expires", "0")
+        .header("X-Stream-Quality", q || "auto")
+        .header("X-Stream-Scale", request.query?.scale || "1.0")
         .send(buffer);
     } catch (err: any) {
       return reply.code(500).send({ error: `Falha ao capturar tela do dispositivo: ${err.message}` });

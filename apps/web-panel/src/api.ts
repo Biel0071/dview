@@ -119,7 +119,14 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload ?? {})
     }),
-  getDeviceScreenUrl: (deviceId: string) => `${API_URL}/devices/${deviceId}/screen`,
+  getDeviceScreenUrl: (deviceId: string, options?: { quality?: string; scale?: number; t?: number }) => {
+    const params = new URLSearchParams();
+    if (options?.quality) params.set("q", options.quality);
+    if (options?.scale) params.set("scale", String(options.scale));
+    if (options?.t) params.set("t", String(options.t));
+    const qs = params.toString();
+    return `${API_URL}/devices/${deviceId}/screen${qs ? `?${qs}` : ""}`;
+  },
   sendTouch: (deviceId: string, x: number, y: number, displayWidth?: number, displayHeight?: number) =>
     request<{ success: boolean; x: number; y: number }>(`/devices/${deviceId}/touch`, {
       method: "POST",

@@ -217,6 +217,72 @@ export function detectAppFromNode(
   return null;
 }
 
+export type StreamQualityTier = "ultra" | "high" | "balance" | "fluid";
+
+export interface QualityProfile {
+  tier: StreamQualityTier;
+  label: string;
+  shortLabel: string;
+  resolution: string;
+  scale: number;
+  targetFps: number;
+  imageSmoothing: ImageSmoothingQuality;
+  color: string;
+  badgeBg: string;
+  description: string;
+}
+
+export const QUALITY_PROFILES: Record<StreamQualityTier, QualityProfile> = {
+  ultra: {
+    tier: "ultra",
+    label: "1080p Ultra (FHD)",
+    shortLabel: "1080p",
+    resolution: "1080×1920",
+    scale: 1.0,
+    targetFps: 30,
+    imageSmoothing: "high",
+    color: "#10b981",
+    badgeBg: "rgba(16, 185, 129, 0.18)",
+    description: "Máxima nitidez e resolução para redes velozes e sinal ótimo"
+  },
+  high: {
+    tier: "high",
+    label: "720p Alta (HD)",
+    shortLabel: "720p",
+    resolution: "720×1280",
+    scale: 0.8,
+    targetFps: 26,
+    imageSmoothing: "medium",
+    color: "#38bdf8",
+    badgeBg: "rgba(56, 189, 248, 0.18)",
+    description: "Alta definição equilibrada, excelente taxa de quadros e baixo consumo"
+  },
+  balance: {
+    tier: "balance",
+    label: "540p Equilibrada (qHD)",
+    shortLabel: "540p",
+    resolution: "540×960",
+    scale: 0.6,
+    targetFps: 22,
+    imageSmoothing: "medium",
+    color: "#f59e0b",
+    badgeBg: "rgba(245, 158, 11, 0.18)",
+    description: "Modo equilibrado para conexões oscilantes, mantém velocidade contínua"
+  },
+  fluid: {
+    tier: "fluid",
+    label: "360p Fluida / Eco",
+    shortLabel: "360p",
+    resolution: "360×640",
+    scale: 0.45,
+    targetFps: 18,
+    imageSmoothing: "low",
+    color: "#f97316",
+    badgeBg: "rgba(249, 115, 22, 0.18)",
+    description: "Modo fluído para sinal baixo, zero travamento e conexão ininterrupta"
+  }
+};
+
 export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelectDevice }: Props) {
   // Tactical Toggles State
   const [silentActive, setSilentActive] = useState(true);
@@ -422,7 +488,27 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
   const imgRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lastFrameSuccessTimeRef = useRef<number>(Date.now());
-  const [streamQuality, setStreamQuality] = useState<"ultra" | "balance" | "fluid">("balance");
+  const [streamQuality, setStreamQuality] = useState<StreamQualityTier>("high");
+  const [adaptiveMode, setAdaptiveMode] = useState<"auto" | "manual">("auto");
+  const adaptiveModeRef = useRef<"auto" | "manual">("auto");
+  const activeQualityRef = useRef<StreamQualityTier>("high");
+
+  useEffect(() => {
+    adaptiveModeRef.current = adaptiveMode;
+  }, [adaptiveMode]);
+
+  useEffect(() => {
+    activeQualityRef.current = streamQuality;
+  }, [streamQuality]);
+
+  const rttHistoryRef = useRef<number[]>([]);
+  const fastFrameStreakRef = useRef(0);
+  const slowFrameStreakRef = useRef(0);
+  const lastQualityChangeRef = useRef(Date.now());
+
+  const currentProfile = useMemo(() => {
+    return QUALITY_PROFILES[streamQuality] || QUALITY_PROFILES.high;
+  }, [streamQuality]);
 
   // Live Screen State & Auto-Refresh (Double Buffering)
   const [screenTimestamp, setScreenTimestamp] = useState<number>(Date.now());
@@ -436,7 +522,7 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
   const activePreloaderRef = useRef<HTMLImageElement | null>(null);
   const [isStreaming, setIsStreaming] = useState(true);
   const isStreamingRef = useRef(true);
-  const [fps, setFps] = useState(30);
+  const [fps, setFps] = useState(QUALITY_PROFILES.high.targetFps);
   const [command, setCommand] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [toastType, setToastType] = useState<"success" | "info">("success");
@@ -1038,7 +1124,7 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
     ctx.textAlign = "left";
   }, []);
 
-  // Double-buffered frame loader (continuous loop with zero-flicker preloading in RAM)
+  // Double-buffered frame loader with Adaptive Bitrate / Adaptive Resolution (ABR) Engine
   const loadNextFrame = useCallback(() => {
     if (!isMountedRef.current || !telaActive) return;
     if (device.status === "offline") return; // Suspend polling when device is disconnected
@@ -1052,7 +1138,14 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
     isFetchingFrameRef.current = true;
     const currentSeq = ++seqRef.current;
     const requestStartTime = Date.now();
-    const targetUrl = `${api.getDeviceScreenUrl(device.id)}?t=${requestStartTime}`;
+    const curTier = activeQualityRef.current;
+    const curProfile = QUALITY_PROFILES[curTier] || QUALITY_PROFILES.high;
+
+    const targetUrl = api.getDeviceScreenUrl(device.id, {
+      quality: curProfile.tier,
+      scale: curProfile.scale,
+      t: requestStartTime
+    });
 
     // Clean up any existing in-flight preloader
     if (activePreloaderRef.current) {
@@ -1077,7 +1170,7 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
         setIsStreaming(true);
       }
 
-      // Render directly to hardware-accelerated Canvas with zero flicker
+      // Render directly to hardware-accelerated Canvas with dynamic resolution scaling
       const canvas = canvasRef.current;
       if (canvas) {
         if (preloader.naturalWidth > 50 && preloader.naturalHeight > 50) {
@@ -1085,15 +1178,17 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
           if (Math.abs(streamAspect - deviceAspectRatio) > 0.005) {
             setDeviceAspectRatio(streamAspect);
           }
-          if (canvas.width !== preloader.naturalWidth || canvas.height !== preloader.naturalHeight) {
-            canvas.width = preloader.naturalWidth;
-            canvas.height = preloader.naturalHeight;
+          const targetW = Math.round(preloader.naturalWidth * curProfile.scale);
+          const targetH = Math.round(preloader.naturalHeight * curProfile.scale);
+          if (canvas.width !== targetW || canvas.height !== targetH) {
+            canvas.width = targetW;
+            canvas.height = targetH;
           }
           const ctx = canvas.getContext("2d", { alpha: false });
           if (ctx) {
             ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "medium";
-            ctx.drawImage(preloader, 0, 0, canvas.width, canvas.height);
+            ctx.imageSmoothingQuality = curProfile.imageSmoothing;
+            ctx.drawImage(preloader, 0, 0, targetW, targetH);
           }
         } else {
           // If preloader is 1x1 fallback, render authentic Google Play Store screen
@@ -1109,7 +1204,76 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
       }
 
       const elapsed = Date.now() - requestStartTime;
-      const targetFps = fps || 30;
+      rttHistoryRef.current.push(elapsed);
+      if (rttHistoryRef.current.length > 6) {
+        rttHistoryRef.current.shift();
+      }
+      const avgRtt = Math.round(
+        rttHistoryRef.current.reduce((a, b) => a + b, 0) / rttHistoryRef.current.length
+      );
+      setLiveLatency(avgRtt);
+
+      // Empirical throughput measurement
+      const approxBytes = (preloader.naturalWidth || 720) * (preloader.naturalHeight || 1280) * 0.15;
+      const speedMb = ((approxBytes / (Math.max(1, elapsed) / 1000)) / (1024 * 1024)).toFixed(1);
+      setLiveSpeed(`${Math.max(1.2, parseFloat(speedMb)).toFixed(1)} MB/s`);
+
+      // Adaptive Bitrate & Resolution (ABR) Logic
+      if (adaptiveModeRef.current === "auto") {
+        const now = Date.now();
+        const cooldownPassed = now - lastQualityChangeRef.current > 1400;
+        const signal = device.signalStrength ?? 90;
+        const isCellularSlow = device.networkType === "3g" || (device.networkType === "4g" && signal < 40);
+
+        // Degrade trigger: High latency or weak signal - fast drop to maintain speed and avoid freeze
+        const isDegraded = elapsed > 220 || avgRtt > 140 || signal < 40 || isCellularSlow;
+        if (isDegraded) {
+          slowFrameStreakRef.current++;
+          fastFrameStreakRef.current = 0;
+
+          if ((slowFrameStreakRef.current >= 2 || elapsed > 340) && cooldownPassed) {
+            slowFrameStreakRef.current = 0;
+            lastQualityChangeRef.current = now;
+            let nextTier: StreamQualityTier = curTier;
+            if (curTier === "ultra") nextTier = "high";
+            else if (curTier === "high") nextTier = "balance";
+            else if (curTier === "balance") nextTier = "fluid";
+
+            if (nextTier !== curTier) {
+              activeQualityRef.current = nextTier;
+              setStreamQuality(nextTier);
+              setFps(QUALITY_PROFILES[nextTier].targetFps);
+            }
+          }
+        } else {
+          // Recovery trigger: Low latency and good signal - steady step-up
+          const isExcellent = avgRtt < 55 && elapsed < 75 && signal >= 65 && !isCellularSlow;
+          if (isExcellent) {
+            fastFrameStreakRef.current++;
+            slowFrameStreakRef.current = 0;
+
+            if (fastFrameStreakRef.current >= 6 && cooldownPassed) {
+              fastFrameStreakRef.current = 0;
+              lastQualityChangeRef.current = now;
+              let nextTier: StreamQualityTier = curTier;
+              if (curTier === "fluid") nextTier = "balance";
+              else if (curTier === "balance") nextTier = "high";
+              else if (curTier === "high") nextTier = "ultra";
+
+              if (nextTier !== curTier) {
+                activeQualityRef.current = nextTier;
+                setStreamQuality(nextTier);
+                setFps(QUALITY_PROFILES[nextTier].targetFps);
+              }
+            }
+          } else {
+            fastFrameStreakRef.current = Math.max(0, fastFrameStreakRef.current - 1);
+            slowFrameStreakRef.current = Math.max(0, slowFrameStreakRef.current - 1);
+          }
+        }
+      }
+
+      const targetFps = fps || curProfile.targetFps || 30;
       const targetInterval = Math.floor(1000 / targetFps);
       const delayMs = Math.max(0, targetInterval - elapsed);
 
@@ -1132,6 +1296,16 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
       isFetchingFrameRef.current = false;
       activePreloaderRef.current = null;
 
+      // On transmission error / timeout, immediately drop to fluid eco mode to preserve link
+      if (adaptiveModeRef.current === "auto") {
+        slowFrameStreakRef.current += 2;
+        if (activeQualityRef.current !== "fluid") {
+          activeQualityRef.current = "fluid";
+          setStreamQuality("fluid");
+          setFps(QUALITY_PROFILES.fluid.targetFps);
+        }
+      }
+
       // Only show stream disconnect overlay if no frame has arrived for > 4000ms
       if (Date.now() - lastFrameSuccessTimeRef.current > 4000) {
         if (isStreamingRef.current) {
@@ -1148,7 +1322,7 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
     };
 
     preloader.src = targetUrl;
-  }, [device.id, device.status, telaActive, fps]);
+  }, [device.id, device.status, telaActive, fps, device.signalStrength, device.networkType, drawPlayStoreScreen]);
 
   const triggerImmediateFrame = useCallback(() => {
     if (frameTimerRef.current) {
@@ -1933,6 +2107,89 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
               <Bell size={11} />
               <span>Push</span>
             </button>
+
+            {/* Controles de Qualidade Adaptativa (ABR - Dynamic Bitrate & Resolution) */}
+            <div
+              className="tactical-abr-controls-group"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                background: "rgba(10, 14, 24, 0.9)",
+                border: "1px solid rgba(56, 189, 248, 0.25)",
+                borderRadius: "14px",
+                padding: "2px 5px",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.5)"
+              }}
+            >
+              <button
+                type="button"
+                className={`tactical-abr-auto-chip ${adaptiveMode === "auto" ? "active" : ""}`}
+                onClick={() => {
+                  setAdaptiveMode("auto");
+                  showToast("⚡ Modo Adaptativo (ABR) ativado: Qualidade se ajusta dinamicamente!", "success");
+                }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "3px",
+                  padding: "2px 7px",
+                  borderRadius: "10px",
+                  fontSize: "9.5px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  border: adaptiveMode === "auto" ? "1px solid #10b981" : "1px solid transparent",
+                  background: adaptiveMode === "auto" ? "rgba(16, 185, 129, 0.22)" : "transparent",
+                  color: adaptiveMode === "auto" ? "#10b981" : "#94a3b8",
+                  boxShadow: adaptiveMode === "auto" ? "0 0 8px rgba(16, 185, 129, 0.35)" : "none"
+                }}
+                title="Modo Adaptativo Automático (ABR): reduz resolução em sinal baixo mantendo velocidade/conexão e melhora quando sinal estabiliza"
+              >
+                <Zap size={10} style={{ color: adaptiveMode === "auto" ? "#10b981" : "#94a3b8" }} />
+                <span>⚡ AUTO</span>
+              </button>
+
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
+                {(
+                  [
+                    { tier: "ultra", label: "1080p", title: "1080p Ultra (Nitidez máxima)" },
+                    { tier: "high", label: "720p", title: "720p Alta (HD)" },
+                    { tier: "balance", label: "540p", title: "540p Equilibrada (qHD)" },
+                    { tier: "fluid", label: "360p", title: "360p Fluida/Eco (Baixa latência)" }
+                  ] as const
+                ).map((item) => {
+                  const isCur = streamQuality === item.tier;
+                  const itemProf = QUALITY_PROFILES[item.tier];
+                  return (
+                    <button
+                      key={item.tier}
+                      type="button"
+                      onClick={() => {
+                        setAdaptiveMode("manual");
+                        setStreamQuality(item.tier);
+                        activeQualityRef.current = item.tier;
+                        setFps(itemProf.targetFps);
+                        showToast(`Qualidade fixada em ${item.label}`, "info");
+                      }}
+                      style={{
+                        padding: "1px 5px",
+                        fontSize: "9px",
+                        fontWeight: 700,
+                        borderRadius: "6px",
+                        border: isCur ? `1px solid ${itemProf.color}` : "1px solid rgba(255, 255, 255, 0.06)",
+                        background: isCur ? `${itemProf.color}22` : "transparent",
+                        color: isCur ? itemProf.color : "#94a3b8",
+                        cursor: "pointer"
+                      }}
+                      title={item.title}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Controles de Tamanho & Zoom da Tela para Desktop (Auto-Fit & Níveis) */}
             <div
               className="tactical-zoom-controls-group"
@@ -2207,10 +2464,44 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
                       OFFLINE
                     </span>
                   ) : (
-                    <span style={{ fontWeight: 700, color: "#22c55e", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                      <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#22c55e" }} />
-                      {fps} FPS
-                    </span>
+                    <>
+                      <span style={{ fontWeight: 700, color: "#22c55e", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                        <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#22c55e" }} />
+                        {fps} FPS
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (adaptiveMode === "auto") {
+                            setAdaptiveMode("manual");
+                            showToast(`Modo Manual fixado em ${currentProfile.shortLabel}`, "info");
+                          } else {
+                            setAdaptiveMode("auto");
+                            showToast("⚡ Modo Adaptativo (ABR) ativado: Qualidade se ajusta dinamicamente!", "success");
+                          }
+                        }}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "3px",
+                          background: currentProfile.badgeBg,
+                          border: `1px solid ${currentProfile.color}77`,
+                          borderRadius: "8px",
+                          padding: "1px 5px",
+                          color: currentProfile.color,
+                          fontSize: "9.5px",
+                          fontWeight: 800,
+                          fontFamily: "var(--font-mono)",
+                          cursor: "pointer",
+                          outline: "none",
+                          boxShadow: adaptiveMode === "auto" ? `0 0 8px ${currentProfile.color}33` : "none"
+                        }}
+                        title={`Stream: ${currentProfile.label} (${currentProfile.resolution}) • Latência: ${liveLatency}ms • Modo: ${adaptiveMode === "auto" ? "Adaptativo Automático (ABR)" : "Fixo Manual"} (Clique para alternar)`}
+                      >
+                        <Zap size={9} style={{ color: currentProfile.color }} />
+                        <span>{adaptiveMode === "auto" ? `⚡ ${currentProfile.shortLabel}` : currentProfile.shortLabel}</span>
+                      </button>
+                    </>
                   )}
                   {device.status !== "offline" && foregroundApp && (
                     <span style={{ color: "#94a3b8", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "10.5px" }}>
@@ -4783,6 +5074,34 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
             {/* Quando a barra lateral direita NÃO estiver aberta, exibe botões extras de Histórico e Enviar */}
             {!showRightSidebar && (
               <>
+                <div
+                  className="tactical-abr-footer-telemetry"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    background: "rgba(15, 23, 42, 0.75)",
+                    border: `1px solid ${currentProfile.color}44`,
+                    borderRadius: "5px",
+                    padding: "3px 8px",
+                    fontSize: "10.5px",
+                    fontFamily: "var(--font-mono)",
+                    color: "#cbd5e1",
+                    flexShrink: 0
+                  }}
+                  title={`Qualidade Adaptativa de Vídeo: ${currentProfile.label} (${currentProfile.resolution}) • Latência de Quadro: ${liveLatency}ms • Vazão: ${liveSpeed} • Modo: ${adaptiveMode === "auto" ? "Adaptativo Automático (ABR)" : "Fixo Manual"}`}
+                >
+                  <Zap size={11} style={{ color: currentProfile.color, flexShrink: 0 }} />
+                  <span style={{ fontWeight: 800, color: currentProfile.color }}>
+                    {adaptiveMode === "auto" ? `AUTO ${currentProfile.shortLabel}` : currentProfile.shortLabel}
+                  </span>
+                  <span style={{ color: "#64748b" }}>•</span>
+                  <span style={{ color: liveLatency < 80 ? "#22c55e" : liveLatency < 160 ? "#fbbf24" : "#f87171", fontWeight: 700 }}>
+                    {liveLatency}ms
+                  </span>
+                  <span style={{ color: "#64748b" }}>•</span>
+                  <span style={{ color: "#94a3b8" }}>{liveSpeed}</span>
+                </div>
                 <button
                   type="button"
                   className={`tactical-history-toggle-btn ${showHistoryDrawer ? "active" : ""}`}

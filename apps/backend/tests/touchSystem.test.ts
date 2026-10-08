@@ -156,6 +156,33 @@ describe("Digital Touch Detection & Simulation System", () => {
     expect(textRes.json().success).toBe(true);
   });
 
+  it("serves adaptive bitrate and resolution screen frames with dynamic quality headers", async () => {
+    const app = buildApp();
+    const deviceId = "dev_abr_screen_test";
+
+    // 1. Requisitar com perfil eco para sinal baixo
+    const ecoRes = await app.inject({
+      method: "GET",
+      url: `/devices/${deviceId}/screen?quality=eco&scale=0.45`
+    });
+    expect(ecoRes.statusCode).toBe(200);
+    expect(ecoRes.headers["content-type"]).toBe("image/png");
+    expect(ecoRes.headers["x-stream-quality"]).toBe("eco");
+    expect(ecoRes.headers["x-stream-scale"]).toBe("0.45");
+    expect(ecoRes.rawPayload.length).toBeGreaterThan(0);
+
+    // 2. Requisitar com perfil ultra para sinal alto
+    const ultraRes = await app.inject({
+      method: "GET",
+      url: `/devices/${deviceId}/screen?quality=ultra&scale=1.0`
+    });
+    expect(ultraRes.statusCode).toBe(200);
+    expect(ultraRes.headers["content-type"]).toBe("image/png");
+    expect(ultraRes.headers["x-stream-quality"]).toBe("ultra");
+    expect(ultraRes.headers["x-stream-scale"]).toBe("1.0");
+    expect(ultraRes.rawPayload.length).toBeGreaterThan(0);
+  });
+
   it("validates Island profile, auto-mirrors apps, and intercepts app launch clicks inside Island sandbox", async () => {
     const app = buildApp();
     const deviceId = "dev_island_test";

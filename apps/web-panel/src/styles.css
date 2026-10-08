@@ -7854,9 +7854,17 @@ progress {
 .tactical-single-toolbar-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: 100%;
-  gap: 4px;
+  min-width: 0;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.tactical-single-toolbar-row::-webkit-scrollbar {
+  display: none;
 }
 
 .tactical-header-title-row {
@@ -10234,3 +10242,30 @@ button:active,
     opacity: 0;
   }
 }
+
+/* =======================================================================
+   ADAPTIVE STREAMING (ABR) CONTROLS & TELEMETRY
+   ======================================================================= */
+.tactical-abr-controls-group {
+  user-select: none;
+}
+
+.tactical-abr-auto-chip:hover {
+  filter: brightness(1.15);
+}
+
+.tactical-abr-footer-telemetry {
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes abrPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(0.92);
+  }
+}
+
