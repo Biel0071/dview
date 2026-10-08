@@ -706,20 +706,20 @@ small,
 
 .device-table-header {
   display: grid;
-  grid-template-columns: 28px minmax(175px, 1.3fr) minmax(145px, 1.1fr) minmax(95px, 0.8fr) 60px 105px 105px 75px minmax(235px, 1.4fr);
+  grid-template-columns: 26px minmax(250px, 2.2fr) minmax(120px, 1fr) minmax(130px, 1.1fr) minmax(105px, 0.9fr) minmax(80px, 0.7fr) minmax(180px, 1.3fr);
   gap: 10px;
   align-items: center;
-  padding: 12px 16px;
+  padding: 8px 12px;
   background: rgba(15, 23, 42, 0.75);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font-family: var(--font-tactical);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: #94a3b8;
   text-transform: uppercase;
   user-select: none;
-  min-width: 1020px;
+  min-width: 860px;
 }
 
 .device-table-header .th-check {
@@ -728,10 +728,12 @@ small,
 }
 
 .device-row {
-  grid-template-columns: 28px minmax(175px, 1.3fr) minmax(145px, 1.1fr) minmax(95px, 0.8fr) 60px 105px 105px 75px minmax(235px, 1.4fr);
+  display: grid;
+  grid-template-columns: 26px minmax(250px, 2.2fr) minmax(120px, 1fr) minmax(130px, 1.1fr) minmax(105px, 0.9fr) minmax(80px, 0.7fr) minmax(180px, 1.3fr);
   gap: 10px;
-  min-width: 1020px;
-  padding: 10px 16px;
+  min-width: 860px;
+  padding: 8px 12px;
+  align-items: center;
 }
 
 .device-info-cell {
@@ -1271,11 +1273,10 @@ progress {
 /* ==========================================================================
    OPERATIONAL PANELS & INSIGHTS
    ========================================================================== */
-.ops-grid,
 .settings-layout {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 12px;
 }
 
 .settings-layout .full {
@@ -3333,12 +3334,12 @@ progress {
 .apk-build-card-wrapper {
   background: #101319;
   border: 1px solid #242936;
-  border-radius: 12px;
-  padding: 22px 26px;
+  border-radius: 10px;
+  padding: 14px 18px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 10px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -3351,15 +3352,15 @@ progress {
 
 .apk-build-main-title {
   font-family: var(--font-tactical);
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 800;
   color: #ffffff;
-  margin: 0 0 4px 0;
+  margin: 0 0 2px 0;
   letter-spacing: 0.3px;
 }
 
 .apk-build-sub-title {
-  font-size: 13px;
+  font-size: 11px;
   color: #94a3b8;
   margin: 0;
 }
@@ -3367,9 +3368,9 @@ progress {
 .apk-stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  background: #090c12;
+  background: #080a10;
   border: 1px solid #1c2230;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
@@ -3378,7 +3379,7 @@ progress {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 14px 10px;
+  padding: 6px 10px;
   border-right: 1px solid #1c2230;
 }
 
@@ -3388,15 +3389,15 @@ progress {
 
 .apk-stat-number {
   font-family: var(--font-tactical);
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 800;
   color: #f1f5f9;
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: 1px;
 }
 
 .apk-stat-label {
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 600;
   color: #64748b;
   letter-spacing: 0.5px;
@@ -3410,17 +3411,17 @@ progress {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 10px;
   background: rgba(255, 26, 42, 0.05);
   border: 1px solid rgba(255, 26, 42, 0.22);
-  border-radius: 8px;
-  padding: 12px 16px;
+  border-radius: 6px;
+  padding: 6px 12px;
 }
 
 .compact-btn {
-  padding: 5px 10px !important;
-  font-size: 11.5px !important;
-  height: 30px !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  height: 28px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -3431,7 +3432,7 @@ progress {
 .apk-builds-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .apk-build-item-row {
@@ -3440,9 +3441,9 @@ progress {
   justify-content: space-between;
   background: #0a0c12;
   border: 1px solid #1c212c;
-  border-radius: 8px;
-  padding: 12px 16px;
-  gap: 14px;
+  border-radius: 7px;
+  padding: 8px 12px;
+  gap: 10px;
   transition: all 0.15s ease;
   box-sizing: border-box;
   width: 100%;
@@ -3454,32 +3455,32 @@ progress {
 }
 
 .apk-item-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
   background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 .apk-jadlog-logo {
   color: #dc2626;
   font-weight: 900;
-  font-size: 11px;
+  font-size: 9px;
   background: #dc2626;
   color: #fff;
-  padding: 3px 6px;
-  border-radius: 4px;
+  padding: 2px 5px;
+  border-radius: 3px;
   letter-spacing: -0.5px;
 }
 
 .apk-item-info-col {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   flex: 1;
   min-width: 0;
 }
@@ -3487,45 +3488,45 @@ progress {
 .apk-item-title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .apk-item-name {
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #ffffff;
   white-space: nowrap;
 }
 
 .apk-tag-concluido {
-  font-size: 10.5px;
+  font-size: 9.5px;
   color: #facc15;
   border: 1px solid rgba(250, 204, 21, 0.4);
   background: rgba(250, 204, 21, 0.08);
-  padding: 1px 7px;
-  border-radius: 4px;
+  padding: 0 5px;
+  border-radius: 3px;
   font-weight: 600;
 }
 
 .apk-tag-lang {
-  font-size: 10px;
+  font-size: 9px;
   color: #94a3b8;
   border: 1px solid #334155;
   background: #0f131d;
-  padding: 1px 5px;
-  border-radius: 4px;
+  padding: 0 4px;
+  border-radius: 3px;
   font-family: var(--font-mono);
 }
 
 .apk-item-pkg {
-  font-size: 11px;
+  font-size: 10.5px;
   color: #64748b;
   font-family: var(--font-mono);
 }
 
 .apk-item-date-col {
-  font-size: 12px;
+  font-size: 11px;
   color: #94a3b8;
   font-family: var(--font-mono);
   white-space: nowrap;
@@ -3535,7 +3536,7 @@ progress {
 .apk-item-actions-col {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-shrink: 0;
   flex-wrap: wrap;
 }
@@ -3544,26 +3545,26 @@ progress {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   background: linear-gradient(180deg, #facc15 0%, #d97706 100%);
   color: #0b0d13;
   border: 1px solid rgba(254, 240, 138, 0.5);
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 800;
-  padding: 6px 14px;
-  border-radius: 6px;
+  padding: 4px 10px;
+  border-radius: 5px;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 12px rgba(245, 158, 11, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 10px rgba(245, 158, 11, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
-  height: 30px;
+  height: 28px;
   box-sizing: border-box;
 }
 
 .apk-btn-baixar:hover {
   background: linear-gradient(180deg, #fde047 0%, #eab308 100%);
-  transform: translateY(-1px) scale(1.02);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 18px rgba(245, 158, 11, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 14px rgba(245, 158, 11, 0.4);
   color: #000;
 }
 
@@ -3571,13 +3572,13 @@ progress {
   background: transparent;
   border: 1px solid #2a3344;
   color: #94a3b8;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 4px 8px;
+  border-radius: 5px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 30px;
+  height: 28px;
   box-sizing: border-box;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -3592,30 +3593,31 @@ progress {
 .apk-build-footer {
   display: flex;
   justify-content: flex-end;
-  padding-top: 10px;
+  padding-top: 6px;
+  gap: 10px;
 }
 
 .apk-btn-novo-build {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: linear-gradient(180deg, #facc15 0%, #d97706 100%);
   color: #0b0d13;
   border: 1px solid rgba(254, 240, 138, 0.5);
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 800;
-  padding: 10px 22px;
-  border-radius: 8px;
+  padding: 7px 16px;
+  border-radius: 6px;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), 0 0 18px rgba(234, 179, 8, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4), 0 0 14px rgba(234, 179, 8, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 
 .apk-btn-novo-build:hover {
   background: linear-gradient(180deg, #fde047 0%, #eab308 100%);
-  transform: translateY(-2px) scale(1.03);
+  transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 26px rgba(234, 179, 8, 0.55);
   color: #000;
 }

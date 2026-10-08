@@ -107,18 +107,18 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
 
   return (
     <div className="devices-and-sessions-wrap" style={{ width: "100%" }}>
-      {/* Sub-tabs header for Dispositivos e Sessões */}
+      {/* Sub-tabs header compact */}
       <div
         className="devices-subtabs-bar"
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "8px",
-          padding: "6px 8px",
+          gap: "6px",
+          padding: "4px 6px",
           background: "rgba(10, 14, 23, 0.8)",
           border: "1px solid #1e293b",
           borderRadius: "8px",
-          marginBottom: "16px"
+          marginBottom: "10px"
         }}
       >
         <button
@@ -128,20 +128,20 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "7px",
-            padding: "8px 16px",
+            gap: "6px",
+            padding: "6px 14px",
             borderRadius: "6px",
             border: "1px solid",
             borderColor: activeTab === "devices" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
             background: activeTab === "devices" ? "rgba(255, 26, 42, 0.15)" : "transparent",
             color: activeTab === "devices" ? "#ffffff" : "#94a3b8",
-            fontSize: "12.5px",
+            fontSize: "12px",
             fontWeight: 700,
             cursor: "pointer",
             transition: "all 0.15s ease"
           }}
         >
-          <Smartphone size={15} style={{ color: activeTab === "devices" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
+          <Smartphone size={14} style={{ color: activeTab === "devices" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
           <span>Dispositivos Pareados ({devices.length})</span>
         </button>
 
@@ -152,20 +152,20 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "7px",
-            padding: "8px 16px",
+            gap: "6px",
+            padding: "6px 14px",
             borderRadius: "6px",
             border: "1px solid",
             borderColor: activeTab === "sessions" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
             background: activeTab === "sessions" ? "rgba(255, 26, 42, 0.15)" : "transparent",
             color: activeTab === "sessions" ? "#ffffff" : "#94a3b8",
-            fontSize: "12.5px",
+            fontSize: "12px",
             fontWeight: 700,
             cursor: "pointer",
             transition: "all 0.15s ease"
           }}
         >
-          <Activity size={15} style={{ color: activeTab === "sessions" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
+          <Activity size={14} style={{ color: activeTab === "sessions" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
           <span>Sessões Remotas ({sessions.length})</span>
         </button>
       </div>
@@ -173,347 +173,308 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
       {activeTab === "sessions" ? (
         <RemoteSession />
       ) : (
-        <section className="panel">
+        <section className="panel" style={{ padding: "14px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
           {/* Toast Alert */}
           {toastMsg && (
-            <div className="control-toast-alert">
+            <div className="control-toast-alert" style={{ marginBottom: "4px" }}>
               <Zap size={14} style={{ color: "var(--crimson-neon)" }} />
               <span>{toastMsg}</span>
             </div>
           )}
 
-          <div className="panel-heading">
-            <div>
-              <h2>Dispositivos Pareados</h2>
-              <small>{filtered.length} de {devices.length} aparelhos visíveis na frota corporativa.</small>
+          {/* Unified Compact Action Toolbar */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <h2 style={{ fontSize: "15px", margin: 0, fontWeight: 800, letterSpacing: "0.4px" }}>
+                DISPOSITIVOS PAREADOS
+              </h2>
+              <span style={{ fontSize: "11px", color: "#94a3b8", background: "#111622", padding: "2px 8px", borderRadius: "10px", border: "1px solid #1e293b", fontFamily: "var(--font-mono)" }}>
+                {filtered.length} / {devices.length}
+              </span>
             </div>
-        <div className="toolbar compact" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          {selectedIds.length > 0 && (
-            <button
-              type="button"
-              className="secondary"
-              onClick={handleBatchPing}
-              title="Testar conectividade dos selecionados"
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-            >
-              <Radio size={14} style={{ color: "#38bdf8" }} /> Ping ({selectedIds.length})
-            </button>
-          )}
 
-          <button
-            type="button"
-            className="secondary"
-            disabled={!selectedIds.length}
-            onClick={handleRequestAudit}
-            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-          >
-            <ClipboardCheck size={16} style={{ color: selectedIds.length ? "#22c55e" : "#64748b" }} />
-            <span>Solicitar Auditoria ({selectedIds.length})</span>
-          </button>
-        </div>
-      </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <label className="search-field" style={{ minWidth: "210px", height: "30px", padding: "0 8px", borderRadius: "6px" }}>
+                <Search size={13} style={{ color: "#64748b" }} />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Buscar aparelho, contato, ID..."
+                  style={{ fontSize: "11.5px" }}
+                />
+                {query && (
+                  <button className="control-clear-btn" onClick={() => setQuery("")}>
+                    <X size={11} />
+                  </button>
+                )}
+              </label>
 
-      <div className="filters" style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-        <label className="search-field" style={{ flex: 1, minWidth: "220px" }}>
-          <Search size={16} />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar por nome, modelo, ID ou versão..."
-          />
-          {query && (
-            <button className="control-clear-btn" onClick={() => setQuery("")}>
-              <X size={12} />
-            </button>
-          )}
-        </label>
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value as typeof status)}
+                style={{ height: "30px", fontSize: "11px", padding: "0 8px", background: "#0a0e17", border: "1px solid #1e293b", borderRadius: "6px", color: "#cbd5e1" }}
+              >
+                <option value="all">Todos ({devices.length})</option>
+                <option value="online">Online ({devices.filter((d) => d.status === "online").length})</option>
+                <option value="offline">Offline ({devices.filter((d) => d.status === "offline").length})</option>
+                <option value="pending">Pendente ({devices.filter((d) => d.status === "pending").length})</option>
+              </select>
 
-        <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <Filter size={16} />
-          <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}>
-            <option value="all">Todos os status ({devices.length})</option>
-            <option value="online">Online ({devices.filter((d) => d.status === "online").length})</option>
-            <option value="offline">Offline ({devices.filter((d) => d.status === "offline").length})</option>
-            <option value="pending">Pendente ({devices.filter((d) => d.status === "pending").length})</option>
-          </select>
-        </label>
+              {selectedIds.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    className="secondary compact-btn"
+                    onClick={handleBatchPing}
+                    title="Testar ping dos selecionados"
+                    style={{ fontSize: "11px", height: "30px", padding: "0 8px" }}
+                  >
+                    <Radio size={12} style={{ color: "#38bdf8" }} /> Ping ({selectedIds.length})
+                  </button>
 
-        <button
-          type="button"
-          className="secondary compact-btn"
-          onClick={handleSelectAll}
-          style={{ fontSize: "11px", padding: "8px 12px" }}
-        >
-          {selectedIds.length === filtered.length && filtered.length > 0 ? "Desmarcar Todos" : "Selecionar Todos"}
-        </button>
-      </div>
+                  <button
+                    type="button"
+                    className="secondary compact-btn"
+                    onClick={handleRequestAudit}
+                    style={{ fontSize: "11px", height: "30px", padding: "0 8px" }}
+                  >
+                    <ClipboardCheck size={12} style={{ color: "#22c55e" }} /> Auditoria ({selectedIds.length})
+                  </button>
+                </>
+              )}
 
-      <div className="device-table-wrapper">
-        <div className="device-table-header">
-          <span className="th-check">
-            <input
-              type="checkbox"
-              checked={selectedIds.length === filtered.length && filtered.length > 0}
-              onChange={handleSelectAll}
-              title="Selecionar / desmarcar todos"
-            />
-          </span>
-          <span>Aparelho & APK</span>
-          <span>Contato & Telefone</span>
-          <span>Modelo & SO</span>
-          <span>Bateria</span>
-          <span>Disponibilidade</span>
-          <span>Sinal & Rede</span>
-          <span>Velocidade</span>
-          <span style={{ textAlign: "right" }}>Ações</span>
-        </div>
+              <button
+                type="button"
+                className="secondary compact-btn"
+                onClick={handleSelectAll}
+                style={{ fontSize: "11px", height: "30px", padding: "0 8px" }}
+              >
+                {selectedIds.length === filtered.length && filtered.length > 0 ? "Desmarcar" : "Selecionar Todos"}
+              </button>
+            </div>
+          </div>
 
-        <div className="table">
-          {filtered.map((device) => {
-            const isSelected = selectedIds.includes(device.id);
-            const isOnline = device.status === "online";
-            const battColor = device.battery > 50 ? "#22c55e" : device.battery > 20 ? "#f59e0b" : "#ef4444";
+          <div className="device-table-wrapper">
+            <div className="device-table-header">
+              <span className="th-check">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.length === filtered.length && filtered.length > 0}
+                  onChange={handleSelectAll}
+                  title="Selecionar / desmarcar todos"
+                />
+              </span>
+              <span>DISPOSITIVO & CONTATO</span>
+              <span>DISPONIBILIDADE</span>
+              <span>SINAL & REDE</span>
+              <span>VELOCIDADE</span>
+              <span>BATERIA</span>
+              <span style={{ textAlign: "right" }}>AÇÕES RÁPIDAS</span>
+            </div>
 
-            const netType = device.networkType || (isOnline ? "wifi" : "offline");
-            const isWifi = netType === "wifi" || netType === "ethernet";
-            const isCellular = netType === "4g" || netType === "5g" || netType === "3g";
-            const netName = device.networkName || (isOnline ? (isWifi ? "Wi-Fi 5GHz" : "4G LTE") : "Sem Conexão");
-            const signal = device.signalStrength ?? (isOnline ? 95 : 0);
-            const speed = isOnline ? (device.networkSpeed || "86.4 Mbps") : "0 Mbps";
-            const ping = device.pingMs ?? (isOnline ? 14 : null);
+            <div className="table">
+              {filtered.map((device) => {
+                const isSelected = selectedIds.includes(device.id);
+                const isOnline = device.status === "online";
+                const battColor = device.battery > 50 ? "#22c55e" : device.battery > 20 ? "#f59e0b" : "#ef4444";
 
-            return (
-              <div className={`row device-row ${isSelected ? "selected-row" : ""}`} key={device.id}>
-                <label className="check compact-check">
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={(event) =>
-                      setSelectedIds((current) =>
-                        event.target.checked ? [...current, device.id] : current.filter((id) => id !== device.id)
-                      )
-                    }
-                  />
-                </label>
+                const netType = device.networkType || (isOnline ? "wifi" : "offline");
+                const isWifi = netType === "wifi" || netType === "ethernet";
+                const netName = device.networkName || (isOnline ? (isWifi ? "Wi-Fi 5GHz" : "4G LTE") : "Sem Conexão");
+                const signal = device.signalStrength ?? (isOnline ? 95 : 0);
+                const speed = isOnline ? (device.networkSpeed || "86.4 Mbps") : "0 Mbps";
+                const ping = device.pingMs ?? (isOnline ? 14 : null);
 
-                {/* APARELHO & APK */}
-                <div
-                  className="device-info-cell"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => setEditingDevice(device)}
-                  title="Clique para ver ou editar detalhes deste aparelho"
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <strong className="device-name-title">{device.name}</strong>
-                    <Edit3 size={11} style={{ color: "#38bdf8", opacity: 0.7 }} />
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
-                    <span
-                      style={{
-                        fontSize: "10px",
-                        fontWeight: 700,
-                        color: "#f87171",
-                        background: "rgba(255, 26, 42, 0.12)",
-                        border: "1px solid rgba(255, 26, 42, 0.25)",
-                        borderRadius: "4px",
-                        padding: "1px 5px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "3px"
-                      }}
+                return (
+                  <div className={`row device-row ${isSelected ? "selected-row" : ""}`} key={device.id}>
+                    <label className="check compact-check">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(event) =>
+                          setSelectedIds((current) =>
+                            event.target.checked ? [...current, device.id] : current.filter((id) => id !== device.id)
+                          )
+                        }
+                      />
+                    </label>
+
+                    {/* APARELHO & CONTATO (Célula composta integrada) */}
+                    <div
+                      className="device-info-cell"
+                      style={{ cursor: "pointer", display: "flex", flexDirection: "row", alignItems: "center", gap: "8px" }}
+                      onClick={() => setEditingDevice(device)}
+                      title="Clique para ver ou editar detalhes deste aparelho"
                     >
-                      <Package size={10} /> {device.apkName || "JADLOG Rastreio"}
-                    </span>
-                    <small className="device-meta-sub">
-                      {device.id} · {new Date(device.lastSeen).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </small>
-                  </div>
-                </div>
-
-                {/* CONTATO & TELEFONE */}
-                <div
-                  className="device-contact-col"
-                  style={{ cursor: "pointer", display: "flex", flexDirection: "column", gap: "2px", overflow: "hidden" }}
-                  onClick={() => setEditingDevice(device)}
-                  title="Clique para editar contato e telefone"
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                    <User size={12} style={{ color: "#38bdf8", flexShrink: 0 }} />
-                    <span style={{ fontSize: "12px", fontWeight: 700, color: device.contactName ? "#ffffff" : "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {device.contactName || "Sem contato"}
-                    </span>
-                    {device.autoIdentified && (
-                      <span
-                        title="Identificado automaticamente a partir dos dados do celular"
-                        style={{
-                          fontSize: "8.5px",
-                          fontWeight: 700,
-                          color: "#38bdf8",
-                          background: "rgba(56, 189, 248, 0.15)",
-                          border: "1px solid rgba(56, 189, 248, 0.3)",
-                          borderRadius: "3px",
-                          padding: "0 3px",
-                          flexShrink: 0
-                        }}
-                      >
-                        AUTO
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                    <Phone size={11} style={{ color: "#22c55e", flexShrink: 0 }} />
-                    <span style={{ fontSize: "11px", fontFamily: "var(--font-mono)", color: device.phoneNumber ? "#86efac" : "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {device.phoneNumber || "Adicionar tel..."}
-                    </span>
-                  </div>
-                </div>
-
-                {/* MODELO & SO */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px", overflow: "hidden" }}>
-                  <span className="device-model-cell font-mono" style={{ fontSize: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {device.model}
-                  </span>
-                  <span className="device-os-cell" style={{ fontSize: "11px", color: "#94a3b8" }}>
-                    Android {device.androidVersion}
-                  </span>
-                </div>
-
-                {/* BATERIA */}
-                <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                  <Battery size={15} style={{ color: battColor }} />
-                  <span style={{ color: battColor, fontWeight: 700, fontFamily: "var(--font-mono)" }}>
-                    {device.battery}%
-                  </span>
-                </span>
-
-                {/* DISPONIBILIDADE */}
-                <div className="device-availability-col">
-                  {isOnline ? (
-                    <span className="badge-availability available" title="Dispositivo online e disponível para controle">
-                      <span className="status-beacon online" />
-                      <span>DISPONÍVEL</span>
-                    </span>
-                  ) : device.status === "pending" ? (
-                    <span className="badge-availability pending" title="Conexão pendente">
-                      <span className="status-beacon pending" />
-                      <span>PENDENTE</span>
-                    </span>
-                  ) : (
-                    <span className="badge-availability offline" title="Dispositivo sem conexão (Conexão OFF)">
-                      <span className="status-beacon offline" />
-                      <span>CONEXÃO OFF</span>
-                    </span>
-                  )}
-                </div>
-
-                {/* SINAL DE INTERNET (Wi-Fi / 4G) */}
-                <div className="device-net-col">
-                  {!isOnline || netType === "offline" ? (
-                    <div className="net-signal-cell offline">
-                      <div className="net-signal-top">
-                        <WifiOff size={14} className="net-icon offline" />
-                        <span className="net-name">Sem Conexão</span>
+                      <div className="device-avatar-box" style={{ width: "28px", height: "28px", borderRadius: "6px", flexShrink: 0 }}>
+                        <Smartphone size={14} />
                       </div>
-                      <span className="net-offline-hint">Conexão OFF</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "1px", minWidth: 0, overflow: "hidden" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                          <strong className="device-name-title" style={{ fontSize: "12.5px" }}>{device.name}</strong>
+                          <Edit3 size={10} style={{ color: "#38bdf8", opacity: 0.6 }} />
+                          <span
+                            style={{
+                              fontSize: "9px",
+                              fontWeight: 700,
+                              color: "#f87171",
+                              background: "rgba(255, 26, 42, 0.12)",
+                              border: "1px solid rgba(255, 26, 42, 0.25)",
+                              borderRadius: "3px",
+                              padding: "0 4px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "2px"
+                            }}
+                          >
+                            <Package size={8} /> {device.apkName || "JADLOG"}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "10.5px", color: "#64748b" }}>
+                          <span>{device.model} • Android {device.androidVersion}</span>
+                          {device.contactName && (
+                            <span style={{ color: "#94a3b8", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                              <User size={10} style={{ color: "#38bdf8" }} /> {device.contactName}
+                            </span>
+                          )}
+                          {device.phoneNumber && (
+                            <span style={{ color: "#86efac", fontFamily: "var(--font-mono)", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                              <Phone size={10} style={{ color: "#22c55e" }} /> {device.phoneNumber}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  ) : (
-                    <div className={`net-signal-cell ${isWifi ? "wifi" : "cellular"}`}>
-                      <div className="net-signal-top">
-                        {isWifi ? (
-                          <Wifi size={14} className="net-icon wifi" />
-                        ) : (
-                          <Radio size={14} className="net-icon cellular" />
-                        )}
-                        <span className="net-name" title={netName}>
-                          {netName}
+
+                    {/* DISPONIBILIDADE */}
+                    <div className="device-availability-col">
+                      {isOnline ? (
+                        <span className="badge-availability available" title="Dispositivo online e disponível para controle">
+                          <span className="status-beacon online" />
+                          <span>DISPONÍVEL</span>
+                        </span>
+                      ) : device.status === "pending" ? (
+                        <span className="badge-availability pending" title="Conexão pendente">
+                          <span className="status-beacon pending" />
+                          <span>PENDENTE</span>
+                        </span>
+                      ) : (
+                        <span className="badge-availability offline" title="Dispositivo sem conexão (Conexão OFF)">
+                          <span className="status-beacon offline" />
+                          <span>CONEXÃO OFF</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* SINAL DE INTERNET */}
+                    <div className="device-net-col">
+                      {!isOnline || netType === "offline" ? (
+                        <div className="net-signal-cell offline">
+                          <div className="net-signal-top">
+                            <WifiOff size={13} className="net-icon offline" />
+                            <span className="net-name" style={{ fontSize: "11px" }}>Sem Conexão</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={`net-signal-cell ${isWifi ? "wifi" : "cellular"}`}>
+                          <div className="net-signal-top">
+                            {isWifi ? (
+                              <Wifi size={13} className="net-icon wifi" />
+                            ) : (
+                              <Radio size={13} className="net-icon cellular" />
+                            )}
+                            <span className="net-name" style={{ fontSize: "11px" }} title={netName}>
+                              {netName}
+                            </span>
+                          </div>
+                          <div className="net-signal-bars-row">
+                            <div className="signal-bars-meter" title={`Intensidade de sinal: ${signal}%`}>
+                              <span className={`sig-bar bar-1 ${signal >= 15 ? "filled" : ""}`} />
+                              <span className={`sig-bar bar-2 ${signal >= 40 ? "filled" : ""}`} />
+                              <span className={`sig-bar bar-3 ${signal >= 65 ? "filled" : ""}`} />
+                              <span className={`sig-bar bar-4 ${signal >= 85 ? "filled" : ""}`} />
+                            </div>
+                            <span className="signal-percent" style={{ fontSize: "9.5px" }}>{signal}%</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* VELOCIDADE & PING */}
+                    <div className="device-speed-col">
+                      <div className={`net-speed-cell ${!isOnline ? "offline" : ""}`}>
+                        <div className="net-speed-val" title="Velocidade de transmissão / link">
+                          <Activity size={12} className="speed-icon" />
+                          <span className="speed-text" style={{ fontSize: "11px" }}>{speed}</span>
+                        </div>
+                        {isOnline && ping !== null ? (
+                          <div className="net-ping-val" title="Latência / Ping">
+                            <span className="ping-dot" />
+                            <span className="ping-text" style={{ fontSize: "9.5px" }}>{ping} ms</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {/* BATERIA */}
+                    <div className="device-battery-col">
+                      <div className="device-battery-header">
+                        <span style={{ color: battColor, fontWeight: 700, fontFamily: "var(--font-mono)", fontSize: "11.5px" }}>
+                          {device.battery}%
                         </span>
                       </div>
-                      <div className="net-signal-bars-row">
-                        <div className="signal-bars-meter" title={`Intensidade de sinal: ${signal}%`}>
-                          <span className={`sig-bar bar-1 ${signal >= 15 ? "filled" : ""}`} />
-                          <span className={`sig-bar bar-2 ${signal >= 40 ? "filled" : ""}`} />
-                          <span className={`sig-bar bar-3 ${signal >= 65 ? "filled" : ""}`} />
-                          <span className={`sig-bar bar-4 ${signal >= 85 ? "filled" : ""}`} />
-                        </div>
-                        <span className="signal-percent">{signal}%</span>
+                      <div className="device-battery-bar">
+                        <div
+                          className="device-battery-bar-fill"
+                          style={{
+                            width: `${device.battery}%`,
+                            backgroundColor: battColor
+                          }}
+                        />
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* VELOCIDADE & PING */}
-                <div className="device-speed-col">
-                  <div className={`net-speed-cell ${!isOnline ? "offline" : ""}`}>
-                    <div className="net-speed-val" title="Velocidade de transmissão / link">
-                      <Activity size={13} className="speed-icon" />
-                      <span className="speed-text">{speed}</span>
+                    {/* AÇÕES RÁPIDAS (Sleek e compacto) */}
+                    <div className="row-actions" style={{ display: "flex", gap: "5px", justifyContent: "flex-end", alignItems: "center", whiteSpace: "nowrap" }}>
+                      <button
+                        type="button"
+                        className="secondary compact-btn"
+                        onClick={() => void handleCopyEncryptedUrl(device)}
+                        title="Copiar URL Criptografado (AES-256-GCM)"
+                        style={{ padding: "4px 7px", fontSize: "10.5px", display: "inline-flex", alignItems: "center", gap: "3px", color: "#38bdf8", borderColor: "rgba(56, 189, 248, 0.3)" }}
+                      >
+                        <ShieldCheck size={12} />
+                        <span>URL</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="secondary compact-btn"
+                        onClick={() => setEditingDevice(device)}
+                        title="Editar aparelho e dados"
+                        style={{ padding: "4px 7px", fontSize: "10.5px", display: "inline-flex", alignItems: "center", gap: "3px" }}
+                      >
+                        <Edit3 size={11} />
+                        <span>Editar</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="primary compact-btn"
+                        onClick={() => {
+                          setSelectedDeviceId(device.id);
+                          setView("Controle");
+                        }}
+                        title="Abrir centro de controle"
+                        style={{ padding: "4px 9px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                      >
+                        <SlidersHorizontal size={12} />
+                        <span>Controle</span>
+                      </button>
                     </div>
-                    {isOnline && ping !== null ? (
-                      <div className="net-ping-val" title="Latência / Ping">
-                        <span className="ping-dot" />
-                        <span className="ping-text">{ping} ms</span>
-                      </div>
-                    ) : (
-                      <span className="ping-offline-text">-- ms</span>
-                    )}
                   </div>
-                </div>
-
-                {/* AÇÕES */}
-                <div className="row-actions" style={{ display: "flex", gap: "6px", justifyContent: "flex-end", alignItems: "center", whiteSpace: "nowrap" }}>
-                  <button
-                    type="button"
-                    className="secondary compact-btn"
-                    onClick={() => void handleCopyEncryptedUrl(device)}
-                    title="Copiar URL Criptografado (AES-256-GCM) desta instância"
-                    style={{ whiteSpace: "nowrap", padding: "5px 7px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px", color: "#00f0ff", borderColor: "rgba(0, 240, 255, 0.3)" }}
-                  >
-                    <ShieldCheck size={12} style={{ color: "#00f0ff" }} /> 🔒 URL
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary compact-btn"
-                    onClick={() => handleCopyDirectUrl(device)}
-                    title="Copiar link direto para esta instância"
-                    style={{ whiteSpace: "nowrap", padding: "5px 7px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                  >
-                    <Link2 size={12} /> 🔗
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary compact-btn"
-                    onClick={() => setEditingDevice(device)}
-                    title="Editar informações do aparelho, contato e APK"
-                    style={{ whiteSpace: "nowrap", padding: "5px 9px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                  >
-                    <Edit3 size={12} style={{ color: "#38bdf8" }} /> Editar
-                  </button>
-                  <button
-                    type="button"
-                    className="primary compact-btn"
-                    onClick={() => {
-                      setSelectedDeviceId(device.id);
-                      setView("Controle");
-                    }}
-                    title="Abrir centro de controle"
-                    style={{ whiteSpace: "nowrap", padding: "5px 10px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                  >
-                    <SlidersHorizontal size={13} /> Controle
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary compact-btn"
-                    disabled={!isOnline}
-                    onClick={() => void start(device.id)}
-                    title="Iniciar sessão supervisionada"
-                    style={{ whiteSpace: "nowrap", padding: "5px 10px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                  >
-                    <Play size={13} /> Sessão
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
 
           {!filtered.length ? (
             <div className="empty-inline" style={{ padding: "30px", textAlign: "center", color: "#64748b" }}>

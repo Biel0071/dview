@@ -95,12 +95,12 @@ export function SettingsPage({ initialTab }: SettingsPageProps) {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "6px",
-          padding: "6px 8px",
+          gap: "5px",
+          padding: "4px 6px",
           background: "rgba(10, 14, 23, 0.8)",
           border: "1px solid #1e293b",
           borderRadius: "8px",
-          marginBottom: "16px",
+          marginBottom: "12px",
           overflowX: "auto"
         }}
       >
@@ -111,21 +111,21 @@ export function SettingsPage({ initialTab }: SettingsPageProps) {
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "7px",
-            padding: "8px 14px",
+            gap: "6px",
+            padding: "6px 12px",
             borderRadius: "6px",
             border: "1px solid",
             borderColor: activeTab === "preferences" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
             background: activeTab === "preferences" ? "rgba(255, 26, 42, 0.15)" : "transparent",
             color: activeTab === "preferences" ? "#ffffff" : "#94a3b8",
-            fontSize: "12px",
+            fontSize: "11.5px",
             fontWeight: 700,
             cursor: "pointer",
             transition: "all 0.15s ease",
             whiteSpace: "nowrap"
           }}
         >
-          <Sliders size={14} style={{ color: activeTab === "preferences" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
+          <Sliders size={13} style={{ color: activeTab === "preferences" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
           <span>Preferências & Sistema</span>
         </button>
 
@@ -136,23 +136,23 @@ export function SettingsPage({ initialTab }: SettingsPageProps) {
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "7px",
-            padding: "8px 14px",
+            gap: "6px",
+            padding: "6px 12px",
             borderRadius: "6px",
             border: "1px solid",
             borderColor: activeTab === "apps" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
             background: activeTab === "apps" ? "rgba(255, 26, 42, 0.15)" : "transparent",
             color: activeTab === "apps" ? "#ffffff" : "#94a3b8",
-            fontSize: "12px",
+            fontSize: "11.5px",
             fontWeight: 700,
             cursor: "pointer",
             transition: "all 0.15s ease",
             whiteSpace: "nowrap"
           }}
         >
-          <Boxes size={14} style={{ color: activeTab === "apps" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
+          <Boxes size={13} style={{ color: activeTab === "apps" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
           <span>Gerenciador de Apps</span>
-          <span style={{ fontSize: "9px", padding: "1px 5px", borderRadius: "4px", background: "rgba(255, 26, 42, 0.2)", color: "#ff4d5a", border: "1px solid rgba(255, 26, 42, 0.4)", fontWeight: 800 }}>ADMIN</span>
+          <span style={{ fontSize: "8.5px", padding: "1px 4px", borderRadius: "3px", background: "rgba(255, 26, 42, 0.2)", color: "#ff4d5a", border: "1px solid rgba(255, 26, 42, 0.4)", fontWeight: 800 }}>ADMIN</span>
         </button>
 
         <button
@@ -162,23 +162,23 @@ export function SettingsPage({ initialTab }: SettingsPageProps) {
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "7px",
-            padding: "8px 14px",
+            gap: "6px",
+            padding: "6px 12px",
             borderRadius: "6px",
             border: "1px solid",
             borderColor: activeTab === "logs" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
             background: activeTab === "logs" ? "rgba(255, 26, 42, 0.15)" : "transparent",
             color: activeTab === "logs" ? "#ffffff" : "#94a3b8",
-            fontSize: "12px",
+            fontSize: "11.5px",
             fontWeight: 700,
             cursor: "pointer",
             transition: "all 0.15s ease",
             whiteSpace: "nowrap"
           }}
         >
-          <ListChecks size={14} style={{ color: activeTab === "logs" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
+          <ListChecks size={13} style={{ color: activeTab === "logs" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
           <span>Logs & Auditoria</span>
-          <span style={{ fontSize: "9px", padding: "1px 5px", borderRadius: "4px", background: "rgba(255, 26, 42, 0.2)", color: "#ff4d5a", border: "1px solid rgba(255, 26, 42, 0.4)", fontWeight: 800 }}>ADMIN</span>
+          <span style={{ fontSize: "8.5px", padding: "1px 4px", borderRadius: "3px", background: "rgba(255, 26, 42, 0.2)", color: "#ff4d5a", border: "1px solid rgba(255, 26, 42, 0.4)", fontWeight: 800 }}>ADMIN</span>
         </button>
 
         <button
@@ -188,21 +188,21 @@ export function SettingsPage({ initialTab }: SettingsPageProps) {
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "7px",
-            padding: "8px 14px",
+            gap: "6px",
+            padding: "6px 12px",
             borderRadius: "6px",
             border: "1px solid",
             borderColor: activeTab === "sessions" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
             background: activeTab === "sessions" ? "rgba(255, 26, 42, 0.15)" : "transparent",
             color: activeTab === "sessions" ? "#ffffff" : "#94a3b8",
-            fontSize: "12px",
+            fontSize: "11.5px",
             fontWeight: 700,
             cursor: "pointer",
             transition: "all 0.15s ease",
             whiteSpace: "nowrap"
           }}
         >
-          <MonitorSmartphone size={14} style={{ color: activeTab === "sessions" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
+          <MonitorSmartphone size={13} style={{ color: activeTab === "sessions" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
           <span>Sessões Remotas Ativas</span>
         </button>
 
@@ -213,21 +213,21 @@ export function SettingsPage({ initialTab }: SettingsPageProps) {
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "7px",
-            padding: "8px 14px",
+            gap: "6px",
+            padding: "6px 12px",
             borderRadius: "6px",
             border: "1px solid",
             borderColor: activeTab === "about" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
             background: activeTab === "about" ? "rgba(255, 26, 42, 0.15)" : "transparent",
             color: activeTab === "about" ? "#ffffff" : "#94a3b8",
-            fontSize: "12px",
+            fontSize: "11.5px",
             fontWeight: 700,
             cursor: "pointer",
             transition: "all 0.15s ease",
             whiteSpace: "nowrap"
           }}
         >
-          <ShieldCheck size={14} style={{ color: activeTab === "about" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
+          <ShieldCheck size={13} style={{ color: activeTab === "about" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
           <span>Sobre & Diagnóstico</span>
         </button>
       </div>
