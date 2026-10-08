@@ -7938,12 +7938,12 @@ progress {
 .tactical-pill-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 1px 4.5px;
-  border-radius: 10px;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 6px;
   font-family: var(--font-tactical);
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 9.5px;
+  font-weight: 700;
   letter-spacing: 0.2px;
   background: #111622;
   border: 1px solid #1e283d;
@@ -7952,7 +7952,8 @@ progress {
   transition: all 0.15s ease;
   white-space: nowrap;
   flex-shrink: 0;
-  height: 21px;
+  height: 22px;
+  box-sizing: border-box;
 }
 
 .tactical-pill-toggle:hover {
@@ -9974,6 +9975,7 @@ button:active,
 .ribbon-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   background: #0d1220;
   border: 1px solid #1e293b;
@@ -9981,9 +9983,12 @@ button:active,
   font-size: 11px;
   font-weight: 700;
   border-radius: 6px;
-  padding: 4px 10px;
+  padding: 0 10px;
+  height: 28px;
+  box-sizing: border-box;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .ribbon-btn:hover {
@@ -10007,6 +10012,34 @@ button:active,
 .ribbon-btn.primary-ribbon:hover {
   background: linear-gradient(135deg, rgba(255, 26, 42, 0.5) 0%, rgba(185, 28, 28, 0.5) 100%);
   box-shadow: 0 0 12px rgba(255, 26, 42, 0.4);
+}
+
+.tactical-grid-btn {
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.tactical-grid-btn:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tactical-grid-btn.active {
+  background: var(--crimson-neon, #ff1a2a) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 10px rgba(255, 26, 42, 0.4);
 }
 
 /* Multi Device Grid Responsive Tuning */

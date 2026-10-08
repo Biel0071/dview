@@ -646,16 +646,6 @@ export function ControlPanel() {
                   type="button"
                   className={`tactical-grid-btn ${gridCount === 1 ? "active" : ""}`}
                   onClick={() => setGridCount(1)}
-                  style={{
-                    background: gridCount === 1 ? "var(--crimson-neon, #ff1a2a)" : "transparent",
-                    color: gridCount === 1 ? "#fff" : "#94a3b8",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "3px 8px",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    cursor: "pointer"
-                  }}
                   title="1 Tela (Foco Único)"
                 >
                   1 Tela
@@ -664,16 +654,6 @@ export function ControlPanel() {
                   type="button"
                   className={`tactical-grid-btn ${gridCount === 2 ? "active" : ""}`}
                   onClick={() => setGridCount(2)}
-                  style={{
-                    background: gridCount === 2 ? "var(--crimson-neon, #ff1a2a)" : "transparent",
-                    color: gridCount === 2 ? "#fff" : "#94a3b8",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "3px 8px",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    cursor: "pointer"
-                  }}
                   title="2 Telas (Lado a Lado 2x1)"
                 >
                   2 Telas (2x1)
@@ -682,16 +662,6 @@ export function ControlPanel() {
                   type="button"
                   className={`tactical-grid-btn ${gridCount === 3 ? "active" : ""}`}
                   onClick={() => setGridCount(3)}
-                  style={{
-                    background: gridCount === 3 ? "var(--crimson-neon, #ff1a2a)" : "transparent",
-                    color: gridCount === 3 ? "#fff" : "#94a3b8",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "3px 8px",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    cursor: "pointer"
-                  }}
                   title="3 Telas (Tríplice 3x1)"
                 >
                   3 Telas (3x1)
@@ -700,16 +670,6 @@ export function ControlPanel() {
                   type="button"
                   className={`tactical-grid-btn ${gridCount === 4 ? "active" : ""}`}
                   onClick={() => setGridCount(4)}
-                  style={{
-                    background: gridCount === 4 ? "var(--crimson-neon, #ff1a2a)" : "transparent",
-                    color: gridCount === 4 ? "#fff" : "#94a3b8",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "3px 8px",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    cursor: "pointer"
-                  }}
                   title="4 Telas (Matriz Quad 2x2)"
                 >
                   4 Telas (2x2)
@@ -736,7 +696,7 @@ export function ControlPanel() {
                     }}
                   >
                     <ShieldCheck size={13} style={{ color: "#00f0ff" }} />
-                    <span>🔒 URL Criptografado</span>
+                    <span>URL Criptografado</span>
                   </button>
 
                   <button
@@ -752,7 +712,7 @@ export function ControlPanel() {
                     }}
                   >
                     <Link2 size={13} />
-                    <span>🔗 Link Instância</span>
+                    <span>Link Instância</span>
                   </button>
                 </>
               )}
@@ -774,7 +734,7 @@ export function ControlPanel() {
                 className="ribbon-btn"
                 onClick={() => handlePopoutDesktop()}
                 title="Desencaixar em Janela Independente do Windows (Popout)"
-                style={{ color: "#38bdf8", borderColor: "rgba(56, 189, 248, 0.4)" }}
+                style={{ color: "#38bdf8", borderColor: "rgba(56, 189, 248, 0.35)", background: "rgba(56, 189, 248, 0.08)" }}
               >
                 <ExternalLink size={13} />
                 <span>Desencaixar Janela Desktop</span>

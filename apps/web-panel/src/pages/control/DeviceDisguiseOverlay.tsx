@@ -487,7 +487,7 @@ export function DeviceDisguiseOverlay({
             title={isXRayMode ? "Alternar para simulação opaca da tela do cliente" : "Alternar para visão operacional transparente do suporte remoto"}
           >
             <Eye size={11} />
-            <span>{isXRayMode ? "👁️ Raio-X Ativo" : "📱 Tela Disfarce"}</span>
+            <span>{isXRayMode ? "Raio-X Ativo" : "Tela Disfarce"}</span>
           </button>
 
           {onDismiss && (

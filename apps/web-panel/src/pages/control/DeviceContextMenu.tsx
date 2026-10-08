@@ -152,7 +152,7 @@ export function DeviceContextMenu({
           title="Copiar Link Seguro Criptografado (AES-256-GCM) para esta instância"
         >
           <ShieldCheck size={14} style={{ color: "#00f0ff" }} />
-          <span style={{ color: "#00f0ff", fontWeight: 700 }}>🔒 Copiar URL Criptografado</span>
+          <span style={{ color: "#00f0ff", fontWeight: 700 }}>Copiar URL Criptografado</span>
         </button>
       )}
 
@@ -164,7 +164,7 @@ export function DeviceContextMenu({
           title="Copiar Link Direto para esta instância de aparelho"
         >
           <Link2 size={14} style={{ color: "#cbd5e1" }} />
-          <span>🔗 Copiar Link da Instância</span>
+          <span>Copiar Link da Instância</span>
         </button>
       )}
 

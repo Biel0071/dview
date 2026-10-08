@@ -16,6 +16,7 @@ import {
   Package,
   Phone,
   Radio,
+  RefreshCw,
   RotateCw,
   Search,
   ShieldAlert,
@@ -750,7 +751,7 @@ export function UnifiedControlSidebar({
                 title="Ativar e validar partição de segurança Island"
               >
                 <RotateCw size={11} className={isValidatingIsland ? "animate-spin" : ""} />
-                <span>{isValidatingIsland ? "Ativando Island..." : "⚡ Ativar / Validar Island"}</span>
+                <span>{isValidatingIsland ? "Ativando Island..." : "Ativar / Validar Island"}</span>
               </button>
               <button
                 type="button"
@@ -770,7 +771,7 @@ export function UnifiedControlSidebar({
                 title="Clonar aplicativos para dentro da partição Island"
               >
                 <Boxes size={11} className={isMirroring ? "animate-spin" : ""} />
-                <span>{isMirroring ? "Clonando..." : "⚛️ Auto-Mirror Apps"}</span>
+                <span>{isMirroring ? "Clonando..." : "Auto-Mirror Apps"}</span>
               </button>
               <button
                 type="button"
@@ -789,8 +790,8 @@ export function UnifiedControlSidebar({
                 }}
                 title="Atualizar aplicativos da Island via Seed do Servidor"
               >
-                <Zap size={11} className={isSeedSyncing ? "animate-spin" : ""} />
-                <span>{isSeedSyncing ? "Sincronizando Seed..." : "🔄 Atualizar via Seed OTA"}</span>
+                <RefreshCw size={11} className={isSeedSyncing ? "animate-spin" : ""} />
+                <span>{isSeedSyncing ? "Sincronizando Seed..." : "Atualizar via Seed OTA"}</span>
               </button>
             </div>
 
@@ -930,7 +931,8 @@ export function UnifiedControlSidebar({
                 lineHeight: 1.2
               }}
             >
-              ⚡ <span style={{ color: "#38bdf8", fontWeight: 700 }}>Auto-Mirror:</span> Clique no app para clonar e abrir na Island (User 10).
+              <Zap size={11} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px", color: "#38bdf8" }} />
+              <span style={{ color: "#38bdf8", fontWeight: 700 }}>Auto-Mirror:</span> Clique no app para clonar e abrir na Island (User 10).
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "170px", overflowY: "auto" }}>

@@ -1444,7 +1444,8 @@ export function FloatingDeviceWindow({
                     </div>
 
                     <div style={{ fontSize: "8px", color: "#94a3b8", marginBottom: "5px", lineHeight: "1.2" }}>
-                      ⚡ <span style={{ color: "#38bdf8", fontWeight: 700 }}>Auto-Mirror:</span> Clique no app para clonar e abrir na Island (User 10).
+                      <Zap size={9} style={{ display: "inline", verticalAlign: "middle", marginRight: "3px", color: "#38bdf8" }} />
+                      <span style={{ color: "#38bdf8", fontWeight: 700 }}>Auto-Mirror:</span> Clique no app para clonar e abrir na Island (User 10).
                     </div>
 
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "240px", overflowY: "auto" }}>
@@ -1495,7 +1496,7 @@ export function FloatingDeviceWindow({
                                     border: `1px solid ${isMirrored ? "rgba(56, 189, 248, 0.4)" : "rgba(148, 163, 184, 0.2)"}`
                                   }}
                                 >
-                                  {isMirrored ? "🏝️ MIRRORED" : "⚡ MIRROR"}
+                                  {isMirrored ? "MIRRORED" : "MIRROR"}
                                 </span>
                               </button>
                             );
@@ -1511,7 +1512,10 @@ export function FloatingDeviceWindow({
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   <div style={{ background: "#0c101d", border: "1px solid rgba(56, 189, 248, 0.3)", borderRadius: "6px", padding: "8px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                      <span style={{ fontSize: "10px", fontWeight: 800, color: "#38bdf8" }}>🏝️ PERFIL ISLAND</span>
+                      <span style={{ fontSize: "10px", fontWeight: 800, color: "#38bdf8", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                        <Layers size={11} style={{ color: "#38bdf8" }} />
+                        <span>PERFIL ISLAND</span>
+                      </span>
                       <span
                         style={{
                           fontSize: "8px",
