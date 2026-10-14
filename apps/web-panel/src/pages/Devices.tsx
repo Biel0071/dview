@@ -21,7 +21,9 @@ import {
   X,
   Zap,
   Sparkles,
-  Link2
+  Link2,
+  Layers,
+  Plus
 } from "lucide-react";
 import type { Device } from "@droidview/shared";
 import { api } from "../api";
@@ -31,8 +33,22 @@ import { DeviceEditModal } from "../components/DeviceEditModal";
 
 const statusOptions = ["all", "online", "offline", "pending"] as const;
 
-export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "sessions" }) {
-  const { devices, sessions, setSessions, setView, setSelectedDeviceId } = useAppStore();
+export interface DevicesProps {
+  initialTab?: "devices" | "sessions";
+  embeddedInControl?: boolean;
+  onOpenDeviceLive?: (deviceId: string) => void;
+  onOpenFloating?: (device: Device) => void;
+  onAddEmulator?: () => void;
+}
+
+export function Devices({
+  initialTab = "devices",
+  embeddedInControl = false,
+  onOpenDeviceLive,
+  onOpenFloating,
+  onAddEmulator
+}: DevicesProps) {
+  const { devices, sessions, setSessions, setView, setControlMode, setSelectedDeviceId } = useAppStore();
   const [activeTab, setActiveTab] = useState<"devices" | "sessions">(initialTab);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<(typeof statusOptions)[number]>("all");
@@ -109,7 +125,11 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
     try {
       const session = await api.startSession(deviceId);
       setSessions([session]);
-      setActiveTab("sessions");
+      if (embeddedInControl) {
+        setControlMode("sessions");
+      } else {
+        setActiveTab("sessions");
+      }
     } catch {
       showToast("Não foi possível iniciar a sessão remota no momento.");
     }
@@ -136,70 +156,72 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
 
   return (
     <div className="devices-and-sessions-wrap" style={{ width: "100%" }}>
-      {/* Sub-tabs header compact */}
-      <div
-        className="devices-subtabs-bar"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          padding: "4px 6px",
-          background: "rgba(10, 14, 23, 0.8)",
-          border: "1px solid #1e293b",
-          borderRadius: "8px",
-          marginBottom: "10px"
-        }}
-      >
-        <button
-          type="button"
-          className={`admin-tab-btn ${activeTab === "devices" ? "active" : ""}`}
-          onClick={() => setActiveTab("devices")}
+      {/* Sub-tabs header compact (only when standalone, hidden when unified inside ControlPanel) */}
+      {!embeddedInControl && (
+        <div
+          className="devices-subtabs-bar"
           style={{
-            display: "inline-flex",
+            display: "flex",
             alignItems: "center",
             gap: "6px",
-            padding: "6px 14px",
-            borderRadius: "6px",
-            border: "1px solid",
-            borderColor: activeTab === "devices" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
-            background: activeTab === "devices" ? "rgba(255, 26, 42, 0.15)" : "transparent",
-            color: activeTab === "devices" ? "#ffffff" : "#94a3b8",
-            fontSize: "12px",
-            fontWeight: 700,
-            cursor: "pointer",
-            transition: "all 0.15s ease"
+            padding: "4px 6px",
+            background: "rgba(10, 14, 23, 0.8)",
+            border: "1px solid #1e293b",
+            borderRadius: "8px",
+            marginBottom: "10px"
           }}
         >
-          <Smartphone size={14} style={{ color: activeTab === "devices" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
-          <span>Dispositivos Pareados ({uniqueDevices.length})</span>
-        </button>
+          <button
+            type="button"
+            className={`admin-tab-btn ${activeTab === "devices" ? "active" : ""}`}
+            onClick={() => setActiveTab("devices")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 14px",
+              borderRadius: "6px",
+              border: "1px solid",
+              borderColor: activeTab === "devices" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
+              background: activeTab === "devices" ? "rgba(255, 26, 42, 0.15)" : "transparent",
+              color: activeTab === "devices" ? "#ffffff" : "#94a3b8",
+              fontSize: "12px",
+              fontWeight: 700,
+              cursor: "pointer",
+              transition: "all 0.15s ease"
+            }}
+          >
+            <Smartphone size={14} style={{ color: activeTab === "devices" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
+            <span>Dispositivos Pareados ({uniqueDevices.length})</span>
+          </button>
 
-        <button
-          type="button"
-          className={`admin-tab-btn ${activeTab === "sessions" ? "active" : ""}`}
-          onClick={() => setActiveTab("sessions")}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "6px 14px",
-            borderRadius: "6px",
-            border: "1px solid",
-            borderColor: activeTab === "sessions" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
-            background: activeTab === "sessions" ? "rgba(255, 26, 42, 0.15)" : "transparent",
-            color: activeTab === "sessions" ? "#ffffff" : "#94a3b8",
-            fontSize: "12px",
-            fontWeight: 700,
-            cursor: "pointer",
-            transition: "all 0.15s ease"
-          }}
-        >
-          <Activity size={14} style={{ color: activeTab === "sessions" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
-          <span>Sessões Remotas ({sessions.length})</span>
-        </button>
-      </div>
+          <button
+            type="button"
+            className={`admin-tab-btn ${activeTab === "sessions" ? "active" : ""}`}
+            onClick={() => setActiveTab("sessions")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 14px",
+              borderRadius: "6px",
+              border: "1px solid",
+              borderColor: activeTab === "sessions" ? "var(--crimson-neon, #ff1a2a)" : "transparent",
+              background: activeTab === "sessions" ? "rgba(255, 26, 42, 0.15)" : "transparent",
+              color: activeTab === "sessions" ? "#ffffff" : "#94a3b8",
+              fontSize: "12px",
+              fontWeight: 700,
+              cursor: "pointer",
+              transition: "all 0.15s ease"
+            }}
+          >
+            <Activity size={14} style={{ color: activeTab === "sessions" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
+            <span>Sessões Remotas ({sessions.length})</span>
+          </button>
+        </div>
+      )}
 
-      {activeTab === "sessions" ? (
+      {!embeddedInControl && activeTab === "sessions" ? (
         <RemoteSession />
       ) : (
         <section className="panel" style={{ padding: "14px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -215,7 +237,7 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <h2 style={{ fontSize: "15px", margin: 0, fontWeight: 800, letterSpacing: "0.4px" }}>
-                DISPOSITIVOS PAREADOS
+                FROTA DE DISPOSITIVOS PAREADOS
               </h2>
               <span style={{ fontSize: "11px", color: "#94a3b8", background: "#111622", padding: "2px 8px", borderRadius: "10px", border: "1px solid #1e293b", fontFamily: "var(--font-mono)" }}>
                 {filtered.length} / {uniqueDevices.length}
@@ -277,6 +299,17 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
               >
                 {selectedIds.length === filtered.length && filtered.length > 0 ? "Desmarcar" : "Selecionar Todos"}
               </button>
+
+              {onAddEmulator && (
+                <button
+                  type="button"
+                  className="tactical-btn tactical-btn-sm tactical-btn-emerald"
+                  onClick={onAddEmulator}
+                  title="Conectar nova instância de emulador Android"
+                >
+                  <Plus size={12} /> Emulador
+                </button>
+              )}
             </div>
           </div>
 
@@ -464,10 +497,9 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
                     <div className="row-actions" style={{ display: "flex", gap: "5px", justifyContent: "flex-end", alignItems: "center", whiteSpace: "nowrap" }}>
                       <button
                         type="button"
-                        className="secondary compact-btn"
+                        className="tactical-btn tactical-btn-sm tactical-btn-cyan"
                         onClick={() => void handleCopyEncryptedUrl(device)}
                         title="Copiar URL Criptografado (AES-256-GCM)"
-                        style={{ padding: "4px 7px", fontSize: "10.5px", display: "inline-flex", alignItems: "center", gap: "3px", color: "#38bdf8", borderColor: "rgba(56, 189, 248, 0.3)" }}
                       >
                         <ShieldCheck size={12} />
                         <span>URL</span>
@@ -475,24 +507,48 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
 
                       <button
                         type="button"
-                        className="secondary compact-btn"
+                        className="tactical-btn tactical-btn-sm"
                         onClick={() => setEditingDevice(device)}
-                        title="Editar aparelho e dados"
-                        style={{ padding: "4px 7px", fontSize: "10.5px", display: "inline-flex", alignItems: "center", gap: "3px" }}
+                        title="Editar aparelho, contato e APK"
                       >
                         <Edit3 size={11} />
                         <span>Editar</span>
                       </button>
 
+                      {onOpenFloating && (
+                        <button
+                          type="button"
+                          className="tactical-btn tactical-btn-sm"
+                          onClick={() => onOpenFloating(device)}
+                          title="Abrir este aparelho em Janela Flutuante (MEmu)"
+                        >
+                          <Layers size={11} />
+                          <span>Flutuante</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
-                        className="primary compact-btn"
+                        className="tactical-btn tactical-btn-sm tactical-btn-emerald"
+                        onClick={() => void start(device.id)}
+                        title="Iniciar Sessão Supervisionada com este aparelho"
+                      >
+                        <Play size={11} />
+                        <span>Sessão</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="tactical-btn tactical-btn-sm tactical-btn-crimson"
                         onClick={() => {
                           setSelectedDeviceId(device.id);
-                          setView("Controle");
+                          if (onOpenDeviceLive) {
+                            onOpenDeviceLive(device.id);
+                          } else {
+                            setView("Controle");
+                          }
                         }}
-                        title="Abrir centro de controle"
-                        style={{ padding: "4px 9px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                        title="Espelhar e controlar em tempo real"
                       >
                         <SlidersHorizontal size={12} />
                         <span>Controle</span>
@@ -520,7 +576,11 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
           onClose={() => setEditingDevice(null)}
           onGoToControl={(id) => {
             setSelectedDeviceId(id);
-            setView("Controle");
+            if (onOpenDeviceLive) {
+              onOpenDeviceLive(id);
+            } else {
+              setView("Controle");
+            }
           }}
         />
       )}

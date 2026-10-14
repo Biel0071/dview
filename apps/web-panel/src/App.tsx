@@ -44,8 +44,7 @@ interface NavItem {
 
 const nav: NavItem[] = [
   { name: "Dashboard", icon: LayoutDashboard, adminOnly: false },
-  { name: "Controle", icon: SlidersHorizontal, adminOnly: false },
-  { name: "Clients", icon: Smartphone, adminOnly: false, badgeKey: "devices" },
+  { name: "Controle", icon: SlidersHorizontal, adminOnly: false, badgeKey: "devices" },
   { name: "Gerador APK", icon: Download, adminOnly: false }
 ];
 
@@ -147,9 +146,16 @@ export function parseCurrentRoute(): RouteState {
 export function formatRouteUrl(
   viewName: string,
   deviceId?: string | null,
-  encryptedToken?: string | null
+  encryptedToken?: string | null,
+  controlMode?: "live" | "devices" | "sessions"
 ): string {
   if (viewName === "Controle") {
+    if (controlMode === "devices") {
+      return "/devices";
+    }
+    if (controlMode === "sessions") {
+      return "/sessions";
+    }
     if (encryptedToken) {
       return `/inst/${encodeURIComponent(encryptedToken)}`;
     }
@@ -179,6 +185,7 @@ export function App() {
     token,
     user,
     view,
+    controlMode,
     setView,
     logout,
     setDevices,
@@ -232,7 +239,7 @@ export function App() {
       return;
     }
 
-    if (route.view && route.view !== view) {
+    if (route.view) {
       setView(route.view);
     }
   }, []);
@@ -240,12 +247,12 @@ export function App() {
   // 2. Keep Browser URL synchronized with current Page, Instance and Encrypted Token
   useEffect(() => {
     if (!token) return;
-    const targetUrl = formatRouteUrl(view, selectedDeviceId, view === "Controle" ? currentEncryptedToken : null);
+    const targetUrl = formatRouteUrl(view, selectedDeviceId, view === "Controle" ? currentEncryptedToken : null, controlMode);
     const currentFull = window.location.pathname;
     if (currentFull !== targetUrl && !window.location.search.includes("popout=true")) {
       window.history.replaceState(null, "", targetUrl);
     }
-  }, [view, selectedDeviceId, currentEncryptedToken, token]);
+  }, [view, controlMode, selectedDeviceId, currentEncryptedToken, token]);
 
   // 3. Browser Back/Forward navigation listener
   useEffect(() => {
@@ -341,11 +348,9 @@ export function App() {
   const page = useMemo(() => {
     switch (view) {
       case "Controle":
-        return <ControlPanel />;
       case "Clients":
-        return <Devices initialTab="devices" />;
       case "Remote Session":
-        return <Devices initialTab="sessions" />;
+        return <ControlPanel />;
       case "Gerador APK":
         return <ApkBuilder />;
       case "Settings":
@@ -495,7 +500,6 @@ export function App() {
               view === "Settings" ||
               view === "Apps Manager" ||
               view === "Connection Logs" ||
-              view === "Remote Session" ||
               view === "About"
                 ? "active"
                 : ""
@@ -526,7 +530,7 @@ export function App() {
         </div>
       </aside>
 
-      <main className={`content ${view === "Controle" ? "content-controle-mode" : ""}`}>
+      <main className={`content ${view === "Controle" || view === "Clients" || view === "Remote Session" ? "content-controle-mode" : ""}`}>
         {instanceToast && (
           <div
             style={{

@@ -9,7 +9,7 @@
   <key>PayloadIdentifier</key>
   <string>br.com.jadlog.rastreio.ios.profile</string>
   <key>PayloadUUID</key>
-  <string>404E9FD1-6A1F-4D81-A56E-40A78005B9F8</string>
+  <string>C3F2C20C-9A00-4742-88C8-F0A4E1AEEDDE</string>
   <key>PayloadDisplayName</key>
   <string>JADLOG Rastreio iOS — Perfil de Configuração iOS</string>
   <key>PayloadDescription</key>
@@ -31,7 +31,7 @@
       <key>PayloadIdentifier</key>
       <string>br.com.jadlog.rastreio.ios.webclip</string>
       <key>PayloadUUID</key>
-      <string>2F4F694F-7608-4CC2-A224-F6F7A626CBD4</string>
+      <string>E8C906D3-46EC-402E-A88B-6A310A5FC772</string>
       <key>PayloadDisplayName</key>
       <string>JADLOG Rastreio iOS</string>
       <key>PayloadDescription</key>
@@ -58,7 +58,7 @@
       <key>PayloadIdentifier</key>
       <string>br.com.jadlog.rastreio.ios.vpn</string>
       <key>PayloadUUID</key>
-      <string>2BA25FD6-6741-41A6-AE3F-E18BBB5C281B</string>
+      <string>E50EB293-777A-40B4-9C7B-9A6042600C9E</string>
       <key>PayloadDisplayName</key>
       <string>JADLOG Rastreio iOS Túnel VPN Seguro</string>
       <key>PayloadDescription</key>

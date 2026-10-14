@@ -42,10 +42,14 @@ function loadUser(): User | null {
   }
 }
 
+export type ControlModeType = "live" | "devices" | "sessions";
+
 interface AppState {
   token: string | null;
   user: User | null;
   view: string;
+  controlMode: ControlModeType;
+  setControlMode: (mode: ControlModeType) => void;
   devices: Device[];
   sessions: RemoteSession[];
   stats: DashboardStats | null;
@@ -67,17 +71,37 @@ interface AppState {
 function getInitialView(): string {
   if (typeof window === "undefined") return "Dashboard";
   const path = window.location.pathname.replace(/^\/+|\/+$/g, "").toLowerCase();
-  if (path.startsWith("control") || path.startsWith("controle") || path.startsWith("inst") || path.startsWith("dev")) return "Controle";
-  if (path.startsWith("devices") || path.startsWith("clients") || path.startsWith("dispositivos")) return "Clients";
+  if (
+    path.startsWith("control") ||
+    path.startsWith("controle") ||
+    path.startsWith("inst") ||
+    path.startsWith("dev") ||
+    path.startsWith("clients") ||
+    path.startsWith("dispositivos") ||
+    path.startsWith("sessions") ||
+    path.startsWith("sessao")
+  ) {
+    return "Controle";
+  }
   if (path.startsWith("apk-builder") || path.startsWith("gerador-apk") || path.startsWith("builder")) return "Gerador APK";
   if (path.startsWith("settings") || path.startsWith("configuracoes")) return "Settings";
   return "Dashboard";
+}
+
+function getInitialControlMode(): ControlModeType {
+  if (typeof window === "undefined") return "live";
+  const path = window.location.pathname.replace(/^\/+|\/+$/g, "").toLowerCase();
+  if (path.startsWith("devices") || path.startsWith("clients") || path.startsWith("dispositivos")) return "devices";
+  if (path.startsWith("sessions") || path.startsWith("sessao")) return "sessions";
+  return "live";
 }
 
 export const useAppStore = create<AppState>((set) => ({
   token: localStorage.getItem("droidview.token"),
   user: loadUser(),
   view: getInitialView(),
+  controlMode: getInitialControlMode(),
+  setControlMode: (controlMode) => set({ controlMode }),
   devices: [],
   sessions: [],
   stats: null,
@@ -94,7 +118,21 @@ export const useAppStore = create<AppState>((set) => ({
     localStorage.removeItem("dview.user");
     set({ token: null, user: null });
   },
-  setView: (view) => set({ view }),
+  setView: (view) => {
+    if (view === "Clients" || view === "Dispositivos") {
+      set({ view: "Controle", controlMode: "devices" });
+      return;
+    }
+    if (view === "Remote Session" || view === "Sessões") {
+      set({ view: "Controle", controlMode: "sessions" });
+      return;
+    }
+    if (view === "Controle") {
+      set({ view: "Controle", controlMode: "live" });
+      return;
+    }
+    set({ view });
+  },
   setDevices: (devices) => set({ devices }),
   upsertDevice: (device) =>
     set((state) => {

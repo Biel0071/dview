@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   CheckCircle2,
@@ -21,8 +21,12 @@ import {
 import { useAppStore } from "../store";
 import { api } from "../api";
 
-export function RemoteSession() {
-  const { sessions, setSessions, devices, preferences, setView, setSelectedDeviceId } = useAppStore();
+export interface RemoteSessionProps {
+  onOpenDeviceLive?: (deviceId: string) => void;
+}
+
+export function RemoteSession({ onOpenDeviceLive }: RemoteSessionProps = {}) {
+  const { sessions, setSessions, devices, preferences, setView, setControlMode, setSelectedDeviceId } = useAppStore();
   const session = sessions[0];
   const device = devices.find((item) => item.id === session?.deviceId);
 
@@ -36,6 +40,12 @@ export function RemoteSession() {
   const [isStartingSession, setIsStartingSession] = useState(false);
   const [selectedDeviceIdToStart, setSelectedDeviceIdToStart] = useState<string>(devices[0]?.id || "");
   const [frameTimestamp, setFrameTimestamp] = useState<number>(Date.now());
+
+  useEffect(() => {
+    if (!selectedDeviceIdToStart && devices.length > 0) {
+      setSelectedDeviceIdToStart(devices[0].id);
+    }
+  }, [devices, selectedDeviceIdToStart]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -89,8 +99,6 @@ export function RemoteSession() {
 
   // If no session exists, render Dark-Ops Session Starter
   if (!session) {
-    const onlineDevices = devices.filter((d) => d.status === "online");
-
     return (
       <section className="panel" style={{ maxWidth: "780px", margin: "20px auto" }}>
         {toastMsg && (
@@ -118,11 +126,14 @@ export function RemoteSession() {
               <p>Conecte um dispositivo físico ou emulador no painel para iniciar sessões.</p>
               <button
                 type="button"
-                className="primary"
-                onClick={() => setView("Controle")}
+                className="tactical-btn tactical-btn-crimson"
+                onClick={() => {
+                  setControlMode("live");
+                  setView("Controle");
+                }}
                 style={{ marginTop: "14px" }}
               >
-                Abrir Painel de Controle
+                Abrir Espelhamento & Controle
               </button>
             </div>
           ) : (
@@ -136,7 +147,7 @@ export function RemoteSession() {
                 >
                   {devices.map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.name} ({d.model}) - {d.status === "online" ? "● Online" : "○ Offline"} - Bateria: {d.battery}%
+                      {d.name} ({d.model}) - {d.status === "online" ? "ONLINE" : "OFFLINE"} - Bateria: {d.battery}%
                     </option>
                   ))}
                 </select>
@@ -177,10 +188,10 @@ export function RemoteSession() {
               <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
                 <button
                   type="button"
-                  className="primary"
+                  className="tactical-btn tactical-btn-crimson"
                   disabled={isStartingSession || !selectedDeviceIdToStart}
                   onClick={() => handleStartSession(selectedDeviceIdToStart)}
-                  style={{ flex: 1, justifyContent: "center", padding: "12px", fontSize: "13px" }}
+                  style={{ flex: 1, justifyContent: "center", height: "38px", fontSize: "13px" }}
                 >
                   <Play size={15} />
                   <span>{isStartingSession ? "Conectando ao Aparelho..." : "Iniciar Sessão Agora"}</span>
@@ -188,12 +199,17 @@ export function RemoteSession() {
 
                 <button
                   type="button"
-                  className="secondary"
+                  className="tactical-btn tactical-btn-cyan"
                   onClick={() => {
                     if (selectedDeviceIdToStart) setSelectedDeviceId(selectedDeviceIdToStart);
-                    setView("Controle");
+                    if (onOpenDeviceLive && selectedDeviceIdToStart) {
+                      onOpenDeviceLive(selectedDeviceIdToStart);
+                    } else {
+                      setControlMode("live");
+                      setView("Controle");
+                    }
                   }}
-                  style={{ padding: "0 18px" }}
+                  style={{ height: "38px", padding: "0 18px" }}
                 >
                   Abrir Controle Completo
                 </button>
@@ -290,38 +306,43 @@ export function RemoteSession() {
 
         <button
           type="button"
-          className="secondary"
+          className="tactical-btn tactical-btn-cyan"
           onClick={() => {
             if (device?.id) setSelectedDeviceId(device.id);
-            setView("Controle");
+            if (onOpenDeviceLive && device?.id) {
+              onOpenDeviceLive(device.id);
+            } else {
+              setControlMode("live");
+              setView("Controle");
+            }
             showToast("Alternando para o Centro de Controle com viewport duplo.");
           }}
-          style={{ display: "flex", alignItems: "center", gap: "8px" }}
+          style={{ width: "100%", justifyContent: "flex-start", height: "34px" }}
           title="Abrir o painel de controle com toque interativo e A11Y"
         >
-          <MousePointer2 size={16} style={{ color: "#38bdf8" }} />
+          <MousePointer2 size={15} style={{ color: "#38bdf8" }} />
           <span>Controle Interativo & Toque</span>
         </button>
 
         <button
           type="button"
-          className="secondary"
+          className="tactical-btn tactical-btn-emerald"
           onClick={() => setShowChatModal(true)}
-          style={{ display: "flex", alignItems: "center", gap: "8px" }}
+          style={{ width: "100%", justifyContent: "flex-start", height: "34px" }}
           title="Abrir mensagens com o usuário do dispositivo"
         >
-          <MessageSquare size={16} style={{ color: "#22c55e" }} />
+          <MessageSquare size={15} style={{ color: "#22c55e" }} />
           <span>Chat de Atendimento</span>
         </button>
 
         <button
           type="button"
-          className="danger"
+          className="tactical-btn tactical-btn-danger"
           onClick={handleEndSession}
-          style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "auto" }}
+          style={{ width: "100%", justifyContent: "flex-start", height: "34px", marginTop: "auto" }}
           title="Finalizar esta sessão de atendimento remoto"
         >
-          <Square size={16} />
+          <Square size={15} />
           <span>Encerrar Sessão</span>
         </button>
 
@@ -341,8 +362,8 @@ export function RemoteSession() {
                   Chat de Atendimento: {device?.name || session.deviceId}
                 </h3>
               </div>
-              <button className="modal-close-btn" onClick={() => setShowChatModal(false)}>
-                <X size={18} />
+              <button className="tactical-icon-btn" onClick={() => setShowChatModal(false)}>
+                <X size={16} />
               </button>
             </div>
 
@@ -376,7 +397,7 @@ export function RemoteSession() {
                 placeholder="Digite a mensagem para exibir no celular..."
                 style={{ flex: 1 }}
               />
-              <button type="submit" className="primary" disabled={!chatMessage.trim()}>
+              <button type="submit" className="tactical-btn tactical-btn-crimson" disabled={!chatMessage.trim()}>
                 <Send size={14} />
               </button>
             </form>

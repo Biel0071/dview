@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Activity,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -38,6 +39,8 @@ import { AppsListView } from "./views/AppsListView";
 import { MediaView } from "./views/MediaView";
 import { FloatingDeviceWindow } from "./FloatingDeviceWindow";
 import { MultiDeviceGrid } from "./MultiDeviceGrid";
+import { Devices } from "../Devices";
+import { RemoteSession } from "../RemoteSession";
 
 function formatLastSeen(iso?: string): string {
   if (!iso) return "agora";
@@ -105,38 +108,55 @@ function mapApiToControl(dev: any, existing?: ControlDevice): ControlDevice {
 }
 
 export function deduplicateControlDevices(list: ControlDevice[]): ControlDevice[] {
-  const map = new Map<string, ControlDevice>();
+  const byNameModel = new Map<string, ControlDevice>();
   for (const dev of list) {
-    const cleanPhone = dev.phoneNumber ? dev.phoneNumber.replace(/\D/g, "") : "";
-    const contactKey = dev.contactName ? `${dev.contactName.trim().toLowerCase()}_${(dev.model || "").trim().toLowerCase()}` : "";
-    const accountKey = dev.userAccount ? dev.userAccount.trim().toLowerCase() : "";
-    const key = cleanPhone
-      ? `phone:${cleanPhone}`
-      : accountKey
-      ? `acct:${accountKey}`
-      : contactKey
-      ? `contact:${contactKey}`
-      : `id:${dev.id}`;
-
-    if (!map.has(key)) {
-      map.set(key, { ...dev });
+    const nmKey = `${(dev.name || "").trim().toLowerCase()}_${(dev.model || "").trim().toLowerCase()}`;
+    if (!byNameModel.has(nmKey)) {
+      byNameModel.set(nmKey, { ...dev });
     } else {
-      const existing = map.get(key)!;
+      const existing = byNameModel.get(nmKey)!;
       if (dev.status === "online" && existing.status !== "online") {
-        // Prioridade inegociável: Status online sempre vence!
-        map.set(key, { ...existing, ...dev, status: "online" });
+        byNameModel.set(nmKey, { ...existing, ...dev, status: "online" });
       } else if (dev.status !== "online" && existing.status === "online") {
-        map.set(key, { ...dev, ...existing, status: "online" });
+        byNameModel.set(nmKey, { ...dev, ...existing, status: "online" });
       } else {
-        map.set(key, { ...existing, ...dev });
+        byNameModel.set(nmKey, { ...existing, ...dev });
       }
     }
   }
-  return Array.from(map.values());
+
+  const byPhone = new Map<string, ControlDevice>();
+  for (const dev of byNameModel.values()) {
+    const cleanPhone = dev.phoneNumber ? dev.phoneNumber.replace(/\D/g, "") : "";
+    const key = cleanPhone ? `phone:${cleanPhone}` : `id:${dev.id}`;
+    if (!byPhone.has(key)) {
+      byPhone.set(key, { ...dev });
+    } else {
+      const existing = byPhone.get(key)!;
+      if (dev.status === "online" && existing.status !== "online") {
+        byPhone.set(key, { ...existing, ...dev, status: "online" });
+      } else if (dev.status !== "online" && existing.status === "online") {
+        byPhone.set(key, { ...dev, ...existing, status: "online" });
+      } else {
+        byPhone.set(key, { ...existing, ...dev });
+      }
+    }
+  }
+  return Array.from(byPhone.values());
 }
 
 export function ControlPanel() {
-  const { devices: apiDevices, setView, upsertDevice, removeDevice, selectedDeviceId, setSelectedDeviceId } = useAppStore();
+  const {
+    devices: apiDevices,
+    sessions,
+    setView,
+    controlMode,
+    setControlMode,
+    upsertDevice,
+    removeDevice,
+    selectedDeviceId,
+    setSelectedDeviceId
+  } = useAppStore();
   const [controlDevices, setControlDevices] = useState<ControlDevice[]>(() =>
     deduplicateControlDevices((apiDevices || []).map((d) => mapApiToControl(d)))
   );
@@ -333,7 +353,7 @@ export function ControlPanel() {
   useEffect(() => {
     setControlDevices((curr) => {
       const existingMap = new Map(curr.map((d) => [d.id, d]));
-      return (apiDevices || []).map((dev) => mapApiToControl(dev, existingMap.get(dev.id)));
+      return deduplicateControlDevices((apiDevices || []).map((dev) => mapApiToControl(dev, existingMap.get(dev.id))));
     });
 
     if (apiDevices.length > 0 && (!selectedId || !apiDevices.some((d) => d.id === selectedId))) {
@@ -526,185 +546,173 @@ export function ControlPanel() {
         </div>
       )}
 
-      {/* Render 3-Columns or Empty State */}
-      {controlDevices.length === 0 ? (
-        <div className="control-empty-state-view">
-          <div className="control-empty-state-card">
-            <div className="control-empty-state-icon">
-              <Smartphone size={38} style={{ color: "var(--crimson-neon, #ff1a2a)" }} />
-            </div>
-            <h2>Nenhum Dispositivo Conectado em Tempo Real</h2>
-            <p className="control-empty-subtitle">
-              O painel de controle está conectado à API e ao Socket.IO aguardando dispositivos reais ou instâncias de emuladores para iniciar o espelhamento e a supervisão remota.
-            </p>
-
-            <div className="control-empty-actions-grid">
-              <div className="control-empty-action-card">
-                <div className="action-card-header">
-                  <MonitorSmartphone size={20} style={{ color: "#38bdf8" }} />
-                  <strong>Conectar Emulador Android</strong>
-                </div>
-                <p>
-                  Inicie instantaneamente uma instância simulada do Android (porta 5554+ / Loopback) pronta para receber comandos e projeção de tela.
-                </p>
-                <button
-                  type="button"
-                  className="primary compact-btn"
-                  onClick={handleAddEmulator}
-                  style={{ marginTop: "auto", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                >
-                  <Plus size={14} /> Adicionar Emulador Agora
-                </button>
-              </div>
-
-              <div className="control-empty-action-card">
-                <div className="action-card-header">
-                  <Download size={20} style={{ color: "#22c55e" }} />
-                  <strong>Gerar APK com Túnel Seguro</strong>
-                </div>
-                <p>
-                  Crie um instalador APK corporativo do Agente com ativação de VPN e Acessibilidade para instalar em qualquer aparelho físico.
-                </p>
-                <button
-                  type="button"
-                  className="secondary compact-btn"
-                  onClick={() => setView("Gerador APK")}
-                  style={{ marginTop: "auto", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                >
-                  <SlidersHorizontal size={14} /> Abrir Construtor de APK
-                </button>
-              </div>
-
-              <div className="control-empty-action-card">
-                <div className="action-card-header">
-                  <Radio size={20} style={{ color: "#facc15" }} />
-                  <strong>Conectar Aparelho Físico</strong>
-                </div>
-                <p>
-                  No dispositivo cliente, aponte a URL do servidor para o IP da sua máquina (ex: <code>http://192.168.100.2:3000</code>).
-                  A conexão é automática via telemetria WebSocket.
-                </p>
-                <span className="badge online" style={{ marginTop: "auto", alignSelf: "flex-start", fontSize: "11px" }}>
-                  <CircleDot size={10} /> Escutando na porta 3000
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
+        {/* Top Tactical Command Ribbon (Unified Control + Devices + Sessions) */}
+        <div className="control-ribbon-toolbar">
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            {/* Brand and online pill */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontWeight: 800, fontSize: "12px", color: "#ffffff", letterSpacing: "0.5px" }}>DVIEW CONTROLE</span>
+              <span className="brand-stat-item online" style={{ fontSize: "11px", color: "#22c55e", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                <span className="brand-stat-dot online" /> {onlineCount} online
+              </span>
+              {offlineCount > 0 && (
+                <span className="brand-stat-item offline" style={{ fontSize: "11px", color: "#94a3b8", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                  <span className="brand-stat-dot offline" /> {offlineCount} off
                 </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
-          {/* Top Tactical Command Ribbon */}
-          <div className="control-ribbon-toolbar">
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              {/* Brand and online pill */}
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ fontWeight: 800, fontSize: "12px", color: "#ffffff", letterSpacing: "0.5px" }}>DVIEW CONTROLE</span>
-                <span className="brand-stat-item online" style={{ fontSize: "11px", color: "#22c55e", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                  <span className="brand-stat-dot online" /> {onlineCount} online
-                </span>
-                {offlineCount > 0 && (
-                  <span className="brand-stat-item offline" style={{ fontSize: "11px", color: "#94a3b8", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                    <span className="brand-stat-dot offline" /> {offlineCount} off
-                  </span>
-                )}
-              </div>
-
-              <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 2px" }} />
-
-              {/* Focus Mode Toggle */}
-              <button
-                type="button"
-                className={`ribbon-btn ${focusMode ? "active" : ""}`}
-                onClick={() => {
-                  setFocusMode(!focusMode);
-                  showToast(focusMode ? "Painéis laterais restaurados" : "Modo Foco Ativado: Espaço 100% expandido!");
-                }}
-                title="Modo Foco: Oculta colunas laterais para maximizar área de visualização dos aparelhos"
-              >
-                {focusMode ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-                <span>{focusMode ? "MOSTRAR PAINÉIS" : "MODO FOCO"}</span>
-              </button>
-
-              {/* Sidebar Collapse Toggle */}
-              <button
-                type="button"
-                className={`ribbon-btn ${isSidebarCollapsed ? "active" : ""}`}
-                onClick={() => {
-                  setIsSidebarCollapsed(!isSidebarCollapsed);
-                  showToast(isSidebarCollapsed ? "Menu lateral de aparelhos exibido" : "Menu lateral recolhido para visão ampla!");
-                }}
-                title={isSidebarCollapsed ? "Mostrar menu lateral unificado" : "Recolher menu lateral unificado"}
-              >
-                <SlidersHorizontal size={13} />
-                <span>{isSidebarCollapsed ? "MOSTRAR MENU" : "RECOLHER MENU"}</span>
-              </button>
-
-              <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 2px" }} />
-
-              {/* Grid Layout Selector */}
-              <div style={{ display: "flex", alignItems: "center", background: "#060911", border: "1px solid #1e293b", borderRadius: "6px", padding: "2px", gap: "2px" }}>
-                <button
-                  type="button"
-                  className={`tactical-grid-btn ${gridCount === 1 ? "active" : ""}`}
-                  onClick={() => setGridCount(1)}
-                  title="1 Tela (Foco Único)"
-                >
-                  1 Tela
-                </button>
-                <button
-                  type="button"
-                  className={`tactical-grid-btn ${gridCount === 2 ? "active" : ""}`}
-                  onClick={() => setGridCount(2)}
-                  title="2 Telas (Lado a Lado 2×1)"
-                >
-                  2 Telas
-                </button>
-                <button
-                  type="button"
-                  className={`tactical-grid-btn ${gridCount === 3 ? "active" : ""}`}
-                  onClick={() => setGridCount(3)}
-                  title="3 Telas (Tríplice 3×1)"
-                >
-                  3 Telas
-                </button>
-                <button
-                  type="button"
-                  className={`tactical-grid-btn ${gridCount === 4 ? "active" : ""}`}
-                  onClick={() => setGridCount(4)}
-                  title="4 Telas (Matriz Quad 2×2)"
-                >
-                  4 Telas
-                </button>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-              {/* Encrypted Instance URL & Direct Link */}
-              {selectedDevice && (
-                <>
-                  <button
-                    type="button"
-                    className="tactical-btn tactical-btn-sm tactical-btn-cyan"
-                    onClick={() => handleCopyEncryptedUrl()}
-                    title="Copiar URL Criptografado (AES-256-GCM) para conexão segura direta a esta instância"
-                  >
-                    <ShieldCheck size={12} />
-                    <span>URL Criptografado</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="tactical-btn tactical-btn-sm"
-                    onClick={() => handleCopyDirectUrl()}
-                    title="Copiar Link direto para esta instância de aparelho"
-                  >
-                    <Link2 size={12} />
-                    <span>Link Instância</span>
-                  </button>
-                </>
               )}
+            </div>
 
-              {/* Open Floating Window */}
+            <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 2px" }} />
+
+            {/* Unified 3-Mode Workspace Switcher: Espelhamento & Controle | Dispositivos | Sessões */}
+            <div
+              className="control-mode-switcher"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                background: "#060911",
+                border: "1px solid #1e293b",
+                borderRadius: "7px",
+                padding: "2px",
+                gap: "3px"
+              }}
+            >
+              <button
+                type="button"
+                className={`tactical-btn tactical-btn-sm ${controlMode === "live" ? "tactical-btn-crimson active" : ""}`}
+                onClick={() => setControlMode("live")}
+                title="Espelhamento & Controle em 3 Colunas e Multi-Telas"
+                style={{ border: controlMode === "live" ? undefined : "1px solid transparent", background: controlMode === "live" ? undefined : "transparent" }}
+              >
+                <MonitorSmartphone size={13} />
+                <span>Espelhamento & Controle</span>
+              </button>
+
+              <button
+                type="button"
+                className={`tactical-btn tactical-btn-sm ${controlMode === "devices" ? "tactical-btn-crimson active" : ""}`}
+                onClick={() => setControlMode("devices")}
+                title="Tabela Completa de Dispositivos Pareados, Ping, Auditoria e Edição"
+                style={{ border: controlMode === "devices" ? undefined : "1px solid transparent", background: controlMode === "devices" ? undefined : "transparent" }}
+              >
+                <Smartphone size={13} />
+                <span>Dispositivos ({controlDevices.length})</span>
+              </button>
+
+              <button
+                type="button"
+                className={`tactical-btn tactical-btn-sm ${controlMode === "sessions" ? "tactical-btn-crimson active" : ""}`}
+                onClick={() => setControlMode("sessions")}
+                title="Sessões Remotas Supervisionadas e Chat de Atendimento"
+                style={{ border: controlMode === "sessions" ? undefined : "1px solid transparent", background: controlMode === "sessions" ? undefined : "transparent" }}
+              >
+                <Activity size={13} />
+                <span>Sessões ({sessions.length})</span>
+              </button>
+            </div>
+
+            {controlMode === "live" && controlDevices.length > 0 && (
+              <>
+                <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 2px" }} />
+
+                {/* Focus Mode Toggle */}
+                <button
+                  type="button"
+                  className={`ribbon-btn ${focusMode ? "active" : ""}`}
+                  onClick={() => {
+                    setFocusMode(!focusMode);
+                    showToast(focusMode ? "Painéis laterais restaurados" : "Modo Foco Ativado: Espaço 100% expandido!");
+                  }}
+                  title="Modo Foco: Oculta colunas laterais para maximizar área de visualização dos aparelhos"
+                >
+                  {focusMode ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                  <span>{focusMode ? "MOSTRAR PAINÉIS" : "MODO FOCO"}</span>
+                </button>
+
+                {/* Sidebar Collapse Toggle */}
+                <button
+                  type="button"
+                  className={`ribbon-btn ${isSidebarCollapsed ? "active" : ""}`}
+                  onClick={() => {
+                    setIsSidebarCollapsed(!isSidebarCollapsed);
+                    showToast(isSidebarCollapsed ? "Menu lateral de aparelhos exibido" : "Menu lateral recolhido para visão ampla!");
+                  }}
+                  title={isSidebarCollapsed ? "Mostrar menu lateral unificado" : "Recolher menu lateral unificado"}
+                >
+                  <SlidersHorizontal size={13} />
+                  <span>{isSidebarCollapsed ? "MOSTRAR MENU" : "RECOLHER MENU"}</span>
+                </button>
+
+                <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 2px" }} />
+
+                {/* Grid Layout Selector */}
+                <div style={{ display: "flex", alignItems: "center", background: "#060911", border: "1px solid #1e293b", borderRadius: "6px", padding: "2px", gap: "2px" }}>
+                  <button
+                    type="button"
+                    className={`tactical-grid-btn ${gridCount === 1 ? "active" : ""}`}
+                    onClick={() => setGridCount(1)}
+                    title="1 Tela (Foco Único)"
+                  >
+                    1 Tela
+                  </button>
+                  <button
+                    type="button"
+                    className={`tactical-grid-btn ${gridCount === 2 ? "active" : ""}`}
+                    onClick={() => setGridCount(2)}
+                    title="2 Telas (Lado a Lado 2×1)"
+                  >
+                    2 Telas
+                  </button>
+                  <button
+                    type="button"
+                    className={`tactical-grid-btn ${gridCount === 3 ? "active" : ""}`}
+                    onClick={() => setGridCount(3)}
+                    title="3 Telas (Tríplice 3×1)"
+                  >
+                    3 Telas
+                  </button>
+                  <button
+                    type="button"
+                    className={`tactical-grid-btn ${gridCount === 4 ? "active" : ""}`}
+                    onClick={() => setGridCount(4)}
+                    title="4 Telas (Matriz Quad 2×2)"
+                  >
+                    4 Telas
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+            {/* Encrypted Instance URL & Direct Link */}
+            {selectedDevice && (
+              <>
+                <button
+                  type="button"
+                  className="tactical-btn tactical-btn-sm tactical-btn-cyan"
+                  onClick={() => handleCopyEncryptedUrl()}
+                  title="Copiar URL Criptografado (AES-256-GCM) para conexão segura direta a esta instância"
+                >
+                  <ShieldCheck size={12} />
+                  <span>URL Criptografado</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="tactical-btn tactical-btn-sm"
+                  onClick={() => handleCopyDirectUrl()}
+                  title="Copiar Link direto para esta instância de aparelho"
+                >
+                  <Link2 size={12} />
+                  <span>Link Instância</span>
+                </button>
+              </>
+            )}
+
+            {/* Open Floating Window */}
+            {selectedDevice && (
               <button
                 type="button"
                 className="tactical-btn tactical-btn-sm tactical-btn-crimson"
@@ -714,8 +722,10 @@ export function ControlPanel() {
                 <Layers size={12} />
                 <span>Janela Flutuante (MEmu)</span>
               </button>
+            )}
 
-              {/* Popout Desktop */}
+            {/* Popout Desktop */}
+            {selectedDevice && (
               <button
                 type="button"
                 className="tactical-btn tactical-btn-sm tactical-btn-cyan"
@@ -725,9 +735,104 @@ export function ControlPanel() {
                 <ExternalLink size={12} />
                 <span>Popout Desktop</span>
               </button>
+            )}
+          </div>
+        </div>
+
+        {/* Dynamic Sub-View Based on controlMode ("live" | "devices" | "sessions") */}
+        {controlMode === "devices" ? (
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "14px 18px" }}>
+            <Devices
+              embeddedInControl
+              onOpenDeviceLive={(devId) => {
+                setSelectedId(devId);
+                setSelectedDeviceId(devId);
+                setControlMode("live");
+                setActiveTool("tela");
+              }}
+              onOpenFloating={(dev) => {
+                const found = controlDevices.find((c) => c.id === dev.id) || mapApiToControl(dev);
+                handleOpenFloating(found);
+              }}
+              onAddEmulator={handleAddEmulator}
+            />
+          </div>
+        ) : controlMode === "sessions" ? (
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "14px 18px" }}>
+            <RemoteSession
+              onOpenDeviceLive={(devId) => {
+                setSelectedId(devId);
+                setSelectedDeviceId(devId);
+                setControlMode("live");
+                setActiveTool("tela");
+              }}
+            />
+          </div>
+        ) : controlDevices.length === 0 ? (
+          <div className="control-empty-state-view">
+            <div className="control-empty-state-card">
+              <div className="control-empty-state-icon">
+                <Smartphone size={38} style={{ color: "var(--crimson-neon, #ff1a2a)" }} />
+              </div>
+              <h2>Nenhum Dispositivo Conectado em Tempo Real</h2>
+              <p className="control-empty-subtitle">
+                O painel de controle está conectado à API e ao Socket.IO aguardando dispositivos reais ou instâncias de emuladores para iniciar o espelhamento e a supervisão remota.
+              </p>
+
+              <div className="control-empty-actions-grid">
+                <div className="control-empty-action-card">
+                  <div className="action-card-header">
+                    <MonitorSmartphone size={20} style={{ color: "#38bdf8" }} />
+                    <strong>Conectar Emulador Android</strong>
+                  </div>
+                  <p>
+                    Inicie instantaneamente uma instância simulada do Android (porta 5554+ / Loopback) pronta para receber comandos e projeção de tela.
+                  </p>
+                  <button
+                    type="button"
+                    className="tactical-btn tactical-btn-crimson"
+                    onClick={handleAddEmulator}
+                    style={{ marginTop: "auto" }}
+                  >
+                    <Plus size={14} /> Adicionar Emulador Agora
+                  </button>
+                </div>
+
+                <div className="control-empty-action-card">
+                  <div className="action-card-header">
+                    <Download size={20} style={{ color: "#22c55e" }} />
+                    <strong>Gerar APK com Túnel Seguro</strong>
+                  </div>
+                  <p>
+                    Crie um instalador APK corporativo do Agente com ativação de VPN e Acessibilidade para instalar em qualquer aparelho físico.
+                  </p>
+                  <button
+                    type="button"
+                    className="tactical-btn tactical-btn-emerald"
+                    onClick={() => setView("Gerador APK")}
+                    style={{ marginTop: "auto" }}
+                  >
+                    <SlidersHorizontal size={14} /> Abrir Construtor de APK
+                  </button>
+                </div>
+
+                <div className="control-empty-action-card">
+                  <div className="action-card-header">
+                    <Radio size={20} style={{ color: "#facc15" }} />
+                    <strong>Conectar Aparelho Físico</strong>
+                  </div>
+                  <p>
+                    No dispositivo cliente, aponte a URL do servidor para o IP da sua máquina (ex: <code>http://192.168.100.2:3000</code>).
+                    A conexão é automática via telemetria WebSocket.
+                  </p>
+                  <span className="badge online" style={{ marginTop: "auto", alignSelf: "flex-start", fontSize: "11px" }}>
+                    <CircleDot size={10} /> Escutando na porta 3000
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-
+        ) : (
           <div className={`control-three-cols-wrapper ${focusMode ? "focus-mode" : ""}`}>
             {/* Single Unified Left Sidebar */}
             <UnifiedControlSidebar
@@ -796,6 +901,7 @@ export function ControlPanel() {
               )}
             </main>
           </div>
+        )}
 
           {/* RENDER ACTIVE FLOATING MEMU WINDOWS */}
           {floatingWindows.map((inst) => (
@@ -1034,15 +1140,9 @@ export function ControlPanel() {
                       href={instanceModal.encryptedUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="secondary compact-btn"
+                      className="tactical-btn tactical-btn-cyan"
                       style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "8px 14px",
-                        fontSize: "12px",
-                        textDecoration: "none",
-                        color: "#38bdf8"
+                        textDecoration: "none"
                       }}
                     >
                       <ExternalLink size={13} />
@@ -1050,9 +1150,8 @@ export function ControlPanel() {
                     </a>
                     <button
                       type="button"
-                      className="primary compact-btn"
+                      className="tactical-btn tactical-btn-crimson"
                       onClick={() => setInstanceModal(null)}
-                      style={{ padding: "8px 16px", fontSize: "12px" }}
                     >
                       Concluir
                     </button>
@@ -1062,7 +1161,6 @@ export function ControlPanel() {
             </div>
           )}
         </div>
-      )}
     </div>
   );
 }

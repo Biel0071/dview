@@ -122,7 +122,7 @@ async function run() {
   fs.writeFileSync(path.join(ARTIFACT_DIR, "audit_dashboard.png"), imgDash.toPNG());
   console.log("-> Saved audit_dashboard.png");
 
-  // 4. Dispositivos / Sessão
+  // 4. Dispositivos (Unified inside ControlPanel)
   console.log("5. Opening Dispositivos (/devices)...");
   await win.loadURL("http://localhost:5000/devices");
   await new Promise((r) => setTimeout(r, 2000));
@@ -131,8 +131,17 @@ async function run() {
   fs.writeFileSync(path.join(ARTIFACT_DIR, "audit_dispositivos.png"), imgDevs.toPNG());
   console.log("-> Saved audit_dispositivos.png");
 
-  // 5. Configurações
-  console.log("6. Opening Settings (/settings)...");
+  // 5. Sessões (Unified inside ControlPanel)
+  console.log("6. Opening Sessões (/sessions)...");
+  await win.loadURL("http://localhost:5000/sessions");
+  await new Promise((r) => setTimeout(r, 2000));
+
+  const imgSess = await win.capturePage();
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "audit_sessoes.png"), imgSess.toPNG());
+  console.log("-> Saved audit_sessoes.png");
+
+  // 6. Configurações
+  console.log("7. Opening Settings (/settings)...");
   await win.loadURL("http://localhost:5000/settings");
   await new Promise((r) => setTimeout(r, 2000));
 
