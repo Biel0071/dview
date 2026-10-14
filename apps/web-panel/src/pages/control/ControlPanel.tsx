@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleDot,
@@ -537,6 +538,20 @@ export function ControlPanel() {
     }
   };
 
+  const [showGridSubmenu, setShowGridSubmenu] = useState(false);
+  const ribbonRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!showGridSubmenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ribbonRef.current && !ribbonRef.current.contains(e.target as Node)) {
+        setShowGridSubmenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showGridSubmenu]);
+
   return (
     <div className="control-panel-master">
       {/* Toast Alert */}
@@ -547,25 +562,32 @@ export function ControlPanel() {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
-        {/* Top Tactical Command Ribbon (Unified Control + Devices + Sessions) */}
-        <div className="control-ribbon-toolbar">
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            {/* Brand and online pill */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontWeight: 800, fontSize: "12px", color: "#ffffff", letterSpacing: "0.5px" }}>DVIEW CONTROLE</span>
-              <span className="brand-stat-item online" style={{ fontSize: "11px", color: "#22c55e", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                <span className="brand-stat-dot online" /> {onlineCount} online
+        {/* Top Tactical Command Ribbon — Single Line with Telas Submenu */}
+        <div ref={ribbonRef} className="control-ribbon-toolbar">
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "nowrap" }}>
+            {/* Brand and Unified Status Count */}
+            <div style={{ display: "flex", alignItems: "center", gap: "7px", flexShrink: 0 }}>
+              <span style={{ fontWeight: 800, fontSize: "11.5px", color: "#ffffff", letterSpacing: "0.4px" }}>CONTROLE</span>
+              <span
+                className="brand-stat-item online"
+                style={{
+                  fontSize: "10.5px",
+                  color: onlineCount > 0 ? "#22c55e" : "#94a3b8",
+                  fontWeight: 700,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                <span className={`brand-stat-dot ${onlineCount > 0 ? "online" : "offline"}`} />
+                {onlineCount} on{offlineCount > 0 ? ` · ${offlineCount} off` : ""}
               </span>
-              {offlineCount > 0 && (
-                <span className="brand-stat-item offline" style={{ fontSize: "11px", color: "#94a3b8", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                  <span className="brand-stat-dot offline" /> {offlineCount} off
-                </span>
-              )}
             </div>
 
-            <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 2px" }} />
+            <div style={{ width: "1px", height: "16px", background: "#1e293b", flexShrink: 0 }} />
 
-            {/* Unified 3-Mode Workspace Switcher: Espelhamento & Controle | Dispositivos | Sessões */}
+            {/* Unified 3-Mode Workspace Switcher: Operação | Dispositivos | Sessões */}
             <div
               className="control-mode-switcher"
               style={{
@@ -575,18 +597,19 @@ export function ControlPanel() {
                 border: "1px solid #1e293b",
                 borderRadius: "7px",
                 padding: "2px",
-                gap: "3px"
+                gap: "2px",
+                flexShrink: 0
               }}
             >
               <button
                 type="button"
                 className={`tactical-btn tactical-btn-sm ${controlMode === "live" ? "tactical-btn-crimson active" : ""}`}
                 onClick={() => setControlMode("live")}
-                title="Espelhamento & Controle em 3 Colunas e Multi-Telas"
+                title="Espelhamento & Controle em Tempo Real"
                 style={{ border: controlMode === "live" ? undefined : "1px solid transparent", background: controlMode === "live" ? undefined : "transparent" }}
               >
-                <MonitorSmartphone size={13} />
-                <span>Espelhamento & Controle</span>
+                <MonitorSmartphone size={12} />
+                <span>Operação</span>
               </button>
 
               <button
@@ -596,7 +619,7 @@ export function ControlPanel() {
                 title="Tabela Completa de Dispositivos Pareados, Ping, Auditoria e Edição"
                 style={{ border: controlMode === "devices" ? undefined : "1px solid transparent", background: controlMode === "devices" ? undefined : "transparent" }}
               >
-                <Smartphone size={13} />
+                <Smartphone size={12} />
                 <span>Dispositivos ({controlDevices.length})</span>
               </button>
 
@@ -607,14 +630,14 @@ export function ControlPanel() {
                 title="Sessões Remotas Supervisionadas e Chat de Atendimento"
                 style={{ border: controlMode === "sessions" ? undefined : "1px solid transparent", background: controlMode === "sessions" ? undefined : "transparent" }}
               >
-                <Activity size={13} />
+                <Activity size={12} />
                 <span>Sessões ({sessions.length})</span>
               </button>
             </div>
 
             {controlMode === "live" && controlDevices.length > 0 && (
               <>
-                <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 2px" }} />
+                <div style={{ width: "1px", height: "16px", background: "#1e293b", flexShrink: 0 }} />
 
                 {/* Focus Mode Toggle */}
                 <button
@@ -626,8 +649,8 @@ export function ControlPanel() {
                   }}
                   title="Modo Foco: Oculta colunas laterais para maximizar área de visualização dos aparelhos"
                 >
-                  {focusMode ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-                  <span>{focusMode ? "MOSTRAR PAINÉIS" : "MODO FOCO"}</span>
+                  {focusMode ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+                  <span>{focusMode ? "Painéis" : "Foco"}</span>
                 </button>
 
                 {/* Sidebar Collapse Toggle */}
@@ -640,53 +663,59 @@ export function ControlPanel() {
                   }}
                   title={isSidebarCollapsed ? "Mostrar menu lateral unificado" : "Recolher menu lateral unificado"}
                 >
-                  <SlidersHorizontal size={13} />
-                  <span>{isSidebarCollapsed ? "MOSTRAR MENU" : "RECOLHER MENU"}</span>
+                  <SlidersHorizontal size={12} />
+                  <span>{isSidebarCollapsed ? "Abrir Menu" : "Menu"}</span>
                 </button>
 
-                <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 2px" }} />
+                {/* Submenu de Multi-Telas (1 Tela, 2 Telas, 3 Telas, 4 Telas) */}
+                <div className="tactical-dropdown-wrapper">
+                  <button
+                    type="button"
+                    className={`tactical-dropdown-trigger ${showGridSubmenu || gridCount > 1 ? "active" : ""}`}
+                    onClick={() => setShowGridSubmenu(!showGridSubmenu)}
+                    title="Selecionar quantidade de telas na grade (1, 2, 3 ou 4 Telas)"
+                  >
+                    <Layers size={11} style={{ color: "#38bdf8" }} />
+                    <span>{gridCount === 1 ? "1 Tela" : `${gridCount} Telas`}</span>
+                    <ChevronDown size={11} style={{ opacity: 0.75 }} />
+                  </button>
 
-                {/* Grid Layout Selector */}
-                <div style={{ display: "flex", alignItems: "center", background: "#060911", border: "1px solid #1e293b", borderRadius: "6px", padding: "2px", gap: "2px" }}>
-                  <button
-                    type="button"
-                    className={`tactical-grid-btn ${gridCount === 1 ? "active" : ""}`}
-                    onClick={() => setGridCount(1)}
-                    title="1 Tela (Foco Único)"
-                  >
-                    1 Tela
-                  </button>
-                  <button
-                    type="button"
-                    className={`tactical-grid-btn ${gridCount === 2 ? "active" : ""}`}
-                    onClick={() => setGridCount(2)}
-                    title="2 Telas (Lado a Lado 2×1)"
-                  >
-                    2 Telas
-                  </button>
-                  <button
-                    type="button"
-                    className={`tactical-grid-btn ${gridCount === 3 ? "active" : ""}`}
-                    onClick={() => setGridCount(3)}
-                    title="3 Telas (Tríplice 3×1)"
-                  >
-                    3 Telas
-                  </button>
-                  <button
-                    type="button"
-                    className={`tactical-grid-btn ${gridCount === 4 ? "active" : ""}`}
-                    onClick={() => setGridCount(4)}
-                    title="4 Telas (Matriz Quad 2×2)"
-                  >
-                    4 Telas
-                  </button>
+                  {showGridSubmenu && (
+                    <div className="tactical-dropdown-menu">
+                      <div className="tactical-dropdown-header">GRADE DE APARELHOS (MULTI-TELA)</div>
+                      {(
+                        [
+                          { count: 1 as const, label: "1 Tela — Foco Único", desc: "1×1" },
+                          { count: 2 as const, label: "2 Telas — Lado a Lado", desc: "2×1" },
+                          { count: 3 as const, label: "3 Telas — Visão Tripla", desc: "3×1" },
+                          { count: 4 as const, label: "4 Telas — Matriz Quad", desc: "2×2" }
+                        ]
+                      ).map((opt) => (
+                        <button
+                          key={opt.count}
+                          type="button"
+                          className={`tactical-dropdown-item ${gridCount === opt.count ? "selected" : ""}`}
+                          onClick={() => {
+                            setGridCount(opt.count);
+                            setShowGridSubmenu(false);
+                          }}
+                        >
+                          <Layers size={12} style={{ color: gridCount === opt.count ? "#38bdf8" : "#64748b" }} />
+                          <span style={{ flex: 1 }}>{opt.label}</span>
+                          <span style={{ fontSize: "9.5px", color: "#64748b", fontFamily: "var(--font-mono)" }}>
+                            {opt.desc}
+                          </span>
+                          {gridCount === opt.count && <Check size={12} style={{ color: "#38bdf8" }} />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </>
             )}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-            {/* Encrypted Instance URL & Direct Link */}
+          <div style={{ display: "flex", alignItems: "center", gap: "5px", flexWrap: "nowrap", flexShrink: 0 }}>
             {selectedDevice && (
               <>
                 <button
@@ -696,7 +725,7 @@ export function ControlPanel() {
                   title="Copiar URL Criptografado (AES-256-GCM) para conexão segura direta a esta instância"
                 >
                   <ShieldCheck size={12} />
-                  <span>URL Criptografado</span>
+                  <span>URL Seguro</span>
                 </button>
 
                 <button
@@ -706,35 +735,29 @@ export function ControlPanel() {
                   title="Copiar Link direto para esta instância de aparelho"
                 >
                   <Link2 size={12} />
-                  <span>Link Instância</span>
+                  <span>Link</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="tactical-btn tactical-btn-sm tactical-btn-crimson"
+                  onClick={() => handleOpenFloating()}
+                  title="Abrir aparelho atual em uma Janela Flutuante com barra lateral MEmu e pino de fixação"
+                >
+                  <Layers size={12} />
+                  <span>Flutuante</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="tactical-btn tactical-btn-sm tactical-btn-cyan"
+                  onClick={() => handlePopoutDesktop()}
+                  title="Desencaixar em Janela Independente do Windows (Popout)"
+                >
+                  <ExternalLink size={12} />
+                  <span>Popout</span>
                 </button>
               </>
-            )}
-
-            {/* Open Floating Window */}
-            {selectedDevice && (
-              <button
-                type="button"
-                className="tactical-btn tactical-btn-sm tactical-btn-crimson"
-                onClick={() => handleOpenFloating()}
-                title="Abrir aparelho atual em uma Janela Flutuante com barra lateral MEmu e pino de fixação"
-              >
-                <Layers size={12} />
-                <span>Janela Flutuante (MEmu)</span>
-              </button>
-            )}
-
-            {/* Popout Desktop */}
-            {selectedDevice && (
-              <button
-                type="button"
-                className="tactical-btn tactical-btn-sm tactical-btn-cyan"
-                onClick={() => handlePopoutDesktop()}
-                title="Desencaixar em Janela Independente do Windows (Popout)"
-              >
-                <ExternalLink size={12} />
-                <span>Popout Desktop</span>
-              </button>
             )}
           </div>
         </div>

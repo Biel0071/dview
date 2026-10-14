@@ -436,8 +436,8 @@ export function App() {
               <>
                 <span className="c2-beacon-offline" />
                 <div className="c2-status-details" style={{ flex: 1 }}>
-                  <span className="c2-status-title" style={{ color: "#ef4444" }}>CONEXÃO OFF</span>
-                  <small className="c2-status-sub" style={{ color: "#f87171" }}>Sem Conexão (0 aparelhos)</small>
+                  <span className="c2-status-title" style={{ color: "#ef4444" }}>REDE EM ESPERA</span>
+                  <small className="c2-status-sub" style={{ color: "#94a3b8" }}>0 aparelhos online</small>
                 </div>
               </>
             )}

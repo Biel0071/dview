@@ -77,6 +77,45 @@ async function run() {
   fs.writeFileSync(path.join(ARTIFACT_DIR, "audit_control_panel.png"), imgControl.toPNG());
   console.log("-> Saved audit_control_panel.png");
 
+  // Capture Submenu: Telas (1/2)
+  await win.webContents.executeJavaScript(`
+    (() => {
+      const btns = Array.from(document.querySelectorAll(".tactical-dropdown-trigger"));
+      const btn = btns.find(b => b.textContent && b.textContent.includes("Telas ("));
+      if (btn) btn.click();
+    })()
+  `);
+  await new Promise((r) => setTimeout(r, 500));
+  const imgSubTelas = await win.capturePage();
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "audit_submenu_telas.png"), imgSubTelas.toPNG());
+  console.log("-> Saved audit_submenu_telas.png");
+
+  // Capture Submenu: Resolução
+  await win.webContents.executeJavaScript(`
+    (() => {
+      const btns = Array.from(document.querySelectorAll(".tactical-dropdown-trigger"));
+      const btn = btns.find(b => b.textContent && b.textContent.includes("Res:"));
+      if (btn) btn.click();
+    })()
+  `);
+  await new Promise((r) => setTimeout(r, 500));
+  const imgSubRes = await win.capturePage();
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "audit_submenu_res.png"), imgSubRes.toPNG());
+  console.log("-> Saved audit_submenu_res.png");
+
+  // Capture Submenu: Tamanho da Tela
+  await win.webContents.executeJavaScript(`
+    (() => {
+      const btns = Array.from(document.querySelectorAll(".tactical-dropdown-trigger"));
+      const btn = btns.find(b => b.textContent && b.textContent.includes("Tamanho:"));
+      if (btn) btn.click();
+    })()
+  `);
+  await new Promise((r) => setTimeout(r, 500));
+  const imgSubSize = await win.capturePage();
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "audit_submenu_size.png"), imgSubSize.toPNG());
+  console.log("-> Saved audit_submenu_size.png");
+
   // 2. Gerador APK
   console.log("3. Opening Gerador APK (/apk-builder)...");
   await win.webContents.executeJavaScript(`

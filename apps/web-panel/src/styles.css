@@ -10474,32 +10474,174 @@ button:active,
   box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
 }
 
-/* Fix Responsive Wrapping in Top Command Ribbon & ScreenView Toolbar */
+/* Single-Line Top Command Ribbon & ScreenView Toolbar + Submenu Dropdowns */
 .control-ribbon-toolbar {
-  height: auto !important;
-  min-height: 40px !important;
-  padding: 5px 12px !important;
-  flex-wrap: wrap !important;
-  gap: 6px 10px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 10px !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  overflow: visible !important;
+  position: relative;
+  z-index: 60 !important;
 }
 
 .tactical-top-controls-bar {
-  height: auto !important;
+  height: 36px !important;
   min-height: 36px !important;
-  padding: 5px 10px !important;
+  padding: 0 8px !important;
   overflow: visible !important;
+  position: relative;
+  z-index: 50 !important;
 }
 
 .tactical-single-toolbar-row {
-  flex-wrap: wrap !important;
-  gap: 5px 8px !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
   justify-content: space-between !important;
   overflow: visible !important;
 }
 
 .tactical-pill-toggles-row {
-  flex-wrap: wrap !important;
-  gap: 3px !important;
+  flex-wrap: nowrap !important;
+  gap: 4px !important;
+  overflow: visible !important;
+}
+
+.tactical-dropdown-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.tactical-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  color: #e2e8f0;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.tactical-dropdown-trigger:hover,
+.tactical-dropdown-trigger.active {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.22);
+}
+
+.tactical-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 215px;
+  background: rgba(9, 13, 24, 0.98);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.75), 0 0 16px rgba(56, 189, 248, 0.14);
+  backdrop-filter: blur(12px);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tactical-dropdown-menu.align-right {
+  left: auto;
+  right: 0;
+}
+
+.tactical-dropdown-header {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  color: #64748b;
+  padding: 4px 8px 2px;
+  text-transform: uppercase;
+}
+
+.tactical-dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 3px 0;
+}
+
+.tactical-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.tactical-dropdown-item:hover {
+  background: rgba(56, 189, 248, 0.12);
+  color: #ffffff;
+}
+
+.tactical-dropdown-item.selected {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.tactical-dropdown-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+}
+
+.tactical-dropdown-badge.on {
+  background: rgba(34, 197, 94, 0.18);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.tactical-dropdown-badge.off {
+  background: rgba(100, 116, 139, 0.18);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.tactical-dropdown-step-btn {
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tactical-dropdown-step-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #ffffff;
 }
 
 /* Sidebar Emulator Button & Card Icon Buttons Standardization */

@@ -194,8 +194,8 @@ export const ScreenViewPhoneFrame: React.FC<ScreenViewPhoneFrameProps> = ({
 
         <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "10.5px" }}>
           {device.status === "offline" ? (
-            <span style={{ color: "#ef4444", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "10px", fontWeight: 700 }}>
-              <WifiOff size={11} style={{ color: "#ef4444" }} /> Desconectado
+            <span style={{ color: "#64748b", fontSize: "10px", fontFamily: "var(--font-mono)" }}>
+              {device.id.slice(0, 12)}
             </span>
           ) : (
             <>
@@ -517,40 +517,9 @@ export const ScreenViewPhoneFrame: React.FC<ScreenViewPhoneFrameProps> = ({
               {device.name || "Aparelho Desconectado"}
             </h4>
 
-            <p style={{ fontSize: "11.5px", color: "#94a3b8", lineHeight: 1.5, margin: "0 0 16px 0", maxWidth: "250px" }}>
-              O dispositivo não está transmitindo ou o agente foi pausado. A transmissão retornará assim que o aparelho conectar.
+            <p style={{ fontSize: "11.5px", color: "#94a3b8", lineHeight: 1.5, margin: "0 0 18px 0", maxWidth: "240px" }}>
+              Aguardando sinal do aparelho ({device.id.slice(0, 14)}). A transmissão retomará automaticamente ao reconectar.
             </p>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "6px",
-                background: "rgba(15, 23, 42, 0.7)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: "8px",
-                padding: "10px 14px",
-                width: "100%",
-                maxWidth: "250px",
-                fontSize: "11px",
-                color: "#cbd5e1",
-                textAlign: "left",
-                marginBottom: "16px"
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#64748b" }}>Status Real:</span>
-                <span style={{ color: "#ef4444", fontWeight: 700 }}>● Desconectado</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#64748b" }}>Identificador:</span>
-                <span style={{ fontFamily: "var(--font-mono)", color: "#94a3b8" }}>{device.id.slice(0, 16)}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#64748b" }}>Streaming:</span>
-                <span style={{ color: "#f59e0b", fontWeight: 600 }}>Pausado (0 FPS)</span>
-              </div>
-            </div>
 
             <button
               type="button"

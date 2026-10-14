@@ -1,9 +1,14 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Bell,
+  Camera,
+  Check,
+  ChevronDown,
   ChevronLeft,
   Copy,
+  Eye,
   Fingerprint,
+  Layers,
   Lock,
   Maximize2,
   Pin,
@@ -15,7 +20,6 @@ import {
   Volume2,
   VolumeX,
   Wifi,
-  WifiOff,
   X,
   Zap
 } from "lucide-react";
@@ -133,38 +137,58 @@ export const ScreenViewToolbar: React.FC<ScreenViewToolbarProps> = ({
 }) => {
   const isOnline = device.status === "online";
   const isCellular = device.networkType === "4g" || device.networkType === "5g" || device.networkType === "3g";
+  const [openMenu, setOpenMenu] = useState<"modos" | "telas" | "res" | "size" | null>(null);
+  const toolbarRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!openMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
+        setOpenMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openMenu]);
+
+  const activeScreensCount = (telaActive ? 1 : 0) + (srActive ? 1 : 0) + (camActive ? 1 : 0);
+  const currentResLabel = QUALITY_PROFILES[streamQuality]?.shortLabel || "720p";
 
   return (
-    <header className="tactical-top-controls-bar">
+    <header ref={toolbarRef} className="tactical-top-controls-bar">
       <div className="tactical-single-toolbar-row">
-        {/* Lado Esquerdo: AO VIVO, Latência, Velocidade e Volume */}
-        <div className="tactical-device-header-left" style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+        {/* Lado Esquerdo: Voltar, Status Único e Volume */}
+        <div className="tactical-device-header-left" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <button
             type="button"
             className="tactical-back-btn"
             title="Voltar / Desfocar"
             onClick={() => handleMacroAction("input keyevent 4", "Voltar")}
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={15} />
           </button>
 
-          {/* Badge Dinâmico Online / Offline Real */}
+          {/* Badge Único de Conexão e Rede (Sem repetição de Conexão OFF + Sem Conexão) */}
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
               gap: "5px",
-              background: isOnline ? "rgba(34, 197, 94, 0.15)" : "rgba(239, 68, 68, 0.15)",
-              border: isOnline ? "1px solid rgba(34, 197, 94, 0.4)" : "1px solid rgba(239, 68, 68, 0.4)",
-              boxShadow: isOnline ? "0 0 10px rgba(34, 197, 94, 0.2)" : "0 0 10px rgba(239, 68, 68, 0.2)",
+              background: isOnline ? "rgba(34, 197, 94, 0.14)" : "rgba(239, 68, 68, 0.14)",
+              border: isOnline ? "1px solid rgba(34, 197, 94, 0.4)" : "1px solid rgba(239, 68, 68, 0.38)",
               borderRadius: "12px",
               padding: "2px 8px",
-              color: isOnline ? "#22c55e" : "#ef4444",
-              fontSize: "11px",
+              color: isOnline ? "#22c55e" : "#f87171",
+              fontSize: "10.5px",
               fontWeight: 800,
-              letterSpacing: "0.5px"
+              letterSpacing: "0.3px",
+              whiteSpace: "nowrap"
             }}
-            title={isOnline ? "Dispositivo Conectado e Operacional" : "Dispositivo Sem Conexão (Conexão OFF)"}
+            title={
+              isOnline
+                ? `Conectado (${isCellular ? "Dados Móveis 4G/LTE" : "Wi-Fi"})`
+                : "Aparelho Offline (Aguardando reconexão)"
+            }
           >
             <span
               style={{
@@ -172,55 +196,21 @@ export const ScreenViewToolbar: React.FC<ScreenViewToolbarProps> = ({
                 height: "6px",
                 borderRadius: "50%",
                 background: isOnline ? "#22c55e" : "#ef4444",
-                boxShadow: isOnline ? "0 0 6px #22c55e" : "0 0 6px #ef4444",
+                boxShadow: isOnline ? "0 0 6px #22c55e" : "0 0 5px #ef4444",
                 animation: isOnline ? "pulse 1.8s infinite" : "none"
               }}
             />
-            {isOnline ? "Online" : "Conexão OFF"}
+            <span>{isOnline ? "Online" : "Offline"}</span>
+            {isOnline && (
+              <>
+                <span style={{ opacity: 0.5 }}>·</span>
+                {isCellular ? <Radio size={10} style={{ color: "#fbbf24" }} /> : <Wifi size={10} style={{ color: "#38bdf8" }} />}
+                <span style={{ color: isCellular ? "#fbbf24" : "#38bdf8", fontFamily: "var(--font-mono)" }}>
+                  {isCellular ? "4G" : "Wi-Fi"}
+                </span>
+              </>
+            )}
           </div>
-
-          {/* Indicador de Rede: 4G, Wi-Fi ou Desconectado */}
-          {!isOnline ? (
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                background: "rgba(239, 68, 68, 0.1)",
-                border: "1px solid rgba(239, 68, 68, 0.3)",
-                borderRadius: "12px",
-                padding: "2px 8px",
-                fontSize: "10.5px",
-                fontWeight: 800,
-                fontFamily: "var(--font-mono)",
-                color: "#f87171"
-              }}
-              title="Sem Conexão de Rede com o Aparelho (Conexão OFF)"
-            >
-              <WifiOff size={11} />
-              <span>Sem Conexão</span>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                background: isCellular ? "rgba(245, 158, 11, 0.15)" : "rgba(56, 189, 248, 0.15)",
-                border: isCellular ? "1px solid rgba(245, 158, 11, 0.4)" : "1px solid rgba(56, 189, 248, 0.4)",
-                borderRadius: "12px",
-                padding: "2px 8px",
-                fontSize: "10.5px",
-                fontWeight: 800,
-                fontFamily: "var(--font-mono)",
-                color: isCellular ? "#fbbf24" : "#38bdf8"
-              }}
-              title={isCellular ? "Conectado via Dados Móveis (4G/LTE)" : "Conectado via Rede Sem Fio (Wi-Fi)"}
-            >
-              {isCellular ? <Radio size={11} /> : <Wifi size={11} />}
-              <span>{isCellular ? "4G" : "Wi-Fi"}</span>
-            </div>
-          )}
 
           {/* Volume Control: Linha Única Sleek */}
           <div
@@ -262,7 +252,7 @@ export const ScreenViewToolbar: React.FC<ScreenViewToolbarProps> = ({
               onChange={(e) => handleVolumeChange(Number(e.target.value))}
               className="tactical-volume-slider-line"
               style={{
-                width: "48px",
+                width: "34px",
                 height: "3px",
                 minHeight: "3px",
                 maxHeight: "3px",
@@ -336,126 +326,8 @@ export const ScreenViewToolbar: React.FC<ScreenViewToolbarProps> = ({
           )}
         </div>
 
-        {/* Centro: Toggles Táteis de Modo & Controle (Padronizados com altura e métricas unificadas) */}
+        {/* Centro: Toggles Táteis & Submenus Unificados (1 Linha Limpa) */}
         <div className="tactical-pill-toggles-row">
-          <button
-            type="button"
-            className={`tactical-pill-toggle ${silentActive ? "active" : ""}`}
-            onClick={() => {
-              setSilentActive(!silentActive);
-              showToast(silentActive ? "Modo silencioso desativado" : "Modo silencioso ativado", "success");
-            }}
-            title="Áudio Silencioso (Silent Mode)"
-          >
-            <span className="pill-dot-indicator" />
-            <span className="pill-label">Silent</span>
-          </button>
-
-          <button
-            type="button"
-            className={`tactical-pill-toggle ${srActive ? "active" : ""}`}
-            onClick={() => {
-              setSrActive(!srActive);
-              showToast(srActive ? "Inspetor A11Y ocultado" : "Inspetor A11Y ativado", "success");
-            }}
-            title="Screen Reader / Leitor de Acessibilidade"
-          >
-            <span className="pill-dot-indicator" />
-            <span className="pill-label">A11Y</span>
-          </button>
-
-          <button
-            type="button"
-            className={`tactical-pill-toggle ${hidActive ? "active" : ""}`}
-            onClick={() => {
-              setHidActive(!hidActive);
-              showToast(hidActive ? "HID desativado" : "HID ativado", "success");
-            }}
-            title="Controle de Entrada HID"
-          >
-            <span className="pill-dot-indicator" />
-            <span className="pill-label">HID</span>
-          </button>
-
-          <button
-            type="button"
-            className={`tactical-pill-toggle ${joyActive ? "active" : ""}`}
-            onClick={() => {
-              setJoyActive(!joyActive);
-              showToast(joyActive ? "Joystick desativado" : "Joystick ativado", "success");
-            }}
-            title="Navegação Direcional Joystick"
-          >
-            <span className="pill-dot-indicator" />
-            <span className="pill-label">Joy</span>
-          </button>
-
-          <button
-            type="button"
-            className={`tactical-pill-toggle ${tacticalSwitch ? "active" : ""}`}
-            onClick={() => {
-              setTacticalSwitch(!tacticalSwitch);
-              showToast(tacticalSwitch ? "Modo Touch Direto ativado" : "Modo Preciso ativado", "success");
-            }}
-            title="Modo de Controle: Preciso vs Direto"
-          >
-            <span className="pill-dot-indicator" />
-            <span className="pill-label">{tacticalSwitch ? "Preciso" : "Direto"}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`tactical-pill-toggle ${touchActive ? "active" : ""}`}
-            onClick={() => {
-              setTouchActive(!touchActive);
-              showToast(touchActive ? "Toque na tela desabilitado" : "Toque na tela habilitado", "success");
-            }}
-            title="Toque na Tela (Touch Injection)"
-          >
-            <span className="pill-dot-indicator" />
-            <span className="pill-label">Touch</span>
-          </button>
-
-          <button
-            type="button"
-            className={`tactical-pill-toggle ${telaActive ? "active" : ""}`}
-            onClick={() => {
-              setTelaActive(!telaActive);
-              showToast(telaActive ? "Streaming de tela pausado" : "Streaming de tela retomado", "success");
-            }}
-            title="Streaming da Tela em Tempo Real"
-          >
-            <span className="pill-dot-indicator" />
-            <span className="pill-label">Tela</span>
-          </button>
-
-          <button
-            type="button"
-            className={`tactical-pill-toggle ${camActive ? "active" : ""}`}
-            onClick={() => {
-              setCamActive(!camActive);
-              showToast(camActive ? "Câmera desativada" : "Câmera solicitada", "info");
-            }}
-            title="Câmera do Aparelho"
-          >
-            <span className="pill-dot-indicator" />
-            <span className="pill-label">Cam</span>
-          </button>
-
-          <button
-            type="button"
-            className={`tactical-pill-toggle ${shellActive ? "active" : ""}`}
-            onClick={() => {
-              setShellActive(!shellActive);
-              showToast(shellActive ? "Barra de atalhos oculta" : "Barra de atalhos exibida", "info");
-            }}
-            title="Terminal e Atalhos Rápidos"
-          >
-            <span className="pill-dot-indicator" />
-            <span className="pill-label">Shell</span>
-          </button>
-
-          {/* Biometria Button */}
           <button
             type="button"
             className={`tactical-pill-toggle ${isBiometricActive ? "active" : ""}`}
@@ -471,283 +343,401 @@ export const ScreenViewToolbar: React.FC<ScreenViewToolbarProps> = ({
             <span className="pill-label">Biometria</span>
           </button>
 
-          {/* Telas no Celular (Disfarces: Tela Preta, Atualização, Bateria, Imagem) */}
-          <button
-            type="button"
-            className={`tactical-pill-toggle ${activeDisguise?.active ? "active" : ""}`}
-            onClick={() => {
-              setSidebarInitialTab("telas");
-              setShowRightSidebar(true);
-            }}
-            style={{
-              background: activeDisguise?.active ? "rgba(255, 26, 42, 0.2)" : "rgba(168, 85, 247, 0.14)",
-              borderColor: activeDisguise?.active ? "#ff1a2a" : "rgba(168, 85, 247, 0.4)",
-              color: activeDisguise?.active ? "#ff4d5a" : "#c084fc"
-            }}
-            title="Abrir Telas no Celular (Tela Preta, Atualização Android, Bateria, Imagem)"
-          >
-            <Smartphone size={11} />
-            <span className="pill-label">{activeDisguise?.active ? "Disfarce" : "Telas"}</span>
-          </button>
-
-          {/* Enviar Push Notification no Aparelho */}
-          <button
-            type="button"
-            className="tactical-pill-toggle"
-            onClick={() => {
-              setSidebarInitialTab("telas");
-              setShowRightSidebar(true);
-            }}
-            style={{
-              background: "rgba(245, 158, 11, 0.16)",
-              borderColor: "rgba(245, 158, 11, 0.4)",
-              color: "#fbbf24"
-            }}
-            title="Enviar Push Notification personalizada no dispositivo"
-          >
-            <Bell size={11} />
-            <span className="pill-label">Push</span>
-          </button>
-
-          {/* Controles de Qualidade Adaptativa (ABR - Dynamic Bitrate & Resolution) */}
-          <div
-            className="tactical-abr-controls-group"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-              background: "rgba(10, 14, 24, 0.9)",
-              border: "1px solid rgba(56, 189, 248, 0.25)",
-              borderRadius: "6px",
-              padding: "1px 4px",
-              height: "22px",
-              boxSizing: "border-box"
-            }}
-          >
+          {/* SUBMENU 0: MODOS DE CONTROLE (Touch, Shell, Silent, HID, Joy, Preciso/Direto) */}
+          <div className="tactical-dropdown-wrapper">
             <button
               type="button"
-              className={`tactical-abr-auto-chip ${adaptiveMode === "auto" ? "active" : ""}`}
-              onClick={() => {
-                setAdaptiveMode("auto");
-                showToast("Modo Adaptativo (ABR) ativado: Qualidade se ajusta dinamicamente!", "success");
-              }}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "3px",
-                padding: "1px 6px",
-                borderRadius: "4px",
-                fontSize: "9px",
-                fontWeight: 800,
-                cursor: "pointer",
-                height: "18px",
-                border: adaptiveMode === "auto" ? "1px solid #10b981" : "1px solid transparent",
-                background: adaptiveMode === "auto" ? "rgba(16, 185, 129, 0.22)" : "transparent",
-                color: adaptiveMode === "auto" ? "#10b981" : "#94a3b8",
-                boxShadow: adaptiveMode === "auto" ? "0 0 8px rgba(16, 185, 129, 0.35)" : "none"
-              }}
-              title="Modo Adaptativo Automático (ABR): reduz resolução em sinal baixo mantendo velocidade/conexão e melhora quando sinal estabiliza"
+              className={`tactical-dropdown-trigger ${openMenu === "modos" ? "active" : ""}`}
+              onClick={() => setOpenMenu(openMenu === "modos" ? null : "modos")}
+              title="Modos de Controle (Touch, Shell, Silent, HID, Joystick, Preciso/Direto)"
             >
-              <Zap size={10} style={{ color: adaptiveMode === "auto" ? "#10b981" : "#94a3b8" }} />
-              <span>AUTO</span>
+              <span>Modos</span>
+              <ChevronDown size={11} style={{ opacity: 0.75 }} />
             </button>
 
-            <div style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
-              {(
-                [
-                  { tier: "ultra", label: "1080p", title: "1080p Ultra (Nitidez máxima)" },
-                  { tier: "high", label: "720p", title: "720p Alta (HD)" },
-                  { tier: "balance", label: "540p", title: "540p Equilibrada (qHD)" },
-                  { tier: "fluid", label: "360p", title: "360p Fluida/Eco (Baixa latência)" }
-                ] as const
-              ).map((item) => {
-                const isCur = streamQuality === item.tier;
-                const itemProf = QUALITY_PROFILES[item.tier];
-                return (
-                  <button
-                    key={item.tier}
-                    type="button"
-                    onClick={() => {
-                      setAdaptiveMode("manual");
-                      setStreamQuality(item.tier);
-                      activeQualityRef.current = item.tier;
-                      setFps(itemProf.targetFps);
-                      showToast(`Qualidade fixada em ${item.label}`, "info");
-                    }}
-                    style={{
-                      padding: "1px 5px",
-                      fontSize: "9px",
-                      fontWeight: 700,
-                      borderRadius: "4px",
-                      border: isCur ? `1px solid ${itemProf.color}` : "1px solid rgba(255, 255, 255, 0.06)",
-                      background: isCur ? `${itemProf.color}22` : "transparent",
-                      color: isCur ? itemProf.color : "#94a3b8",
-                      cursor: "pointer",
-                      height: "18px",
-                      display: "inline-flex",
-                      alignItems: "center"
-                    }}
-                    title={item.title}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
+            {openMenu === "modos" && (
+              <div className="tactical-dropdown-menu">
+                <div className="tactical-dropdown-header">MODOS DE INTERAÇÃO</div>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${touchActive ? "selected" : ""}`}
+                  onClick={() => {
+                    setTouchActive(!touchActive);
+                    showToast(touchActive ? "Toque na tela desabilitado" : "Toque na tela habilitado", "success");
+                  }}
+                >
+                  <span style={{ flex: 1 }}>Touch (Injeção de Toque)</span>
+                  <span className={`tactical-dropdown-badge ${touchActive ? "on" : "off"}`}>
+                    {touchActive ? "ON" : "OFF"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${shellActive ? "selected" : ""}`}
+                  onClick={() => {
+                    setShellActive(!shellActive);
+                    showToast(shellActive ? "Barra de atalhos oculta" : "Barra de atalhos exibida", "info");
+                  }}
+                >
+                  <span style={{ flex: 1 }}>Shell (Terminal Rodapé)</span>
+                  <span className={`tactical-dropdown-badge ${shellActive ? "on" : "off"}`}>
+                    {shellActive ? "ON" : "OFF"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${silentActive ? "selected" : ""}`}
+                  onClick={() => {
+                    setSilentActive(!silentActive);
+                    showToast(silentActive ? "Modo silencioso desativado" : "Modo silencioso ativado", "success");
+                  }}
+                >
+                  <span style={{ flex: 1 }}>Silent (Áudio Silencioso)</span>
+                  <span className={`tactical-dropdown-badge ${silentActive ? "on" : "off"}`}>
+                    {silentActive ? "ON" : "OFF"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${tacticalSwitch ? "selected" : ""}`}
+                  onClick={() => {
+                    setTacticalSwitch(!tacticalSwitch);
+                    showToast(tacticalSwitch ? "Modo Touch Direto ativado" : "Modo Preciso ativado", "success");
+                  }}
+                >
+                  <span style={{ flex: 1 }}>Toque: {tacticalSwitch ? "Preciso" : "Direto"}</span>
+                  <span className="tactical-dropdown-badge on">
+                    {tacticalSwitch ? "PRECISO" : "DIRETO"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${hidActive ? "selected" : ""}`}
+                  onClick={() => {
+                    setHidActive(!hidActive);
+                    showToast(hidActive ? "HID desativado" : "HID ativado", "success");
+                  }}
+                >
+                  <span style={{ flex: 1 }}>HID (Entrada Hardware)</span>
+                  <span className={`tactical-dropdown-badge ${hidActive ? "on" : "off"}`}>
+                    {hidActive ? "ON" : "OFF"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${joyActive ? "selected" : ""}`}
+                  onClick={() => {
+                    setJoyActive(!joyActive);
+                    showToast(joyActive ? "Joystick desativado" : "Joystick ativado", "success");
+                  }}
+                >
+                  <span style={{ flex: 1 }}>Joy (Navegação Direcional)</span>
+                  <span className={`tactical-dropdown-badge ${joyActive ? "on" : "off"}`}>
+                    {joyActive ? "ON" : "OFF"}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Controles de Tamanho & Zoom da Tela para Desktop (Auto-Fit & Níveis) */}
-          <div
-            className="tactical-zoom-controls-group"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-              background: "rgba(10, 14, 24, 0.9)",
-              border: "1px solid rgba(56, 189, 248, 0.25)",
-              borderRadius: "6px",
-              padding: "1px 4px",
-              height: "22px",
-              boxSizing: "border-box"
-            }}
-          >
+          {/* SUBMENU 1: TELAS 1 / 2 (Tela 1 Ao Vivo, Tela 2 Esqueleto A11Y, Câmera, Disfarces e Push) */}
+          <div className="tactical-dropdown-wrapper">
             <button
               type="button"
-              className={`tactical-zoom-chip ${isAutoFit ? "active" : ""}`}
-              onClick={() => {
-                setIsAutoFit(true);
-                setViewScale(100);
-                showToast("Auto-Fit ativado: Telas proporcionais 9:16 ajustadas ao monitor!", "success");
-              }}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "3px",
-                padding: "1px 6px",
-                borderRadius: "4px",
-                fontSize: "9px",
-                fontWeight: 800,
-                cursor: "pointer",
-                height: "18px",
-                border: isAutoFit ? "1px solid #38bdf8" : "1px solid transparent",
-                background: isAutoFit ? "rgba(56, 189, 248, 0.25)" : "transparent",
-                color: isAutoFit ? "#38bdf8" : "#94a3b8",
-                boxShadow: isAutoFit ? "0 0 8px rgba(56, 189, 248, 0.3)" : "none"
-              }}
-              title="Ajuste automático para o tamanho ideal do monitor sem distorcer as telas"
+              className={`tactical-dropdown-trigger ${openMenu === "telas" || activeDisguise?.active ? "active" : ""}`}
+              onClick={() => setOpenMenu(openMenu === "telas" ? null : "telas")}
+              title="Submenu de Telas (1 Tela, 2 Telas, Esqueleto A11Y, Câmera e Disfarces)"
             >
-              <Sparkles size={10} />
-              <span>AUTO</span>
+              <Layers size={11} style={{ color: activeDisguise?.active ? "#ff4d5a" : "#38bdf8" }} />
+              <span>Telas ({activeScreensCount})</span>
+              <ChevronDown size={11} style={{ opacity: 0.75 }} />
             </button>
 
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                background: "rgba(15, 23, 42, 0.8)",
-                borderRadius: "4px",
-                padding: "0 2px",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                height: "18px"
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAutoFit(false);
-                  setViewScale((prev) => Math.max(50, prev - 10));
-                }}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#94a3b8",
-                  padding: "0 4px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  fontWeight: 800,
-                  lineHeight: 1
-                }}
-                title="Diminuir tamanho das telas (-10%)"
-              >
-                -
-              </button>
-              <span
-                style={{
-                  fontSize: "9.5px",
-                  fontWeight: 700,
-                  fontFamily: "var(--font-mono)",
-                  color: isAutoFit ? "#38bdf8" : "#e2e8f0",
-                  minWidth: "30px",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  userSelect: "none"
-                }}
-                onClick={() => setIsAutoFit(!isAutoFit)}
-                title="Clique para alternar Auto-Fit"
-              >
-                {isAutoFit ? "AUTO" : `${viewScale}%`}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAutoFit(false);
-                  setViewScale((prev) => Math.min(150, prev + 10));
-                }}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#94a3b8",
-                  padding: "0 4px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  fontWeight: 800,
-                  lineHeight: 1
-                }}
-                title="Aumentar tamanho das telas (+10%)"
-              >
-                +
-              </button>
-            </div>
+            {openMenu === "telas" && (
+              <div className="tactical-dropdown-menu">
+                <div className="tactical-dropdown-header">MODO DE VISUALIZAÇÃO</div>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${telaActive && !srActive && !camActive ? "selected" : ""}`}
+                  onClick={() => {
+                    setTelaActive(true);
+                    setSrActive(false);
+                    setCamActive(false);
+                    setOpenMenu(null);
+                    showToast("Modo 1 Tela: Apenas Tela Ao Vivo ativa", "success");
+                  }}
+                >
+                  <Smartphone size={12} style={{ color: "#38bdf8" }} />
+                  <span style={{ flex: 1 }}>1 Tela — Foco Ao Vivo</span>
+                  {telaActive && !srActive && !camActive && <Check size={12} style={{ color: "#38bdf8" }} />}
+                </button>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${telaActive && srActive && !camActive ? "selected" : ""}`}
+                  onClick={() => {
+                    setTelaActive(true);
+                    setSrActive(true);
+                    setCamActive(false);
+                    setOpenMenu(null);
+                    showToast("Modo 2 Telas: Ao Vivo + Esqueleto 2D (A11Y)", "success");
+                  }}
+                >
+                  <Layers size={12} style={{ color: "#22c55e" }} />
+                  <span style={{ flex: 1 }}>2 Telas — Ao Vivo + A11Y</span>
+                  {telaActive && srActive && !camActive && <Check size={12} style={{ color: "#22c55e" }} />}
+                </button>
 
-            <div style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
-              {(
-                [
-                  { label: "P", scale: 70, title: "Tamanho Pequeno (70%)" },
-                  { label: "M", scale: 85, title: "Tamanho Médio (85%)" },
-                  { label: "G", scale: 100, title: "Tamanho Padrão (100%)" },
-                  { label: "Max", scale: 120, title: "Tamanho Máximo (120%)" }
-                ] as const
-              ).map((preset) => {
-                const isCur = !isAutoFit && Math.abs(viewScale - preset.scale) <= 5;
-                return (
+                <div className="tactical-dropdown-divider" />
+                <div className="tactical-dropdown-header">PAINÉIS INDIVIDUAIS</div>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${telaActive ? "selected" : ""}`}
+                  onClick={() => {
+                    setTelaActive(!telaActive);
+                    showToast(telaActive ? "Tela 1 (Ao Vivo) ocultada" : "Tela 1 (Ao Vivo) exibida", "success");
+                  }}
+                >
+                  <Smartphone size={12} style={{ color: telaActive ? "#22c55e" : "#64748b" }} />
+                  <span style={{ flex: 1 }}>Tela 1: Ao Vivo (Stream)</span>
+                  <span className={`tactical-dropdown-badge ${telaActive ? "on" : "off"}`}>
+                    {telaActive ? "ON" : "OFF"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${srActive ? "selected" : ""}`}
+                  onClick={() => {
+                    setSrActive(!srActive);
+                    showToast(srActive ? "Tela 2 (A11Y) ocultada" : "Tela 2 (A11Y) exibida", "success");
+                  }}
+                >
+                  <Eye size={12} style={{ color: srActive ? "#38bdf8" : "#64748b" }} />
+                  <span style={{ flex: 1 }}>Tela 2: Esqueleto 2D (A11Y)</span>
+                  <span className={`tactical-dropdown-badge ${srActive ? "on" : "off"}`}>
+                    {srActive ? "ON" : "OFF"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${camActive ? "selected" : ""}`}
+                  onClick={() => {
+                    setCamActive(!camActive);
+                    showToast(camActive ? "Câmera desativada" : "Câmera ativada", "info");
+                  }}
+                >
+                  <Camera size={12} style={{ color: camActive ? "#f59e0b" : "#64748b" }} />
+                  <span style={{ flex: 1 }}>Tela 3: Câmera Óptica</span>
+                  <span className={`tactical-dropdown-badge ${camActive ? "on" : "off"}`}>
+                    {camActive ? "ON" : "OFF"}
+                  </span>
+                </button>
+
+                <div className="tactical-dropdown-divider" />
+                <div className="tactical-dropdown-header">AÇÃO NO APARELHO</div>
+                <button
+                  type="button"
+                  className="tactical-dropdown-item"
+                  onClick={() => {
+                    setSidebarInitialTab("telas");
+                    setShowRightSidebar(true);
+                    setOpenMenu(null);
+                  }}
+                >
+                  <Smartphone size={12} style={{ color: "#c084fc" }} />
+                  <span style={{ flex: 1 }}>Telas de Disfarce (Overlay)</span>
+                </button>
+                <button
+                  type="button"
+                  className="tactical-dropdown-item"
+                  onClick={() => {
+                    setSidebarInitialTab("telas");
+                    setShowRightSidebar(true);
+                    setOpenMenu(null);
+                  }}
+                >
+                  <Bell size={12} style={{ color: "#fbbf24" }} />
+                  <span style={{ flex: 1 }}>Enviar Push Notification</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* SUBMENU 2: RESOLUÇÃO (1 botão com seleção interna: AUTO, 1080p, 720p, 540p, 360p) */}
+          <div className="tactical-dropdown-wrapper">
+            <button
+              type="button"
+              className={`tactical-dropdown-trigger ${openMenu === "res" ? "active" : ""}`}
+              onClick={() => setOpenMenu(openMenu === "res" ? null : "res")}
+              title="Selecionar Resolução de Transmissão (Adaptativo ou Fixa)"
+            >
+              <Zap size={11} style={{ color: adaptiveMode === "auto" ? "#10b981" : QUALITY_PROFILES[streamQuality].color }} />
+              <span>Res: {adaptiveMode === "auto" ? `AUTO (${currentResLabel})` : currentResLabel}</span>
+              <ChevronDown size={11} style={{ opacity: 0.75 }} />
+            </button>
+
+            {openMenu === "res" && (
+              <div className="tactical-dropdown-menu align-right">
+                <div className="tactical-dropdown-header">RESOLUÇÃO DE TRANSMISSÃO</div>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${adaptiveMode === "auto" ? "selected" : ""}`}
+                  onClick={() => {
+                    setAdaptiveMode("auto");
+                    setOpenMenu(null);
+                    showToast("Modo Adaptativo (ABR) ativado: Resolução automática!", "success");
+                  }}
+                >
+                  <Zap size={12} style={{ color: "#10b981" }} />
+                  <span style={{ flex: 1 }}>AUTO — Adaptativo ({currentResLabel})</span>
+                  {adaptiveMode === "auto" && <Check size={12} style={{ color: "#10b981" }} />}
+                </button>
+
+                <div className="tactical-dropdown-divider" />
+                {(
+                  [
+                    { tier: "ultra", label: "1080p — Ultra HD", desc: "Nitidez Máx" },
+                    { tier: "high", label: "720p — Alta Definição", desc: "HD Padrão" },
+                    { tier: "balance", label: "540p — Equilibrada", desc: "qHD Rápida" },
+                    { tier: "fluid", label: "360p — Fluida / Eco", desc: "Baixa Latência" }
+                  ] as const
+                ).map((item) => {
+                  const isCur = adaptiveMode === "manual" && streamQuality === item.tier;
+                  const itemProf = QUALITY_PROFILES[item.tier];
+                  return (
+                    <button
+                      key={item.tier}
+                      type="button"
+                      className={`tactical-dropdown-item ${isCur ? "selected" : ""}`}
+                      onClick={() => {
+                        setAdaptiveMode("manual");
+                        setStreamQuality(item.tier);
+                        activeQualityRef.current = item.tier;
+                        setFps(itemProf.targetFps);
+                        setOpenMenu(null);
+                        showToast(`Resolução fixada em ${itemProf.shortLabel}`, "info");
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "7px",
+                          height: "7px",
+                          borderRadius: "50%",
+                          background: itemProf.color,
+                          flexShrink: 0
+                        }}
+                      />
+                      <span style={{ flex: 1 }}>{item.label}</span>
+                      <span style={{ fontSize: "9.5px", color: "#64748b", fontFamily: "var(--font-mono)" }}>
+                        {item.desc}
+                      </span>
+                      {isCur && <Check size={12} style={{ color: itemProf.color }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* SUBMENU 3: TAMANHO DA TELA (1 botão com AUTO e níveis P, M, G, Max e +/- dentro do submenu) */}
+          <div className="tactical-dropdown-wrapper">
+            <button
+              type="button"
+              className={`tactical-dropdown-trigger ${openMenu === "size" ? "active" : ""}`}
+              onClick={() => setOpenMenu(openMenu === "size" ? null : "size")}
+              title="Ajustar Tamanho da Tela (AUTO Proporcional ou Escala Manual)"
+            >
+              <Sparkles size={11} style={{ color: isAutoFit ? "#38bdf8" : "#cbd5e1" }} />
+              <span>Tamanho: {isAutoFit ? "AUTO" : `${viewScale}%`}</span>
+              <ChevronDown size={11} style={{ opacity: 0.75 }} />
+            </button>
+
+            {openMenu === "size" && (
+              <div className="tactical-dropdown-menu align-right">
+                <div className="tactical-dropdown-header">TAMANHO DA TELA (VIEWPORT)</div>
+                <button
+                  type="button"
+                  className={`tactical-dropdown-item ${isAutoFit ? "selected" : ""}`}
+                  onClick={() => {
+                    setIsAutoFit(true);
+                    setViewScale(100);
+                    setOpenMenu(null);
+                    showToast("Tamanho AUTO ativado: Ajuste proporcional ao monitor!", "success");
+                  }}
+                >
+                  <Sparkles size={12} style={{ color: "#38bdf8" }} />
+                  <span style={{ flex: 1 }}>AUTO — Proporcional (9:16)</span>
+                  {isAutoFit && <Check size={12} style={{ color: "#38bdf8" }} />}
+                </button>
+
+                <div className="tactical-dropdown-divider" />
+                {(
+                  [
+                    { label: "P — Pequeno", scale: 70 },
+                    { label: "M — Médio", scale: 85 },
+                    { label: "G — Padrão", scale: 100 },
+                    { label: "Max — Expandido", scale: 120 }
+                  ] as const
+                ).map((preset) => {
+                  const isCur = !isAutoFit && Math.abs(viewScale - preset.scale) <= 5;
+                  return (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      className={`tactical-dropdown-item ${isCur ? "selected" : ""}`}
+                      onClick={() => {
+                        setIsAutoFit(false);
+                        setViewScale(preset.scale);
+                        setOpenMenu(null);
+                        showToast(`Tamanho da tela ajustado para ${preset.scale}%`, "info");
+                      }}
+                    >
+                      <span style={{ flex: 1 }}>{preset.label}</span>
+                      <span style={{ fontSize: "10px", color: "#94a3b8", fontFamily: "var(--font-mono)" }}>
+                        {preset.scale}%
+                      </span>
+                      {isCur && <Check size={12} style={{ color: "#38bdf8" }} />}
+                    </button>
+                  );
+                })}
+
+                <div className="tactical-dropdown-divider" />
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "4px 6px",
+                    gap: "6px"
+                  }}
+                >
                   <button
-                    key={preset.label}
                     type="button"
-                    className={`tactical-zoom-preset-chip ${isCur ? "active" : ""}`}
+                    className="tactical-dropdown-step-btn"
                     onClick={() => {
                       setIsAutoFit(false);
-                      setViewScale(preset.scale);
+                      setViewScale((prev) => Math.max(50, prev - 10));
                     }}
-                    style={{
-                      padding: "1px 5px",
-                      fontSize: "9px",
-                      fontWeight: 700,
-                      borderRadius: "4px",
-                      border: isCur ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.06)",
-                      background: isCur ? "rgba(56, 189, 248, 0.2)" : "transparent",
-                      color: isCur ? "#38bdf8" : "#94a3b8",
-                      cursor: "pointer",
-                      height: "18px",
-                      display: "inline-flex",
-                      alignItems: "center"
-                    }}
-                    title={preset.title}
+                    title="Diminuir 10%"
                   >
-                    {preset.label}
+                    - 10%
                   </button>
-                );
-              })}
-            </div>
+                  <span style={{ fontSize: "10.5px", fontWeight: 800, fontFamily: "var(--font-mono)", color: "#e2e8f0" }}>
+                    {isAutoFit ? "AUTO" : `${viewScale}%`}
+                  </span>
+                  <button
+                    type="button"
+                    className="tactical-dropdown-step-btn"
+                    onClick={() => {
+                      setIsAutoFit(false);
+                      setViewScale((prev) => Math.min(150, prev + 10));
+                    }}
+                    title="Aumentar 10%"
+                  >
+                    + 10%
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

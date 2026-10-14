@@ -9,8 +9,7 @@ import {
   MessageSquare,
   Send,
   Trash2,
-  X,
-  Zap
+  X
 } from "lucide-react";
 import type { ControlDevice } from "../../types";
 import type { QualityProfile } from "./types";
@@ -343,37 +342,9 @@ export const ScreenViewFooter: React.FC<ScreenViewFooterProps> = ({
           style={{ flex: 1 }}
         />
 
-        {/* Telemetria e Botões de Ação */}
+        {/* Botões de Ação do Terminal */}
         {!showRightSidebar && (
           <>
-            <div
-              className="tactical-abr-footer-telemetry"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-                background: "rgba(15, 23, 42, 0.75)",
-                border: `1px solid ${currentProfile.color}44`,
-                borderRadius: "5px",
-                padding: "3px 8px",
-                fontSize: "10.5px",
-                fontFamily: "var(--font-mono)",
-                color: "#cbd5e1",
-                flexShrink: 0
-              }}
-              title={`Qualidade Adaptativa de Vídeo: ${currentProfile.label} (${currentProfile.resolution}) • Latência de Quadro: ${liveLatency}ms • Vazão: ${liveSpeed} • Modo: ${adaptiveMode === "auto" ? "Adaptativo Automático (ABR)" : "Fixo Manual"}`}
-            >
-              <Zap size={11} style={{ color: currentProfile.color, flexShrink: 0 }} />
-              <span style={{ fontWeight: 800, color: currentProfile.color }}>
-                {adaptiveMode === "auto" ? `AUTO ${currentProfile.shortLabel}` : currentProfile.shortLabel}
-              </span>
-              <span style={{ color: "#64748b" }}>•</span>
-              <span style={{ color: liveLatency < 80 ? "#22c55e" : liveLatency < 160 ? "#fbbf24" : "#f87171", fontWeight: 700 }}>
-                {liveLatency}ms
-              </span>
-              <span style={{ color: "#64748b" }}>•</span>
-              <span style={{ color: "#94a3b8" }}>{liveSpeed}</span>
-            </div>
             <button
               type="button"
               className={`tactical-history-toggle-btn ${showHistoryDrawer ? "active" : ""}`}
