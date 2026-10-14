@@ -16,6 +16,7 @@ import {
   VolumeX,
   Wifi,
   WifiOff,
+  X,
   Zap
 } from "lucide-react";
 import type { ControlDevice, InstalledAppItem } from "../../types";
@@ -328,7 +329,7 @@ export const ScreenViewToolbar: React.FC<ScreenViewToolbarProps> = ({
                   }}
                   title="Desfocar app alvo"
                 >
-                  ✕
+                  <X size={11} />
                 </button>
               )}
             </span>

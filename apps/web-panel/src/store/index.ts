@@ -64,10 +64,20 @@ interface AppState {
   updatePreferences: (preferences: Partial<WebPreferences>) => void;
 }
 
+function getInitialView(): string {
+  if (typeof window === "undefined") return "Dashboard";
+  const path = window.location.pathname.replace(/^\/+|\/+$/g, "").toLowerCase();
+  if (path.startsWith("control") || path.startsWith("controle") || path.startsWith("inst") || path.startsWith("dev")) return "Controle";
+  if (path.startsWith("devices") || path.startsWith("clients") || path.startsWith("dispositivos")) return "Clients";
+  if (path.startsWith("apk-builder") || path.startsWith("gerador-apk") || path.startsWith("builder")) return "Gerador APK";
+  if (path.startsWith("settings") || path.startsWith("configuracoes")) return "Settings";
+  return "Dashboard";
+}
+
 export const useAppStore = create<AppState>((set) => ({
   token: localStorage.getItem("droidview.token"),
   user: loadUser(),
-  view: "Dashboard",
+  view: getInitialView(),
   devices: [],
   sessions: [],
   stats: null,

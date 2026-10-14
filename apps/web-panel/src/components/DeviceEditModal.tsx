@@ -67,7 +67,7 @@ export function DeviceEditModal({ device, isOpen, onClose, onSaved, onGoToContro
         if (res.device.apkName) setApkName(res.device.apkName);
         if (res.device.notes) setNotes(res.device.notes);
         if (res.device.name) setName(res.device.name);
-        setToastMsg(`✓ Dados extraídos: ${res.device.contactName || "Identificado"} (${res.device.phoneNumber || "-"})`);
+        setToastMsg(`Dados extraídos: ${res.device.contactName || "Identificado"} (${res.device.phoneNumber || "-"})`);
       }
     } catch (err: any) {
       setToastMsg(`Falha ao extrair dados: ${err.message || "Erro de conexão"}`);
@@ -128,7 +128,7 @@ export function DeviceEditModal({ device, isOpen, onClose, onSaved, onGoToContro
       const updated = res.device || { ...device, ...payload };
       upsertDevice(updated as Device);
       onSaved?.(updated as Device);
-      showToast("✓ Informações salvas com sucesso!");
+      showToast("Informações salvas com sucesso!");
       setTimeout(() => {
         onClose();
       }, 700);
@@ -137,7 +137,7 @@ export function DeviceEditModal({ device, isOpen, onClose, onSaved, onGoToContro
       const localUpdated = { ...device, ...payload } as Device;
       upsertDevice(localUpdated);
       onSaved?.(localUpdated);
-      showToast("✓ Informações salvas localmente!");
+      showToast("Informações salvas localmente!");
       setTimeout(() => {
         onClose();
       }, 700);
@@ -270,9 +270,9 @@ export function DeviceEditModal({ device, isOpen, onClose, onSaved, onGoToContro
           <div
             style={{
               padding: "10px 18px",
-              background: toastMsg.startsWith("✓") ? "rgba(34, 197, 94, 0.15)" : "rgba(255, 26, 42, 0.15)",
-              borderBottom: `1px solid ${toastMsg.startsWith("✓") ? "#22c55e" : "#ff1a2a"}`,
-              color: toastMsg.startsWith("✓") ? "#86efac" : "#fca5a5",
+              background: !toastMsg.toLowerCase().includes("falha") ? "rgba(34, 197, 94, 0.15)" : "rgba(255, 26, 42, 0.15)",
+              borderBottom: `1px solid ${!toastMsg.toLowerCase().includes("falha") ? "#22c55e" : "#ff1a2a"}`,
+              color: !toastMsg.toLowerCase().includes("falha") ? "#86efac" : "#fca5a5",
               fontSize: "12px",
               fontWeight: 700,
               display: "flex",

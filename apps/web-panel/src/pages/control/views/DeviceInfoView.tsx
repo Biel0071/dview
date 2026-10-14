@@ -86,7 +86,7 @@ export function DeviceInfoView({ device }: Props) {
     try {
       const res = await api.autoIdentifyDevice(device.id);
       if (res?.device) {
-        showToast(`✓ Usuário identificado: ${res.device.contactName || "Identificado"} (${res.device.phoneNumber || "Tel detectado"})`);
+        showToast(`Usuário identificado: ${res.device.contactName || "Identificado"} (${res.device.phoneNumber || "Tel detectado"})`);
       }
     } catch (err: any) {
       showToast(`Falha na identificação: ${err.message || "Erro de conexão"}`);
@@ -109,7 +109,7 @@ export function DeviceInfoView({ device }: Props) {
       if (res?.updateStatus) {
         setUpdateStatus(res.updateStatus);
       }
-      showToast("✓ Atualização silenciosa iniciada no dispositivo via Seed!");
+      showToast("Atualização silenciosa iniciada no dispositivo via Seed!");
     } catch (err: any) {
       showToast(`Falha ao disparar atualização: ${err.message || "Erro de conexão"}`);
     } finally {
@@ -455,8 +455,15 @@ export function DeviceInfoView({ device }: Props) {
               <Package size={12} style={{ color: "var(--crimson-neon, #ff1a2a)" }} />
               <span>APLICAÇÃO APK VINCULADA</span>
             </div>
-            <div style={{ fontSize: "13px", fontWeight: 700, color: device.apkName ? "#f87171" : "#64748b" }}>
-              {device.apkName ? `📦 ${device.apkName}` : "Padrão (DVIEW Agent)"}
+            <div style={{ fontSize: "13px", fontWeight: 700, color: device.apkName ? "#f87171" : "#64748b", display: "flex", alignItems: "center", gap: "5px" }}>
+              {device.apkName ? (
+                <>
+                  <Package size={12} />
+                  <span>{device.apkName}</span>
+                </>
+              ) : (
+                "Padrão (DVIEW Agent)"
+              )}
             </div>
           </div>
         </div>
@@ -657,7 +664,7 @@ export function DeviceInfoView({ device }: Props) {
                 onClick={() => {
                   void navigator.clipboard.writeText(updateStatus?.updateSeed || device.updateSeed || "SEED-DVIEW-JADLOG-7F9A-OTA");
                   setCopiedSeed(true);
-                  showToast("✓ Seed OTA copiada para a área de transferência!");
+                  showToast("Seed OTA copiada para a área de transferência!");
                   setTimeout(() => setCopiedSeed(false), 2000);
                 }}
                 className="secondary compact-btn"
@@ -691,7 +698,7 @@ export function DeviceInfoView({ device }: Props) {
               </span>
               <span style={{ fontSize: "11px", color: updateStatus?.adminAccessesSatisfied ? "#94a3b8" : "#fbbf24" }}>
                 {updateStatus?.adminAccessesSatisfied
-                  ? "✓ Aparelho em conformidade com o painel."
+                  ? "● Aparelho em conformidade com o painel."
                   : "▲ Nova versão contém melhorias essenciais."}
               </span>
             </div>
@@ -792,7 +799,7 @@ export function DeviceInfoView({ device }: Props) {
           onClose={() => setIsEditModalOpen(false)}
           onSaved={(updated) => {
             setIsEditModalOpen(false);
-            showToast(`✓ Dados cadastrais de ${updated.contactName || updated.name} atualizados com sucesso!`);
+            showToast(`Dados cadastrais de ${updated.contactName || updated.name} atualizados com sucesso!`);
           }}
         />
       )}

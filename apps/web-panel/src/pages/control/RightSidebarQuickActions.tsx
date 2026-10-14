@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   Globe,
+  Layers,
   Lightbulb,
   Pin,
   PinOff,
@@ -101,7 +102,7 @@ export function RightSidebarQuickActions({
     try {
       const res = await api.launchApp(device.id, pkg);
       if (res?.launchedInIsland) {
-        showToast(`⚡ [ISLAND] ${name} aberto no container Sandbox (User ${res.userId || 10})`, "success");
+        showToast(`[ISLAND] ${name} aberto no container Sandbox (User ${res.userId || 10})`, "success");
       } else {
         showToast(`Iniciando aplicativo ${name}...`, "success");
       }
@@ -214,11 +215,15 @@ export function RightSidebarQuickActions({
               style={{
                 background: "rgba(56, 189, 248, 0.15)",
                 color: "#38bdf8",
-                border: "1px solid rgba(56, 189, 248, 0.3)"
+                border: "1px solid rgba(56, 189, 248, 0.3)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px"
               }}
               title="Interceptador Island ativo: ao clicar, o app é aberto dentro do container seguro"
             >
-              🏝️ ISLAND INTERCEPT
+              <Layers size={10} />
+              <span>ISLAND INTERCEPT</span>
             </span>
           </div>
 

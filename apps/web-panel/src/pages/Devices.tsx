@@ -48,7 +48,7 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
   const handleCopyDirectUrl = (device: Device) => {
     const url = `${window.location.origin}/instance/${encodeURIComponent(device.id)}`;
     navigator.clipboard.writeText(url).then(() => {
-      showToast(`🔗 Link da instância (${device.name}) copiado!`);
+      showToast(`Link da instância (${device.name}) copiado!`);
     }).catch(() => {
       showToast(`Link da instância: ${url}`);
     });
@@ -59,7 +59,7 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
       const res = await api.getEncryptedInstanceUrl(device.id);
       if (res?.encryptedUrl) {
         await navigator.clipboard.writeText(res.encryptedUrl);
-        showToast(`🔒 URL Criptografado da Instância (${device.name}) copiado!`);
+        showToast(`URL Criptografado da Instância (${device.name}) copiado!`);
         return;
       }
     } catch {}
@@ -68,13 +68,42 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
     showToast(`Link da instância: ${fallbackUrl}`);
   };
 
+  const uniqueDevices = useMemo(() => {
+    const byNameModel = new Map<string, Device>();
+    for (const dev of devices) {
+      const nmKey = `${(dev.name || "").trim().toLowerCase()}_${(dev.model || "").trim().toLowerCase()}`;
+      if (!byNameModel.has(nmKey)) {
+        byNameModel.set(nmKey, dev);
+      } else {
+        const existing = byNameModel.get(nmKey)!;
+        if (dev.status === "online" && existing.status !== "online") {
+          byNameModel.set(nmKey, dev);
+        }
+      }
+    }
+    const byPhone = new Map<string, Device>();
+    for (const dev of byNameModel.values()) {
+      const cleanPhone = dev.phoneNumber ? dev.phoneNumber.replace(/\D/g, "") : "";
+      const key = cleanPhone ? `phone:${cleanPhone}` : `id:${dev.id}`;
+      if (!byPhone.has(key)) {
+        byPhone.set(key, dev);
+      } else {
+        const existing = byPhone.get(key)!;
+        if (dev.status === "online" && existing.status !== "online") {
+          byPhone.set(key, dev);
+        }
+      }
+    }
+    return Array.from(byPhone.values());
+  }, [devices]);
+
   const filtered = useMemo(() => {
-    return devices.filter((device) => {
+    return uniqueDevices.filter((device) => {
       const matchesStatus = status === "all" || device.status === status;
       const text = `${device.name} ${device.contactName || ""} ${device.phoneNumber || ""} ${device.apkName || ""} ${device.model} ${device.id} ${device.androidVersion}`.toLowerCase();
       return matchesStatus && text.includes(query.toLowerCase());
     });
-  }, [devices, query, status]);
+  }, [uniqueDevices, query, status]);
 
   const start = async (deviceId: string) => {
     try {
@@ -142,7 +171,7 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
           }}
         >
           <Smartphone size={14} style={{ color: activeTab === "devices" ? "var(--crimson-neon, #ff1a2a)" : "#64748b" }} />
-          <span>Dispositivos Pareados ({devices.length})</span>
+          <span>Dispositivos Pareados ({uniqueDevices.length})</span>
         </button>
 
         <button
@@ -189,7 +218,7 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
                 DISPOSITIVOS PAREADOS
               </h2>
               <span style={{ fontSize: "11px", color: "#94a3b8", background: "#111622", padding: "2px 8px", borderRadius: "10px", border: "1px solid #1e293b", fontFamily: "var(--font-mono)" }}>
-                {filtered.length} / {devices.length}
+                {filtered.length} / {uniqueDevices.length}
               </span>
             </div>
 
@@ -214,29 +243,27 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
                 onChange={(event) => setStatus(event.target.value as typeof status)}
                 style={{ height: "30px", fontSize: "11px", padding: "0 8px", background: "#0a0e17", border: "1px solid #1e293b", borderRadius: "6px", color: "#cbd5e1" }}
               >
-                <option value="all">Todos ({devices.length})</option>
-                <option value="online">Online ({devices.filter((d) => d.status === "online").length})</option>
-                <option value="offline">Offline ({devices.filter((d) => d.status === "offline").length})</option>
-                <option value="pending">Pendente ({devices.filter((d) => d.status === "pending").length})</option>
+                <option value="all">Todos ({uniqueDevices.length})</option>
+                <option value="online">Online ({uniqueDevices.filter((d) => d.status === "online").length})</option>
+                <option value="offline">Offline ({uniqueDevices.filter((d) => d.status === "offline").length})</option>
+                <option value="pending">Pendente ({uniqueDevices.filter((d) => d.status === "pending").length})</option>
               </select>
 
               {selectedIds.length > 0 && (
                 <>
                   <button
                     type="button"
-                    className="secondary compact-btn"
+                    className="tactical-btn tactical-btn-sm tactical-btn-cyan"
                     onClick={handleBatchPing}
                     title="Testar ping dos selecionados"
-                    style={{ fontSize: "11px", height: "30px", padding: "0 8px" }}
                   >
                     <Radio size={12} style={{ color: "#38bdf8" }} /> Ping ({selectedIds.length})
                   </button>
 
                   <button
                     type="button"
-                    className="secondary compact-btn"
+                    className="tactical-btn tactical-btn-sm tactical-btn-emerald"
                     onClick={handleRequestAudit}
-                    style={{ fontSize: "11px", height: "30px", padding: "0 8px" }}
                   >
                     <ClipboardCheck size={12} style={{ color: "#22c55e" }} /> Auditoria ({selectedIds.length})
                   </button>
@@ -245,9 +272,8 @@ export function Devices({ initialTab = "devices" }: { initialTab?: "devices" | "
 
               <button
                 type="button"
-                className="secondary compact-btn"
+                className="tactical-btn tactical-btn-sm"
                 onClick={handleSelectAll}
-                style={{ fontSize: "11px", height: "30px", padding: "0 8px" }}
               >
                 {selectedIds.length === filtered.length && filtered.length > 0 ? "Desmarcar" : "Selecionar Todos"}
               </button>

@@ -1,6 +1,6 @@
 /**
  * Authentic Google Play Store fallback canvas renderer
- * Calibrated for native 720x1280 resolution.
+ * Calibrated for native 720x1280 resolution (Vector-first, zero raw emojis).
  */
 export function drawPlayStoreScreen(ctx: CanvasRenderingContext2D, w = 720, h = 1280): void {
   // Background (Dark Theme Material 3)
@@ -18,15 +18,24 @@ export function drawPlayStoreScreen(ctx: CanvasRenderingContext2D, w = 720, h = 
   ctx.arc(106, 26, 3.5, 0, Math.PI * 2);
   ctx.fill();
 
-  // Right status icons (Wi-Fi, 5G, Battery pill)
-  ctx.font = "18px sans-serif";
-  ctx.fillText("📶", 574, 34);
+  // Right status icons (Signal bars, 5G, Battery vector)
+  ctx.fillStyle = "#ffffff";
+  for (let b = 0; b < 4; b++) {
+    const bh = 6 + b * 3;
+    ctx.fillRect(574 + b * 5, 34 - bh, 3, bh);
+  }
   ctx.fillStyle = "#38bdf8";
   ctx.font = "bold 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-  ctx.fillText("5G", 608, 34);
+  ctx.fillText("5G", 602, 34);
+
+  // Vector battery icon
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(638, 19, 24, 14);
+  ctx.fillStyle = "#22c55e";
+  ctx.fillRect(640, 21, 18, 10);
   ctx.fillStyle = "#ffffff";
-  ctx.font = "18px sans-serif";
-  ctx.fillText("🔋", 644, 34);
+  ctx.fillRect(663, 23, 2, 6);
 
   // 2. Google Play Search Bar (Y: 56 to 126, Height: 70)
   ctx.fillStyle = "#282a2d";
@@ -35,18 +44,28 @@ export function drawPlayStoreScreen(ctx: CanvasRenderingContext2D, w = 720, h = 
   else ctx.rect(24, 56, w - 48, 70);
   ctx.fill();
 
-  // Search icon
-  ctx.font = "22px sans-serif";
-  ctx.fillText("🔍", 48, 100);
+  // Vector Search Magnifier icon
+  ctx.strokeStyle = "#9aa0a6";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(58, 88, 9, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(65, 95);
+  ctx.lineTo(72, 102);
+  ctx.stroke();
 
   // Search placeholder
   ctx.fillStyle = "#9aa0a6";
   ctx.font = "500 21px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-  ctx.fillText("Pesquisar apps e jogos", 92, 100);
+  ctx.fillText("Pesquisar apps e jogos", 92, 99);
 
-  // Voice / Mic icon
-  ctx.font = "20px sans-serif";
-  ctx.fillText("🎙️", w - 110, 100);
+  // Vector Mic icon
+  ctx.fillStyle = "#9aa0a6";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(w - 112, 79, 8, 16, 4);
+  else ctx.rect(w - 112, 79, 8, 16);
+  ctx.fill();
 
   // User avatar circle
   ctx.fillStyle = "#a855f7";
@@ -66,22 +85,22 @@ export function drawPlayStoreScreen(ctx: CanvasRenderingContext2D, w = 720, h = 
 
   // 4. Category Grid (2 columns x 6 rows) (Y: 188 to 552)
   const categories = [
-    { name1: "Ação", icon1: "⚔️", name2: "Simulador", icon2: "🕹️" },
-    { name1: "Quebra-cabeças", icon1: "🧩", name2: "Aventura", icon2: "🧭" },
-    { name1: "Corrida", icon1: "🏎️", name2: "RPG", icon2: "🛡️" },
-    { name1: "Estratégia", icon1: "🚩", name2: "Esportes", icon2: "⚽" },
-    { name1: "Cartas", icon1: "🃏", name2: "Tabuleiros", icon2: "♟️" },
-    { name1: "Educativos", icon1: "🎓", name2: "Palavras", icon2: "🔤" },
+    { name1: "Ação", tag1: "ACT", name2: "Simulador", tag2: "SIM" },
+    { name1: "Quebra-cabeças", tag1: "PZL", name2: "Aventura", tag2: "ADV" },
+    { name1: "Corrida", tag1: "RCE", name2: "RPG", tag2: "RPG" },
+    { name1: "Estratégia", tag1: "STR", name2: "Esportes", tag2: "SPT" },
+    { name1: "Cartas", tag1: "CRD", name2: "Tabuleiros", tag2: "BRD" },
+    { name1: "Educativos", tag1: "EDU", name2: "Palavras", tag2: "WRD" }
   ];
 
-  const colW = (w - 64) / 2; // (720 - 64) / 2 = 328
+  const colW = (w - 64) / 2;
   const startY = 188;
   const rowH = 54;
   const gap = 8;
 
   categories.forEach((cat, idx) => {
     const y = startY + idx * (rowH + gap);
-    // Col 1 (X: 24 to 352)
+    // Col 1
     ctx.fillStyle = "#1e1f23";
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(24, y, colW, rowH, 12);
@@ -90,10 +109,11 @@ export function drawPlayStoreScreen(ctx: CanvasRenderingContext2D, w = 720, h = 
     ctx.fillStyle = "#f8fafc";
     ctx.font = "600 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.fillText(cat.name1, 44, y + 35);
-    ctx.font = "24px sans-serif";
-    ctx.fillText(cat.icon1, 24 + colW - 42, y + 36);
+    ctx.fillStyle = "#38bdf8";
+    ctx.font = "bold 12px monospace";
+    ctx.fillText(cat.tag1, 24 + colW - 44, y + 33);
 
-    // Col 2 (X: 368 to 696)
+    // Col 2
     ctx.fillStyle = "#1e1f23";
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(w - 24 - colW, y, colW, rowH, 12);
@@ -102,11 +122,12 @@ export function drawPlayStoreScreen(ctx: CanvasRenderingContext2D, w = 720, h = 
     ctx.fillStyle = "#f8fafc";
     ctx.font = "600 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.fillText(cat.name2, w - 24 - colW + 20, y + 35);
-    ctx.font = "24px sans-serif";
-    ctx.fillText(cat.icon2, w - 24 - 42, y + 36);
+    ctx.fillStyle = "#38bdf8";
+    ctx.font = "bold 12px monospace";
+    ctx.fillText(cat.tag2, w - 24 - 44, y + 33);
   });
 
-  // 5. Subtitle: Patrocinados · Sugestões para você (Y: 574 to 608)
+  // 5. Subtitle: Patrocinados · Sugestões para você
   const sec2Y = 602;
   ctx.fillStyle = "#9aa0a6";
   ctx.font = "500 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
@@ -115,101 +136,48 @@ export function drawPlayStoreScreen(ctx: CanvasRenderingContext2D, w = 720, h = 
   ctx.font = "bold 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.fillText("Sugestões para você", 180, sec2Y);
 
-  // 6. Card 1: Evony (Y: 620 to 730, Height: 110)
-  const card1Y = 620;
-  ctx.fillStyle = "#1e1f24";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(24, card1Y, w - 48, 110, 16);
-  else ctx.rect(24, card1Y, w - 48, 110);
-  ctx.fill();
-  // App icon (amber squircle)
-  ctx.fillStyle = "#b45309";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(40, card1Y + 15, 80, 80, 18);
-  else ctx.rect(40, card1Y + 15, 80, 80);
-  ctx.fill();
-  ctx.font = "40px sans-serif";
-  ctx.fillText("👑", 58, card1Y + 68);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-  ctx.fillText("Evony: The King's Return", 140, card1Y + 42);
-  ctx.fillStyle = "#9aa0a6";
-  ctx.font = "16px sans-serif";
-  ctx.fillText("Estratégia · 4X · Quebra-cabeças", 140, card1Y + 70);
-  ctx.fillStyle = "#38bdf8";
-  ctx.fillText("4,1 ★", 140, card1Y + 94);
+  // Helper to draw app card with clean vector monogram
+  const drawAppCard = (
+    cardY: number,
+    bgColor: string,
+    monogram: string,
+    title: string,
+    subtitle: string,
+    ratingText: string,
+    ratingColor = "#38bdf8"
+  ) => {
+    ctx.fillStyle = "#1e1f24";
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(24, cardY, w - 48, 110, 16);
+    else ctx.rect(24, cardY, w - 48, 110);
+    ctx.fill();
 
-  // 7. Card 2: TikTok (Y: 742 to 852, Height: 110)
-  const card2Y = 742;
-  ctx.fillStyle = "#1e1f24";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(24, card2Y, w - 48, 110, 16);
-  else ctx.rect(24, card2Y, w - 48, 110);
-  ctx.fill();
-  // App icon (navy squircle)
-  ctx.fillStyle = "#0f172a";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(40, card2Y + 15, 80, 80, 18);
-  else ctx.rect(40, card2Y + 15, 80, 80);
-  ctx.fill();
-  ctx.font = "40px sans-serif";
-  ctx.fillText("🎵", 58, card2Y + 68);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-  ctx.fillText("TikTok - Videos, Shop & LIVE", 140, card2Y + 42);
-  ctx.fillStyle = "#9aa0a6";
-  ctx.font = "16px sans-serif";
-  ctx.fillText("Social · Networking · Vídeos", 140, card2Y + 70);
-  ctx.fillStyle = "#38bdf8";
-  ctx.fillText("4,3 ★ · Escolha dos editores", 140, card2Y + 94);
+    ctx.fillStyle = bgColor;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(40, cardY + 15, 80, 80, 18);
+    else ctx.rect(40, cardY + 15, 80, 80);
+    ctx.fill();
 
-  // 8. Card 3: WhatsApp Messenger (Y: 864 to 974, Height: 110)
-  const card3Y = 864;
-  ctx.fillStyle = "#1e1f24";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(24, card3Y, w - 48, 110, 16);
-  else ctx.rect(24, card3Y, w - 48, 110);
-  ctx.fill();
-  // App icon (emerald squircle)
-  ctx.fillStyle = "#15803d";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(40, card3Y + 15, 80, 80, 18);
-  else ctx.rect(40, card3Y + 15, 80, 80);
-  ctx.fill();
-  ctx.font = "40px sans-serif";
-  ctx.fillText("💬", 58, card3Y + 68);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-  ctx.fillText("WhatsApp Messenger", 140, card3Y + 42);
-  ctx.fillStyle = "#9aa0a6";
-  ctx.font = "16px sans-serif";
-  ctx.fillText("Comunicação rápida e segura", 140, card3Y + 70);
-  ctx.fillStyle = "#38bdf8";
-  ctx.fillText("4,5 ★ · Mais de 5 bi downloads", 140, card3Y + 94);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(monogram, 80, cardY + 64);
+    ctx.textAlign = "left";
 
-  // 9. Card 4: JADLOG Rastreio (Y: 986 to 1096, Height: 110)
-  const card4Y = 986;
-  ctx.fillStyle = "#1e1f24";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(24, card4Y, w - 48, 110, 16);
-  else ctx.rect(24, card4Y, w - 48, 110);
-  ctx.fill();
-  // App icon (carmine red squircle)
-  ctx.fillStyle = "#991b1b";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(40, card4Y + 15, 80, 80, 18);
-  else ctx.rect(40, card4Y + 15, 80, 80);
-  ctx.fill();
-  ctx.font = "40px sans-serif";
-  ctx.fillText("📦", 58, card4Y + 68);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-  ctx.fillText("JADLOG Rastreio", 140, card4Y + 42);
-  ctx.fillStyle = "#9aa0a6";
-  ctx.font = "16px sans-serif";
-  ctx.fillText("Logística Corporativa & Rastreio", 140, card4Y + 70);
-  ctx.fillStyle = "#22c55e";
-  ctx.fillText("4,8 ★ · Verificado DVIEW", 140, card4Y + 94);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 22px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.fillText(title, 140, cardY + 42);
+    ctx.fillStyle = "#9aa0a6";
+    ctx.font = "16px sans-serif";
+    ctx.fillText(subtitle, 140, cardY + 70);
+    ctx.fillStyle = ratingColor;
+    ctx.fillText(ratingText, 140, cardY + 94);
+  };
+
+  drawAppCard(620, "#b45309", "EV", "Evony: The King's Return", "Estratégia · 4X · Quebra-cabeças", "4,1 · Top Estratégia");
+  drawAppCard(742, "#0f172a", "TK", "TikTok - Videos, Shop & LIVE", "Social · Networking · Vídeos", "4,3 · Escolha dos editores");
+  drawAppCard(864, "#15803d", "WA", "WhatsApp Messenger", "Comunicação rápida e segura", "4,5 · Mais de 5 bi downloads");
+  drawAppCard(986, "#991b1b", "JD", "JADLOG Rastreio", "Logística Corporativa & Rastreio", "4,8 · Verificado DVIEW", "#22c55e");
 
   // 10. Bottom Navigation Bar (Y: 1170 to 1280, Height: 110)
   const tabsY = 1170;
@@ -217,12 +185,12 @@ export function drawPlayStoreScreen(ctx: CanvasRenderingContext2D, w = 720, h = 
   ctx.fillRect(0, tabsY, w, 110);
 
   const tabs = [
-    { label: "Jogos", icon: "🎮", active: false },
-    { label: "Apps", icon: "📱", active: false },
-    { label: "Pesquisa", icon: "🔍", active: true },
-    { label: "Livros", icon: "📚", active: false },
-    { label: "Você", icon: "👤", active: false },
-    { label: "Crianças", icon: "⭐", active: false }
+    { label: "Jogos", badge: "JG", active: false },
+    { label: "Apps", badge: "AP", active: false },
+    { label: "Pesquisa", badge: "PQ", active: true },
+    { label: "Livros", badge: "LV", active: false },
+    { label: "Você", badge: "VC", active: false },
+    { label: "Família", badge: "FM", active: false }
   ];
 
   const tabW = w / tabs.length;
@@ -235,9 +203,10 @@ export function drawPlayStoreScreen(ctx: CanvasRenderingContext2D, w = 720, h = 
       else ctx.rect(tx - 38, tabsY + 10, 76, 42);
       ctx.fill();
     }
-    ctx.font = "26px sans-serif";
+    ctx.fillStyle = tab.active ? "#38bdf8" : "#cbd5e1";
+    ctx.font = "bold 17px monospace";
     ctx.textAlign = "center";
-    ctx.fillText(tab.icon, tx, tabsY + 40);
+    ctx.fillText(tab.badge, tx, tabsY + 37);
     ctx.fillStyle = tab.active ? "#38bdf8" : "#94a3b8";
     ctx.font = tab.active
       ? "bold 16px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"

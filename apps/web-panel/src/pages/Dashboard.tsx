@@ -15,13 +15,46 @@ import { useAppStore } from "../store";
 export function Dashboard() {
   const { stats, devices, sessions, setView, setSelectedDeviceId } = useAppStore();
 
-  const onlineDevices = devices.filter((device) => device.status === "online");
-  const recentDevices = [...devices]
-    .sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime())
+  const uniqueDevices = (() => {
+    const byNameModel = new Map<string, (typeof devices)[number]>();
+    for (const dev of devices) {
+      const nmKey = `${(dev.name || "").trim().toLowerCase()}_${(dev.model || "").trim().toLowerCase()}`;
+      if (!byNameModel.has(nmKey)) {
+        byNameModel.set(nmKey, dev);
+      } else {
+        const existing = byNameModel.get(nmKey)!;
+        if (dev.status === "online" && existing.status !== "online") {
+          byNameModel.set(nmKey, dev);
+        }
+      }
+    }
+    const byPhone = new Map<string, (typeof devices)[number]>();
+    for (const dev of byNameModel.values()) {
+      const cleanPhone = dev.phoneNumber ? dev.phoneNumber.replace(/\D/g, "") : "";
+      const key = cleanPhone ? `phone:${cleanPhone}` : `id:${dev.id}`;
+      if (!byPhone.has(key)) {
+        byPhone.set(key, dev);
+      } else {
+        const existing = byPhone.get(key)!;
+        if (dev.status === "online" && existing.status !== "online") {
+          byPhone.set(key, dev);
+        }
+      }
+    }
+    return Array.from(byPhone.values());
+  })();
+
+  const onlineDevices = uniqueDevices.filter((device) => device.status === "online");
+  const recentDevices = [...uniqueDevices]
+    .sort((a, b) => {
+      if (a.status === "online" && b.status !== "online") return -1;
+      if (a.status !== "online" && b.status === "online") return 1;
+      return new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime();
+    })
     .slice(0, 6);
 
-  const totalDevicesCount = stats?.totalDevices ?? devices.length;
-  const onlineCount = stats?.onlineDevices ?? onlineDevices.length;
+  const totalDevicesCount = uniqueDevices.length;
+  const onlineCount = onlineDevices.length;
   const activeSessionsCount = stats?.activeSessions ?? sessions.length;
   const alertsCount = stats?.pendingAlerts ?? 0;
 
@@ -105,8 +138,8 @@ export function Dashboard() {
             </h2>
             <small>Ordenado pelo último contato recebido pela telemetria do sistema.</small>
           </div>
-          <button className="secondary compact-btn" onClick={() => setView("Clients")}>
-            Ver Todos ({devices.length})
+          <button className="tactical-btn tactical-btn-sm tactical-btn-cyan" onClick={() => setView("Clients")}>
+            Ver Todos ({uniqueDevices.length})
           </button>
         </div>
 
@@ -237,7 +270,7 @@ export function Dashboard() {
 
                   <div className="device-action-col">
                     <button
-                      className="primary compact-btn"
+                      className="tactical-btn tactical-btn-sm tactical-btn-crimson"
                       onClick={() => {
                         setSelectedDeviceId(device.id);
                         setView("Controle");

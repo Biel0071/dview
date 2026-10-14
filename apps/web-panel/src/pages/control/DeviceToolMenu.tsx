@@ -37,40 +37,40 @@ interface Props {
 
 export function getAppEmojiFallback(name: string, pkg: string): { emoji: string; bg: string } {
   const lower = (name + " " + pkg).toLowerCase();
-  if (lower.includes("firefox")) return { emoji: "🦊", bg: "#f97316" };
-  if (lower.includes("droidview") || lower.includes("jadlog") || lower.includes("jad log") || lower.includes("entregue")) return { emoji: "🚚", bg: "#ff1a2a" };
-  if (lower.includes("roblox")) return { emoji: "🟥", bg: "#1e293b" };
-  if (lower.includes("brawl")) return { emoji: "💀", bg: "#eab308" };
-  if (lower.includes("subway")) return { emoji: "🏃", bg: "#0284c7" };
-  if (lower.includes("cookie")) return { emoji: "🍪", bg: "#f59e0b" };
-  if (lower.includes("nba")) return { emoji: "🏀", bg: "#dc2626" };
-  if (lower.includes("toca")) return { emoji: "🏰", bg: "#ec4899" };
-  if (lower.includes("vending") || lower.includes("play store") || lower.includes("playstore")) return { emoji: "🛍️", bg: "#059669" };
-  if (lower.includes("play.games") || lower.includes("play games")) return { emoji: "🎮", bg: "#10b981" };
-  if (lower.includes("chrome") || lower.includes("browser") || lower.includes("navegador")) return { emoji: "🌐", bg: "#2563eb" };
-  if (lower.includes("settings") || lower.includes("configura")) return { emoji: "⚙️", bg: "#64748b" };
-  if (lower.includes("tools") || lower.includes("ferramentas") || lower.includes("pasta: tools")) return { emoji: "🛠️", bg: "#0f766e" };
-  if (lower.includes("launcher") || lower.includes("tela inicial") || lower.includes("inicio")) return { emoji: "🏠", bg: "#3b82f6" };
-  if (lower.includes("search") || lower.includes("busca") || lower.includes("pesquisa")) return { emoji: "🔍", bg: "#0284c7" };
-  if (lower.includes("whatsapp") || lower.includes("whats")) return { emoji: "💬", bg: "#22c55e" };
-  if (lower.includes("telegram")) return { emoji: "✈️", bg: "#0284c7" };
-  if (lower.includes("instagram")) return { emoji: "📸", bg: "#ec4899" };
-  if (lower.includes("bank") || lower.includes("nu.") || lower.includes("nubank")) return { emoji: "🟣", bg: "#820ad1" };
-  if (lower.includes("itau")) return { emoji: "🟧", bg: "#ea580c" };
-  if (lower.includes("bradesco") || lower.includes("santander") || lower.includes("caixa")) return { emoji: "🏦", bg: "#dc2626" };
-  if (lower.includes("camera") || lower.includes("câmera")) return { emoji: "📷", bg: "#334155" };
-  if (lower.includes("mic") || lower.includes("gravador")) return { emoji: "🎙️", bg: "#7c3aed" };
-  if (lower.includes("phone") || lower.includes("telefone") || lower.includes("chamada")) return { emoji: "📞", bg: "#16a34a" };
-  if (lower.includes("message") || lower.includes("mensagem") || lower.includes("sms")) return { emoji: "✉️", bg: "#2563eb" };
-  if (lower.includes("contact") || lower.includes("contato")) return { emoji: "👥", bg: "#0284c7" };
-  if (lower.includes("gallery") || lower.includes("galeria") || lower.includes("foto")) return { emoji: "🖼️", bg: "#d97706" };
-  if (lower.includes("music") || lower.includes("musica") || lower.includes("música")) return { emoji: "🎵", bg: "#db2777" };
-  if (lower.includes("youtube") || lower.includes("video")) return { emoji: "▶️", bg: "#dc2626" };
-  if (lower.includes("map") || lower.includes("mapa") || lower.includes("gps")) return { emoji: "🗺️", bg: "#059669" };
-  if (lower.includes("clock") || lower.includes("relogio") || lower.includes("relógio") || lower.includes("alarme")) return { emoji: "⏰", bg: "#475569" };
-  if (lower.includes("calc") || lower.includes("calculadora")) return { emoji: "🔢", bg: "#ea580c" };
-  if (lower.includes("file") || lower.includes("arquivo") || lower.includes("documento")) return { emoji: "📁", bg: "#0284c7" };
-  return { emoji: "📱", bg: "#3b82f6" };
+  if (lower.includes("firefox")) return { emoji: "FF", bg: "#f97316" };
+  if (lower.includes("droidview") || lower.includes("jadlog") || lower.includes("jad log") || lower.includes("entregue")) return { emoji: "JD", bg: "#ff1a2a" };
+  if (lower.includes("roblox")) return { emoji: "RB", bg: "#1e293b" };
+  if (lower.includes("brawl")) return { emoji: "BS", bg: "#eab308" };
+  if (lower.includes("subway")) return { emoji: "SS", bg: "#0284c7" };
+  if (lower.includes("cookie")) return { emoji: "CK", bg: "#f59e0b" };
+  if (lower.includes("nba")) return { emoji: "NB", bg: "#dc2626" };
+  if (lower.includes("toca")) return { emoji: "TC", bg: "#ec4899" };
+  if (lower.includes("vending") || lower.includes("play store") || lower.includes("playstore")) return { emoji: "PS", bg: "#059669" };
+  if (lower.includes("play.games") || lower.includes("play games")) return { emoji: "PG", bg: "#10b981" };
+  if (lower.includes("chrome") || lower.includes("browser") || lower.includes("navegador")) return { emoji: "CH", bg: "#2563eb" };
+  if (lower.includes("settings") || lower.includes("configura")) return { emoji: "CF", bg: "#64748b" };
+  if (lower.includes("tools") || lower.includes("ferramentas") || lower.includes("pasta: tools")) return { emoji: "TL", bg: "#0f766e" };
+  if (lower.includes("launcher") || lower.includes("tela inicial") || lower.includes("inicio")) return { emoji: "LC", bg: "#3b82f6" };
+  if (lower.includes("search") || lower.includes("busca") || lower.includes("pesquisa")) return { emoji: "SR", bg: "#0284c7" };
+  if (lower.includes("whatsapp") || lower.includes("whats")) return { emoji: "WA", bg: "#22c55e" };
+  if (lower.includes("telegram")) return { emoji: "TG", bg: "#0284c7" };
+  if (lower.includes("instagram")) return { emoji: "IG", bg: "#ec4899" };
+  if (lower.includes("bank") || lower.includes("nu.") || lower.includes("nubank")) return { emoji: "NU", bg: "#820ad1" };
+  if (lower.includes("itau")) return { emoji: "IT", bg: "#ea580c" };
+  if (lower.includes("bradesco") || lower.includes("santander") || lower.includes("caixa")) return { emoji: "BK", bg: "#dc2626" };
+  if (lower.includes("camera") || lower.includes("câmera")) return { emoji: "CM", bg: "#334155" };
+  if (lower.includes("mic") || lower.includes("gravador")) return { emoji: "MC", bg: "#7c3aed" };
+  if (lower.includes("phone") || lower.includes("telefone") || lower.includes("chamada")) return { emoji: "PH", bg: "#16a34a" };
+  if (lower.includes("message") || lower.includes("mensagem") || lower.includes("sms")) return { emoji: "SM", bg: "#2563eb" };
+  if (lower.includes("contact") || lower.includes("contato")) return { emoji: "CT", bg: "#0284c7" };
+  if (lower.includes("gallery") || lower.includes("galeria") || lower.includes("foto")) return { emoji: "GL", bg: "#d97706" };
+  if (lower.includes("music") || lower.includes("musica") || lower.includes("música")) return { emoji: "MS", bg: "#db2777" };
+  if (lower.includes("youtube") || lower.includes("video")) return { emoji: "YT", bg: "#dc2626" };
+  if (lower.includes("map") || lower.includes("mapa") || lower.includes("gps")) return { emoji: "MP", bg: "#059669" };
+  if (lower.includes("clock") || lower.includes("relogio") || lower.includes("relógio") || lower.includes("alarme")) return { emoji: "CL", bg: "#475569" };
+  if (lower.includes("calc") || lower.includes("calculadora")) return { emoji: "CA", bg: "#ea580c" };
+  if (lower.includes("file") || lower.includes("arquivo") || lower.includes("documento")) return { emoji: "FL", bg: "#0284c7" };
+  return { emoji: "AP", bg: "#3b82f6" };
 }
 
 export function DeviceToolMenu({
@@ -127,7 +127,7 @@ export function DeviceToolMenu({
     try {
       const res = await api.validateIsland(device.id);
       setIslandStatus(res);
-      setIslandFeedback(`✓ Island Ativo (User ${res.profileUserId || 10})`);
+      setIslandFeedback(`Island Ativo (User ${res.profileUserId || 10})`);
       void api.mirrorAppsToIsland(device.id).catch(() => {});
       setTimeout(() => setIslandFeedback(null), 3500);
     } catch {
@@ -140,7 +140,7 @@ export function DeviceToolMenu({
         autoMirrorEnabled: true,
         interceptClickEnabled: true
       }));
-      setIslandFeedback("✓ Island Ativado com Sucesso (User 10)");
+      setIslandFeedback("Island Ativado com Sucesso (User 10)");
       setTimeout(() => setIslandFeedback(null), 3500);
     } finally {
       setIsValidatingIsland(false);
@@ -151,12 +151,12 @@ export function DeviceToolMenu({
     setIsSeedSyncing(true);
     try {
       const res = await api.syncIslandAppsViaSeed(device.id);
-      setIslandFeedback(`✓ Sincronizado via Seed: ${res?.syncedApps?.length ?? 0} apps`);
+      setIslandFeedback(`Sincronizado via Seed: ${res?.syncedApps?.length ?? 0} apps`);
       await checkIsland();
       handleSyncApps();
       setTimeout(() => setIslandFeedback(null), 3500);
     } catch {
-      setIslandFeedback("✓ Apps Island sincronizados em background");
+      setIslandFeedback("Apps Island sincronizados em background");
       setTimeout(() => setIslandFeedback(null), 3000);
     } finally {
       setIsSeedSyncing(false);
@@ -446,8 +446,9 @@ export function DeviceToolMenu({
         {/* 1. PASTA PRINCIPAL: APLICAÇÃO RAIZ (APENAS DVIEW) */}
         <div className="control-menu-section" style={{ marginBottom: "10px" }}>
           <div className="control-section-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="control-section-label" style={{ color: "#ff4d5a", fontWeight: 800 }}>
-              📁 PASTA PRINCIPAL [1]
+            <span className="control-section-label" style={{ color: "#ff4d5a", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <FolderTree size={11} />
+              <span>PASTA PRINCIPAL [1]</span>
             </span>
             <span
               style={{
@@ -485,7 +486,7 @@ export function DeviceToolMenu({
                   onClick={async () => {
                     try {
                       await api.launchApp(device.id, dviewApp.packageName);
-                      setIslandFeedback("✓ DVIEW em execução na Pasta Principal (User 0)");
+                      setIslandFeedback("DVIEW em execução na Pasta Principal (User 0)");
                       setTimeout(() => setIslandFeedback(null), 3000);
                       onSelectTarget?.(dviewApp.name);
                     } catch {}
@@ -535,8 +536,9 @@ export function DeviceToolMenu({
         {/* 2. PASTA SEPARADA: CONTAINER ISLAND (APPS DO SISTEMA & SERVIDOR) */}
         <div className="control-menu-section">
           <div className="control-section-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="control-section-label" style={{ color: "#38bdf8", fontWeight: 800 }}>
-              🏝️ PASTA SEPARADA (ISLAND) [{realApps.filter((a) => !a.packageName.includes("droidview.agent")).length}]
+            <span className="control-section-label" style={{ color: "#38bdf8", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <Layers size={11} />
+              <span>PASTA SEPARADA (ISLAND) [{realApps.filter((a) => !a.packageName.includes("droidview.agent")).length}]</span>
             </span>
             <button
               type="button"
@@ -605,7 +607,7 @@ export function DeviceToolMenu({
                       onClick={async () => {
                         try {
                           const res = await api.launchApp(device.id, app.packageName);
-                          setIslandFeedback(`⚡ [ISLAND] ${app.name} clonado e iniciado no container Island (User ${res?.userId || 10})`);
+                          setIslandFeedback(`[ISLAND] ${app.name} clonado e iniciado no container Island (User ${res?.userId || 10})`);
                           setIslandStatus((prev) =>
                             prev
                               ? {
@@ -668,10 +670,14 @@ export function DeviceToolMenu({
                           fontWeight: 700,
                           padding: "2px 5px",
                           borderRadius: "3px",
-                          border: `1px solid ${isMirrored ? "rgba(34, 197, 94, 0.4)" : "rgba(56, 189, 248, 0.4)"}`
+                          border: `1px solid ${isMirrored ? "rgba(34, 197, 94, 0.4)" : "rgba(56, 189, 248, 0.4)"}`,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "3px"
                         }}
                       >
-                        {isMirrored ? "🏝️ MIRRORED" : "⚡ AUTO-MIRROR"}
+                        {isMirrored ? <Layers size={8} /> : <Zap size={8} />}
+                        <span>{isMirrored ? "MIRRORED" : "AUTO-MIRROR"}</span>
                       </span>
                     </button>
                   );

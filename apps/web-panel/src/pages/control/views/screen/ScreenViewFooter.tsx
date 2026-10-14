@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Send,
   Trash2,
+  X,
   Zap
 } from "lucide-react";
 import type { ControlDevice } from "../../types";
@@ -142,7 +143,7 @@ export const ScreenViewFooter: React.FC<ScreenViewFooterProps> = ({
                 }}
                 title="Fechar histórico"
               >
-                ✕
+                <X size={12} />
               </button>
             </div>
           </div>

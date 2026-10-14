@@ -5,7 +5,9 @@ import {
   Check,
   Copy,
   ExternalLink,
+  Folder,
   Info,
+  Layers,
   Play,
   Power,
   RefreshCw,
@@ -74,7 +76,7 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
     setIsMirroring(true);
     try {
       const res = await api.mirrorAppsToIsland(device.id);
-      showToast(`⚡ ${res.mirrored.length} apps espelhados para o perfil Island (User ${res.profileUserId}).`);
+      showToast(`${res.mirrored.length} apps espelhados para o perfil Island (User ${res.profileUserId}).`);
       await fetchIsland();
     } catch {
       showToast("Falha no auto-mirror para Island.");
@@ -146,7 +148,7 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
     try {
       const res = await api.launchApp(device.id, app.packageName);
       if (res?.launchedInIsland) {
-        showToast(`⚡ [ISLAND] ${app.name} aberto no container seguro (User ${res.userId || 10}).`);
+        showToast(`[ISLAND] ${app.name} aberto no container seguro (User ${res.userId || 10}).`);
       } else {
         showToast(`Iniciando ${app.name} (${app.packageName}) no dispositivo.`);
       }
@@ -308,12 +310,16 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
             onClick={() => setFolderTab("principal")}
             style={{
               fontWeight: 800,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "5px",
               background: folderTab === "principal" ? "rgba(255, 26, 42, 0.2)" : undefined,
               borderColor: folderTab === "principal" ? "#ff1a2a" : undefined,
               color: folderTab === "principal" ? "#ff4d5a" : undefined
             }}
           >
-            📁 Pasta Principal (Apenas DVIEW)
+            <Folder size={12} />
+            <span>Pasta Principal (Apenas DVIEW)</span>
           </button>
           <button
             type="button"
@@ -321,12 +327,16 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
             onClick={() => setFolderTab("island")}
             style={{
               fontWeight: 800,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "5px",
               background: folderTab === "island" ? "rgba(56, 189, 248, 0.2)" : undefined,
               borderColor: folderTab === "island" ? "#38bdf8" : undefined,
               color: folderTab === "island" ? "#38bdf8" : undefined
             }}
           >
-            🏝️ Pasta Separada · Container Island ({apps.filter((a) => !a.packageName.includes("droidview.agent")).length})
+            <Layers size={12} />
+            <span>Pasta Separada · Container Island ({apps.filter((a) => !a.packageName.includes("droidview.agent")).length})</span>
           </button>
         </div>
 
@@ -410,7 +420,7 @@ export function AppsListView({ device, onOpenAppControl }: Props) {
                       }}
                       title="Espelhado no container Island"
                     >
-                      🏝️
+                      <Layers size={9} style={{ color: "#ffffff" }} />
                     </span>
                   )}
                 </div>

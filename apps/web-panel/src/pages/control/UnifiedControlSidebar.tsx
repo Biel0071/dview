@@ -3,10 +3,13 @@ import {
   Battery,
   Boxes,
   Camera,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   FolderTree,
+  Info,
   Keyboard,
+  Layers,
   Lock,
   MessageSquare,
   Mic,
@@ -22,6 +25,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Smartphone,
+  Sparkles,
   Star,
   Trash2,
   Unlock,
@@ -35,6 +39,7 @@ import type { ControlDevice, ControlTool, InstalledAppItem } from "./types";
 import { api } from "../../api";
 import { AppLogo } from "./AppLogo";
 import { DeviceEditModal } from "../../components/DeviceEditModal";
+import { BrandVectorIcon, stripEmojis } from "../../components/ui/BrandVectorIcon";
 
 interface Props {
   devices: ControlDevice[];
@@ -165,7 +170,7 @@ export function UnifiedControlSidebar({
     try {
       const res = await api.validateIsland(selectedDevice.id);
       setIslandStatus(res);
-      setIslandFeedback(`✓ Island Ativo (User ${res.profileUserId || 10})`);
+      setIslandFeedback(`Island Ativo (User ${res.profileUserId || 10})`);
       // Auto-mirror após ativação
       void api.mirrorAppsToIsland(selectedDevice.id).catch(() => {});
       handleSyncApps();
@@ -180,7 +185,7 @@ export function UnifiedControlSidebar({
         autoMirrorEnabled: true,
         interceptClickEnabled: true
       }));
-      setIslandFeedback("✓ Island Ativado com Sucesso (User 10)");
+      setIslandFeedback("Island Ativado com Sucesso (User 10)");
     } finally {
       setIsValidatingIsland(false);
     }
@@ -192,12 +197,12 @@ export function UnifiedControlSidebar({
     setIslandFeedback(null);
     try {
       const res = await api.syncIslandAppsViaSeed(selectedDevice.id);
-      setIslandFeedback(`✓ Sincronizado via Seed: ${res?.syncedApps?.length ?? 0} apps atualizados`);
+      setIslandFeedback(`Sincronizado via Seed: ${res?.syncedApps?.length ?? 0} apps atualizados`);
       handleSyncApps();
       const st = await api.getIslandStatus(selectedDevice.id);
       setIslandStatus(st);
     } catch {
-      setIslandFeedback("✓ Apps Island sincronizados em background");
+      setIslandFeedback("Apps Island sincronizados em background");
     } finally {
       setIsSeedSyncing(false);
     }
@@ -209,7 +214,7 @@ export function UnifiedControlSidebar({
     setIslandFeedback(null);
     try {
       const res = await api.mirrorAppsToIsland(selectedDevice.id);
-      setIslandFeedback(`✓ ${res?.mirrored?.length ?? 0} apps clonados para a Island`);
+      setIslandFeedback(`${res?.mirrored?.length ?? 0} apps clonados para a Island`);
       handleSyncApps();
     } catch {
       setIslandFeedback("Erro no auto-mirror");
@@ -405,13 +410,16 @@ export function UnifiedControlSidebar({
               className={`control-sidebar-filter-btn ${filterMode === "favorites" ? "active" : ""}`}
               onClick={() => setFilterMode("favorites")}
               title="Favoritos"
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "4px" }}
             >
-              ★ ({favCount})
+              <Star size={11} fill={filterMode === "favorites" ? "#facc15" : "none"} color={filterMode === "favorites" ? "#facc15" : "currentColor"} />
+              <span>({favCount})</span>
             </button>
           </div>
 
-          <div style={{ padding: "2px 10px 6px", fontSize: "9.5px", color: "#64748b" }}>
-            💡 Dica: Clique com <strong>botão direito</strong> no aparelho para opções rápidas.
+          <div style={{ padding: "2px 10px 6px", fontSize: "9.5px", color: "#64748b", display: "flex", alignItems: "center", gap: "5px" }}>
+            <Info size={11} style={{ color: "#38bdf8", flexShrink: 0 }} />
+            <span>Dica: Clique com <strong>botão direito</strong> no aparelho para opções rápidas.</span>
           </div>
 
           {/* Devices Scroll List */}
@@ -428,7 +436,7 @@ export function UnifiedControlSidebar({
                 {onAddEmulator && (
                   <button
                     type="button"
-                    className="primary compact-btn"
+                    className="tactical-btn tactical-btn-crimson"
                     onClick={onAddEmulator}
                     style={{ width: "100%", justifyContent: "center", fontSize: "11px" }}
                   >
@@ -476,21 +484,24 @@ export function UnifiedControlSidebar({
                         {device.contactName && (
                           <span
                             title={device.autoIdentified ? "Identificado automaticamente a partir dos dados do celular" : "Contato cadastrado"}
-                            style={{ fontSize: "9px", color: "#38bdf8", padding: "0 3px", borderRadius: "3px", background: "rgba(56, 189, 248, 0.12)", border: "1px solid rgba(56, 189, 248, 0.25)" }}
+                            style={{ fontSize: "9px", color: "#38bdf8", padding: "1px 4px", borderRadius: "3px", background: "rgba(56, 189, 248, 0.12)", border: "1px solid rgba(56, 189, 248, 0.25)", display: "inline-flex", alignItems: "center", gap: "3px" }}
                           >
-                            {device.autoIdentified ? "✨ Auto" : "Contato"}
+                            {device.autoIdentified && <Sparkles size={9} />}
+                            <span>{device.autoIdentified ? "Auto" : "Contato"}</span>
                           </span>
                         )}
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", margin: "1px 0" }}>
-                        <span style={{ fontSize: "9px", fontWeight: 700, color: "#f87171", background: "rgba(255, 26, 42, 0.12)", borderRadius: "3px", padding: "0 4px" }}>
-                          📦 {device.apkName || "JADLOG Rastreio"}
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", margin: "2px 0" }}>
+                        <span style={{ fontSize: "9px", fontWeight: 700, color: "#f87171", background: "rgba(255, 26, 42, 0.12)", borderRadius: "3px", padding: "1px 5px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                          <BrandVectorIcon brand={device.apkName} appName={device.apkName || "JADLOG Rastreio"} size={10} />
+                          <span>{stripEmojis(device.apkName || "JADLOG Rastreio")}</span>
                         </span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "3px" }}>
                         {device.phoneNumber ? (
-                          <span style={{ fontSize: "9.5px", color: "#86efac", fontFamily: "var(--font-mono)", display: "inline-flex", alignItems: "center", gap: "3px" }}>
-                            📞 {device.phoneNumber}
+                          <span style={{ fontSize: "9.5px", color: "#86efac", fontFamily: "var(--font-mono)", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <Phone size={9.5} style={{ color: "#4ade80" }} />
+                            <span>{device.phoneNumber}</span>
                           </span>
                         ) : (
                           <span />
@@ -723,7 +734,8 @@ export function UnifiedControlSidebar({
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
               <span style={{ fontSize: "11px", fontWeight: 800, color: "#38bdf8", display: "flex", alignItems: "center", gap: "5px" }}>
-                🏝️ PERFIL ISLAND
+                <Layers size={12} style={{ color: "#38bdf8" }} />
+                <span>PERFIL ISLAND</span>
               </span>
               <span
                 style={{
@@ -746,8 +758,8 @@ export function UnifiedControlSidebar({
                 type="button"
                 onClick={handleValidateIsland}
                 disabled={isValidatingIsland}
-                className="secondary compact-btn"
-                style={{ width: "100%", fontSize: "10px", padding: "5px 8px", justifyContent: "center", gap: "5px" }}
+                className="tactical-btn tactical-btn-sm"
+                style={{ width: "100%", justifyContent: "center" }}
                 title="Ativar e validar partição de segurança Island"
               >
                 <RotateCw size={11} className={isValidatingIsland ? "animate-spin" : ""} />
@@ -757,17 +769,8 @@ export function UnifiedControlSidebar({
                 type="button"
                 onClick={handleAutoMirror}
                 disabled={isMirroring}
-                className="secondary compact-btn"
-                style={{
-                  width: "100%",
-                  fontSize: "10px",
-                  padding: "5px 8px",
-                  justifyContent: "center",
-                  background: "rgba(56, 189, 248, 0.15)",
-                  borderColor: "#38bdf8",
-                  color: "#38bdf8",
-                  gap: "5px"
-                }}
+                className="tactical-btn tactical-btn-sm tactical-btn-cyan"
+                style={{ width: "100%", justifyContent: "center" }}
                 title="Clonar aplicativos para dentro da partição Island"
               >
                 <Boxes size={11} className={isMirroring ? "animate-spin" : ""} />
@@ -777,17 +780,8 @@ export function UnifiedControlSidebar({
                 type="button"
                 onClick={handleSeedSyncIsland}
                 disabled={isSeedSyncing}
-                className="secondary compact-btn"
-                style={{
-                  width: "100%",
-                  fontSize: "10px",
-                  padding: "5px 8px",
-                  justifyContent: "center",
-                  background: "rgba(168, 85, 247, 0.15)",
-                  borderColor: "#a855f7",
-                  color: "#c084fc",
-                  gap: "5px"
-                }}
+                className="tactical-btn tactical-btn-sm tactical-btn-purple"
+                style={{ width: "100%", justifyContent: "center" }}
                 title="Atualizar aplicativos da Island via Seed do Servidor"
               >
                 <RefreshCw size={11} className={isSeedSyncing ? "animate-spin" : ""} />
@@ -796,8 +790,9 @@ export function UnifiedControlSidebar({
             </div>
 
             {islandFeedback && (
-              <div style={{ marginTop: "6px", fontSize: "10px", color: "#38bdf8", fontWeight: 700, textAlign: "center", padding: "3px 6px", background: "rgba(56, 189, 248, 0.1)", borderRadius: "4px" }}>
-                {islandFeedback}
+              <div style={{ marginTop: "6px", fontSize: "10px", color: "#38bdf8", fontWeight: 700, textAlign: "center", padding: "3px 6px", background: "rgba(56, 189, 248, 0.1)", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
+                <CheckCircle2 size={10} style={{ color: "#22c55e", flexShrink: 0 }} />
+                <span>{islandFeedback}</span>
               </div>
             )}
           </div>
@@ -805,8 +800,9 @@ export function UnifiedControlSidebar({
           {/* 1. PASTA PRINCIPAL: APLICAÇÃO RAIZ (APENAS DVIEW) */}
           <div className="control-menu-section" style={{ marginTop: "6px", marginBottom: "8px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-              <span className="control-section-label" style={{ color: "#ff4d5a", fontWeight: 800 }}>
-                📁 PASTA PRINCIPAL [1]
+              <span className="control-section-label" style={{ color: "#ff4d5a", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                <FolderTree size={11} style={{ color: "#ff4d5a" }} />
+                <span>PASTA PRINCIPAL [1]</span>
               </span>
               <span
                 style={{
@@ -844,7 +840,7 @@ export function UnifiedControlSidebar({
                     onClick={async () => {
                       try {
                         await api.launchApp(selectedDevice.id, dviewApp.packageName);
-                        setIslandFeedback("✓ DVIEW em execução na Pasta Principal (User 0)");
+                        setIslandFeedback("DVIEW em execução na Pasta Principal (User 0)");
                         setTimeout(() => setIslandFeedback(null), 3000);
                       } catch {}
                     }}
@@ -893,26 +889,15 @@ export function UnifiedControlSidebar({
           {/* 2. PASTA SEPARADA: CONTAINER ISLAND (APPS DO SISTEMA & SERVIDOR) */}
           <div className="control-menu-section" style={{ marginTop: "6px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-              <span className="control-section-label" style={{ color: "#38bdf8", fontWeight: 800 }}>
-                🏝️ PASTA SEPARADA (ISLAND) [{realApps.filter((a) => !a.packageName.includes("droidview.agent")).length}]
+              <span className="control-section-label" style={{ color: "#38bdf8", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                <Layers size={11} style={{ color: "#38bdf8" }} />
+                <span>PASTA SEPARADA (ISLAND) [{realApps.filter((a) => !a.packageName.includes("droidview.agent")).length}]</span>
               </span>
               <button
                 type="button"
                 onClick={handleSyncApps}
                 title="Sincronizar aplicativos"
-                style={{
-                  background: "rgba(56, 189, 248, 0.15)",
-                  border: "1px solid #38bdf8",
-                  borderRadius: "4px",
-                  color: "#38bdf8",
-                  fontSize: "9px",
-                  fontWeight: 700,
-                  padding: "2px 5px",
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "3px"
-                }}
+                className="tactical-btn tactical-btn-xs tactical-btn-cyan"
               >
                 <RotateCw size={9} className={isSyncing ? "animate-spin" : ""} />
                 <span>{isSyncing ? "SYNC..." : "SYNC"}</span>
@@ -953,7 +938,7 @@ export function UnifiedControlSidebar({
                         onClick={async () => {
                           try {
                             const res = await api.launchApp(selectedDevice.id, app.packageName);
-                            setIslandFeedback(`⚡ [ISLAND] ${app.name} clonado e iniciado no container Island (User ${res?.userId || 10})`);
+                            setIslandFeedback(`[ISLAND] ${app.name} clonado e iniciado no container Island (User ${res?.userId || 10})`);
                             setIslandStatus((prev: any) =>
                               prev
                                 ? {
@@ -1002,10 +987,14 @@ export function UnifiedControlSidebar({
                             borderRadius: "3px",
                             background: isMirrored ? "rgba(56, 189, 248, 0.2)" : "rgba(148, 163, 184, 0.1)",
                             color: isMirrored ? "#38bdf8" : "#94a3b8",
-                            border: `1px solid ${isMirrored ? "rgba(56, 189, 248, 0.4)" : "rgba(148, 163, 184, 0.2)"}`
+                            border: `1px solid ${isMirrored ? "rgba(56, 189, 248, 0.4)" : "rgba(148, 163, 184, 0.2)"}`,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3px"
                           }}
                         >
-                          {isMirrored ? "🏝️ MIRRORED" : "⚡ MIRROR"}
+                          {isMirrored ? <Layers size={8} /> : <Zap size={8} />}
+                          <span>{isMirrored ? "MIRRORED" : "MIRROR"}</span>
                         </span>
                       </button>
                     );
@@ -1020,9 +1009,9 @@ export function UnifiedControlSidebar({
             <div style={{ display: "flex", gap: "5px", marginTop: "4px" }}>
               <button
                 type="button"
-                className="secondary compact-btn"
+                className="tactical-btn tactical-btn-sm"
                 onClick={() => onToggleLock?.(selectedDevice)}
-                style={{ flex: 1, fontSize: "10px", padding: "4px" }}
+                style={{ flex: 1 }}
                 title="Bloquear ou desbloquear tela"
               >
                 {selectedDevice.screenLocked ? <Unlock size={11} /> : <Lock size={11} />}
@@ -1030,9 +1019,9 @@ export function UnifiedControlSidebar({
               </button>
               <button
                 type="button"
-                className="danger compact-btn"
+                className="tactical-btn tactical-btn-sm tactical-btn-crimson"
                 onClick={() => onUninstall?.(selectedDevice)}
-                style={{ flex: 1, fontSize: "10px", padding: "4px" }}
+                style={{ flex: 1 }}
                 title="Desvincular aparelho da sessão"
               >
                 <Trash2 size={11} />

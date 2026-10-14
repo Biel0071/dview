@@ -304,7 +304,7 @@ export function MultiDeviceGrid({
             type="button"
             onClick={() => {
               setMultiSync(!multiSync);
-              showToast(!multiSync ? "⚡ Sincronização em Massa ATIVADA (Multi-Sync)" : "Sincronização Desativada");
+              showToast(!multiSync ? "Sincronização em Massa ATIVADA (Multi-Sync)" : "Sincronização Desativada");
             }}
             style={{
               display: "flex",

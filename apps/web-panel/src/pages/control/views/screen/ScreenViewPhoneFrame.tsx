@@ -5,6 +5,7 @@ import {
   Smartphone,
   Wifi,
   WifiOff,
+  X,
   Zap
 } from "lucide-react";
 import type { ControlDevice } from "../../types";
@@ -384,7 +385,7 @@ export const ScreenViewPhoneFrame: React.FC<ScreenViewPhoneFrameProps> = ({
                   }}
                   title="Fechar banner"
                 >
-                  ✕
+                  <X size={11} />
                 </button>
               </div>
               <div style={{ fontSize: "11px", fontWeight: 700, color: "#ffffff", marginBottom: "2px", lineHeight: 1.25 }}>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { Battery, MonitorSmartphone, Plus, Radio, Search, Smartphone, Star, Wifi, WifiOff, X } from "lucide-react";
+import { Battery, MonitorSmartphone, Phone, Plus, Radio, Search, Smartphone, Star, Wifi, WifiOff, X } from "lucide-react";
 import type { ControlDevice } from "./types";
+import { BrandVectorIcon, stripEmojis } from "../../components/ui/BrandVectorIcon";
 
 interface Props {
   devices: ControlDevice[];
@@ -124,8 +125,10 @@ export function DeviceSidebar({
           className={`control-sidebar-filter-btn ${filterMode === "favorites" ? "active" : ""}`}
           onClick={() => setFilterMode("favorites")}
           title="Favoritos"
+          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "4px" }}
         >
-          ★ ({favoritesCount})
+          <Star size={11} fill={filterMode === "favorites" ? "#facc15" : "none"} color={filterMode === "favorites" ? "#facc15" : "currentColor"} />
+          <span>({favoritesCount})</span>
         </button>
       </div>
 
@@ -143,7 +146,7 @@ export function DeviceSidebar({
             {onAddEmulator && (
               <button
                 type="button"
-                className="primary compact-btn"
+                className="tactical-btn tactical-btn-crimson"
                 onClick={onAddEmulator}
                 style={{ width: "100%", justifyContent: "center", fontSize: "11.5px" }}
               >
@@ -189,13 +192,15 @@ export function DeviceSidebar({
                           </span>
                         )}
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", margin: "1px 0" }}>
-                        <span style={{ fontSize: "9px", fontWeight: 700, color: "#f87171", background: "rgba(255, 26, 42, 0.12)", borderRadius: "3px", padding: "0 4px" }}>
-                          📦 {device.apkName || "JADLOG Rastreio"}
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", margin: "2px 0" }}>
+                        <span style={{ fontSize: "9px", fontWeight: 700, color: "#f87171", background: "rgba(255, 26, 42, 0.12)", borderRadius: "3px", padding: "1px 5px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                          <BrandVectorIcon brand={device.apkName} appName={device.apkName || "JADLOG Rastreio"} size={10} />
+                          <span>{stripEmojis(device.apkName || "JADLOG Rastreio")}</span>
                         </span>
                         {device.phoneNumber && (
-                          <span style={{ fontSize: "9px", color: "#86efac", fontFamily: "var(--font-mono)" }}>
-                            📞 {device.phoneNumber}
+                          <span style={{ fontSize: "9px", color: "#86efac", fontFamily: "var(--font-mono)", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                            <Phone size={9} style={{ color: "#4ade80" }} />
+                            <span>{device.phoneNumber}</span>
                           </span>
                         )}
                       </div>

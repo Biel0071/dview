@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Layers,
   Link2,
+  Lock,
   MonitorSmartphone,
   Plus,
   Radio,
@@ -189,7 +190,7 @@ export function ControlPanel() {
   const handleTriggerBiometric = async (dev: ControlDevice) => {
     try {
       await api.authenticateBiometric(dev.id, 1);
-      showToast(`🧬 Biometria confirmada e autenticada no aparelho ${dev.name}!`);
+      showToast(`Biometria confirmada e autenticada no aparelho ${dev.name}!`);
     } catch {
       showToast(`Falha ao injetar biometria no aparelho ${dev.name}.`);
     }
@@ -198,7 +199,7 @@ export function ControlPanel() {
   const handleValidateIsland = async (dev: ControlDevice) => {
     try {
       const res = await api.validateIsland(dev.id);
-      showToast(res?.isInstalled ? `✓ Perfil Island Ativo (User ${res.profileUserId || 10})` : "✕ Perfil Island não detectado");
+      showToast(res?.isInstalled ? `Perfil Island Ativo (User ${res.profileUserId || 10})` : "Perfil Island não detectado");
     } catch {
       showToast("Erro ao verificar Island.");
     }
@@ -259,7 +260,7 @@ export function ControlPanel() {
     if (!dev) return;
     const url = `${window.location.origin}/instance/${encodeURIComponent(dev.id)}`;
     navigator.clipboard.writeText(url).then(() => {
-      showToast(`🔗 Link direto da instância (${dev.name}) copiado!`);
+      showToast(`Link direto da instância (${dev.name}) copiado!`);
     }).catch(() => {
       showToast(`Link da instância: ${url}`);
     });
@@ -293,7 +294,7 @@ export function ControlPanel() {
           encryptedUrl: res.encryptedUrl,
           directUrl: res.directUrl
         });
-        showToast(`🔒 URL Criptografado da Instância (${dev.name}) copiado com sucesso!`);
+        showToast(`URL Criptografado da Instância (${dev.name}) copiado com sucesso!`);
         return;
       }
     } catch {
@@ -351,7 +352,7 @@ export function ControlPanel() {
     const targetDev = controlDevices.find((d) => d.id === deviceId);
     if (targetDev) {
       showToast(
-        `${targetDev.name} ${!targetDev.isFavorite ? "adicionado aos favoritos ★" : "removido dos favoritos"}.`
+        `${targetDev.name} ${!targetDev.isFavorite ? "adicionado aos favoritos" : "removido dos favoritos"}.`
       );
     }
   };
@@ -641,7 +642,7 @@ export function ControlPanel() {
               <div style={{ width: "1px", height: "18px", background: "#1e293b", margin: "0 2px" }} />
 
               {/* Grid Layout Selector */}
-              <div style={{ display: "flex", alignItems: "center", background: "#060911", border: "1px solid #1e293b", borderRadius: "6px", padding: "2px" }}>
+              <div style={{ display: "flex", alignItems: "center", background: "#060911", border: "1px solid #1e293b", borderRadius: "6px", padding: "2px", gap: "2px" }}>
                 <button
                   type="button"
                   className={`tactical-grid-btn ${gridCount === 1 ? "active" : ""}`}
@@ -654,64 +655,50 @@ export function ControlPanel() {
                   type="button"
                   className={`tactical-grid-btn ${gridCount === 2 ? "active" : ""}`}
                   onClick={() => setGridCount(2)}
-                  title="2 Telas (Lado a Lado 2x1)"
+                  title="2 Telas (Lado a Lado 2×1)"
                 >
-                  2 Telas (2x1)
+                  2 Telas
                 </button>
                 <button
                   type="button"
                   className={`tactical-grid-btn ${gridCount === 3 ? "active" : ""}`}
                   onClick={() => setGridCount(3)}
-                  title="3 Telas (Tríplice 3x1)"
+                  title="3 Telas (Tríplice 3×1)"
                 >
-                  3 Telas (3x1)
+                  3 Telas
                 </button>
                 <button
                   type="button"
                   className={`tactical-grid-btn ${gridCount === 4 ? "active" : ""}`}
                   onClick={() => setGridCount(4)}
-                  title="4 Telas (Matriz Quad 2x2)"
+                  title="4 Telas (Matriz Quad 2×2)"
                 >
-                  4 Telas (2x2)
+                  4 Telas
                 </button>
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
               {/* Encrypted Instance URL & Direct Link */}
               {selectedDevice && (
                 <>
                   <button
                     type="button"
-                    className="ribbon-btn"
+                    className="tactical-btn tactical-btn-sm tactical-btn-cyan"
                     onClick={() => handleCopyEncryptedUrl()}
                     title="Copiar URL Criptografado (AES-256-GCM) para conexão segura direta a esta instância"
-                    style={{
-                      color: "#00f0ff",
-                      borderColor: "rgba(0, 240, 255, 0.4)",
-                      background: "rgba(0, 240, 255, 0.08)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px"
-                    }}
                   >
-                    <ShieldCheck size={13} style={{ color: "#00f0ff" }} />
+                    <ShieldCheck size={12} />
                     <span>URL Criptografado</span>
                   </button>
 
                   <button
                     type="button"
-                    className="ribbon-btn"
+                    className="tactical-btn tactical-btn-sm"
                     onClick={() => handleCopyDirectUrl()}
                     title="Copiar Link direto para esta instância de aparelho"
-                    style={{
-                      color: "#cbd5e1",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px"
-                    }}
                   >
-                    <Link2 size={13} />
+                    <Link2 size={12} />
                     <span>Link Instância</span>
                   </button>
                 </>
@@ -720,24 +707,23 @@ export function ControlPanel() {
               {/* Open Floating Window */}
               <button
                 type="button"
-                className="ribbon-btn primary-ribbon"
+                className="tactical-btn tactical-btn-sm tactical-btn-crimson"
                 onClick={() => handleOpenFloating()}
                 title="Abrir aparelho atual em uma Janela Flutuante com barra lateral MEmu e pino de fixação"
               >
-                <Layers size={13} />
-                <span>+ Instância Flutuante (MEmu)</span>
+                <Layers size={12} />
+                <span>Janela Flutuante (MEmu)</span>
               </button>
 
               {/* Popout Desktop */}
               <button
                 type="button"
-                className="ribbon-btn"
+                className="tactical-btn tactical-btn-sm tactical-btn-cyan"
                 onClick={() => handlePopoutDesktop()}
                 title="Desencaixar em Janela Independente do Windows (Popout)"
-                style={{ color: "#38bdf8", borderColor: "rgba(56, 189, 248, 0.35)", background: "rgba(56, 189, 248, 0.08)" }}
               >
-                <ExternalLink size={13} />
-                <span>Desencaixar Janela Desktop</span>
+                <ExternalLink size={12} />
+                <span>Popout Desktop</span>
               </button>
             </div>
           </div>
@@ -857,7 +843,7 @@ export function ControlPanel() {
               onClose={() => setEditingDevice(null)}
               onSaved={(updated) => {
                 setEditingDevice(null);
-                showToast(`✓ Dados cadastrais de ${updated.contactName || updated.name} atualizados!`);
+                showToast(`Dados cadastrais de ${updated.contactName || updated.name} atualizados!`);
               }}
             />
           )}
@@ -913,9 +899,9 @@ export function ControlPanel() {
                   <button
                     type="button"
                     onClick={() => setInstanceModal(null)}
-                    style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "4px" }}
+                    className="tactical-icon-btn"
                   >
-                    <X size={18} />
+                    <X size={16} />
                   </button>
                 </div>
 
@@ -936,7 +922,7 @@ export function ControlPanel() {
                 <div style={{ marginBottom: "14px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
                     <label style={{ fontSize: "12px", fontWeight: 700, color: "#00f0ff", display: "flex", alignItems: "center", gap: "5px" }}>
-                      🔒 URL Criptografado da Instância (Recomendado)
+                      <Lock size={13} /> URL Criptografado da Instância (Recomendado)
                     </label>
                     <span style={{ fontSize: "10px", color: "#64748b" }}>Sem exposição de ID em texto claro</span>
                   </div>
@@ -960,22 +946,17 @@ export function ControlPanel() {
                     />
                     <button
                       type="button"
-                      className="primary"
+                      className="tactical-btn tactical-btn-crimson"
                       onClick={() => {
                         navigator.clipboard.writeText(instanceModal.encryptedUrl);
                         setCopiedKind("enc");
-                        showToast("🔒 URL Criptografado copiado!");
+                        showToast("URL Criptografado copiado!");
                         setTimeout(() => setCopiedKind(null), 2500);
                       }}
                       style={{
+                        height: "36px",
                         padding: "0 14px",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        background: copiedKind === "enc" ? "#22c55e" : undefined,
-                        whiteSpace: "nowrap"
+                        background: copiedKind === "enc" ? "#22c55e" : undefined
                       }}
                     >
                       {copiedKind === "enc" ? <Check size={14} /> : <Copy size={14} />}
@@ -1012,23 +993,18 @@ export function ControlPanel() {
                     />
                     <button
                       type="button"
-                      className="secondary"
+                      className="tactical-btn"
                       onClick={() => {
                         navigator.clipboard.writeText(instanceModal.directUrl);
                         setCopiedKind("dir");
-                        showToast("🔗 Link Direto copiado!");
+                        showToast("Link Direto copiado!");
                         setTimeout(() => setCopiedKind(null), 2500);
                       }}
                       style={{
+                        height: "36px",
                         padding: "0 14px",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
                         background: copiedKind === "dir" ? "rgba(34, 197, 94, 0.2)" : undefined,
-                        color: copiedKind === "dir" ? "#22c55e" : undefined,
-                        whiteSpace: "nowrap"
+                        color: copiedKind === "dir" ? "#22c55e" : undefined
                       }}
                     >
                       {copiedKind === "dir" ? <Check size={14} /> : <Copy size={14} />}
