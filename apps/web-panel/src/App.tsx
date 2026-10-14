@@ -387,7 +387,17 @@ export function App() {
         <div className="brand" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div className="brand-emblem-wrap">
-              <img src="./dview-logo.jpg" alt="DVIEW Emblem" />
+              <img
+                src={typeof window !== "undefined" && window.location.protocol === "file:" ? "./dview-logo.jpg" : "/dview-logo.jpg"}
+                alt="DVIEW Emblem"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (!target.dataset.fallback) {
+                    target.dataset.fallback = "1";
+                    target.src = "./dview-logo.jpg";
+                  }
+                }}
+              />
             </div>
             {!isGlobalSidebarCollapsed && (
               <div>

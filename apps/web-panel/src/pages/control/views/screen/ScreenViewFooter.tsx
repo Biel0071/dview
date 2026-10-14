@@ -4,7 +4,6 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
-  Eye,
   History,
   MessageSquare,
   Send,
@@ -292,40 +291,44 @@ export const ScreenViewFooter: React.FC<ScreenViewFooterProps> = ({
       )}
 
       <form className="tactical-shell-command-form" onSubmit={handleSendShellCommand} style={{ width: "100%", margin: 0 }}>
-        {/* O Olho Cibernético e Logo do Sistema DVIEW com Glow Carmesim */}
+        {/* Logo Oficial do Sistema DVIEW */}
         <div
           className="tactical-cmd-prompt-badge"
-          title="DVIEW Console - Logo Oficial do Sistema com Olho Cibernético"
+          title="DVIEW Console"
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "5px",
-            padding: "2px 6px",
-            background: "rgba(255, 26, 42, 0.12)",
-            border: "1px solid rgba(255, 26, 42, 0.35)",
-            borderRadius: "5px",
+            justifyContent: "center",
+            padding: 0,
+            background: "#000000",
+            border: "1.5px solid #ff1a2a",
+            borderRadius: "50%",
+            width: "26px",
+            height: "26px",
+            boxShadow: "0 0 10px rgba(255, 26, 42, 0.55)",
+            overflow: "hidden",
             flexShrink: 0
           }}
         >
           <img
-            src="./dview-logo.jpg"
-            alt="DVIEW Emblem"
+            src={typeof window !== "undefined" && window.location.protocol === "file:" ? "./dview-logo.jpg" : "/dview-logo.jpg"}
+            alt="DVIEW"
             style={{
-              width: "14px",
-              height: "14px",
-              borderRadius: "50%",
+              width: "130%",
+              height: "130%",
               objectFit: "cover",
-              border: "1px solid #ff1a2a",
-              boxShadow: "0 0 6px rgba(255, 26, 42, 0.7)"
+              objectPosition: "center 26%",
+              filter: "contrast(1.15) brightness(1.1)",
+              display: "block"
             }}
             onError={(e) => {
-              (e.currentTarget as any).style.display = "none";
+              const target = e.currentTarget;
+              if (!target.dataset.fallback) {
+                target.dataset.fallback = "1";
+                target.src = "./dview-logo.jpg";
+              }
             }}
           />
-          <Eye size={12} style={{ color: "#ff1a2a" }} />
-          {!showRightSidebar && (
-            <span style={{ fontWeight: 800, color: "#ff4d5a", letterSpacing: "0.5px" }}>DVIEW:~$</span>
-          )}
         </div>
 
         <input

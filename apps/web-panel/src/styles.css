@@ -7831,10 +7831,8 @@ progress {
   min-height: 38px;
   flex-shrink: 0;
   gap: 6px;
-  z-index: 20;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
+  z-index: 500;
+  overflow: visible;
 }
 
 .tactical-top-controls-bar::-webkit-scrollbar {
@@ -7848,9 +7846,7 @@ progress {
   width: 100%;
   min-width: 0;
   gap: 6px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
+  overflow: visible;
 }
 
 .tactical-single-toolbar-row::-webkit-scrollbar {
@@ -9952,10 +9948,8 @@ button:active,
   justify-content: space-between;
   padding: 0 12px;
   flex-shrink: 0;
-  z-index: 40;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
+  z-index: 600;
+  overflow: visible;
 }
 
 .control-ribbon-toolbar::-webkit-scrollbar {
@@ -10482,8 +10476,13 @@ button:active,
   flex-wrap: nowrap !important;
   gap: 8px !important;
   overflow: visible !important;
+  position: relative !important;
+  z-index: 600 !important;
+}
+
+.control-three-cols-wrapper {
   position: relative;
-  z-index: 60 !important;
+  z-index: 1;
 }
 
 .tactical-top-controls-bar {
@@ -10491,8 +10490,18 @@ button:active,
   min-height: 36px !important;
   padding: 0 8px !important;
   overflow: visible !important;
+  position: relative !important;
+  z-index: 500 !important;
+}
+
+.tactical-screen-body-row,
+.tactical-stage-and-footer-column,
+.tactical-viewports-stage,
+.tactical-phone-viewport,
+.real-screen-container {
   position: relative;
-  z-index: 50 !important;
+  z-index: 1;
+  isolation: isolate;
 }
 
 .tactical-single-toolbar-row {
@@ -10513,6 +10522,7 @@ button:active,
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
+  z-index: 550;
 }
 
 .tactical-dropdown-trigger {
@@ -10544,14 +10554,14 @@ button:active,
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  min-width: 215px;
-  background: rgba(9, 13, 24, 0.98);
-  border: 1px solid rgba(56, 189, 248, 0.35);
+  min-width: 225px;
+  background: rgba(9, 13, 24, 0.99);
+  border: 1px solid rgba(56, 189, 248, 0.45);
   border-radius: 8px;
   padding: 6px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.75), 0 0 16px rgba(56, 189, 248, 0.14);
-  backdrop-filter: blur(12px);
-  z-index: 999;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.88), 0 0 18px rgba(56, 189, 248, 0.18);
+  backdrop-filter: blur(14px);
+  z-index: 9999 !important;
   display: flex;
   flex-direction: column;
   gap: 2px;

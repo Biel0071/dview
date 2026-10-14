@@ -77,6 +77,26 @@ async function run() {
   fs.writeFileSync(path.join(ARTIFACT_DIR, "audit_control_panel.png"), imgControl.toPNG());
   console.log("-> Saved audit_control_panel.png");
 
+  // Capture Submenu: 1 Tela (Multi-Tela Grid in Ribbon)
+  await win.webContents.executeJavaScript(`
+    (() => {
+      const btns = Array.from(document.querySelectorAll(".control-ribbon-toolbar .tactical-dropdown-trigger"));
+      const btn = btns.find(b => b.textContent && b.textContent.includes("Tela"));
+      if (btn) btn.click();
+    })()
+  `);
+  await new Promise((r) => setTimeout(r, 500));
+  const imgSubGrid = await win.capturePage();
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "audit_submenu_grid.png"), imgSubGrid.toPNG());
+  console.log("-> Saved audit_submenu_grid.png");
+  await win.webContents.executeJavaScript(`
+    (() => {
+      const btns = Array.from(document.querySelectorAll(".control-ribbon-toolbar .tactical-dropdown-trigger"));
+      const btn = btns.find(b => b.textContent && b.textContent.includes("Tela"));
+      if (btn) btn.click();
+    })()
+  `);
+
   // Capture Submenu: Telas (1/2)
   await win.webContents.executeJavaScript(`
     (() => {
